@@ -1,0 +1,84 @@
+---
+title: {{ title | tojson }}
+date: {{ date | tojson }}
+generator: {{ generator | tojson }}
+arc42_template_version: {{ arc42_template_version | tojson }}
+---
+
+# {{ title }}
+
+Generated from archledger records. Do not edit this generated file directly.
+
+# Introduction and Goals
+
+{{ section_body("introduction_and_goals") }}
+
+## Requirements Overview
+
+{{ section_body("requirements_overview") }}
+
+## Quality Goals
+
+{{ quality_goals_table() }}
+
+## Stakeholders
+
+{{ stakeholders_table() }}
+
+# Architecture Constraints
+
+{{ constraints_list() }}
+
+# Context and Scope
+
+{{ section_body("context_and_scope") }}
+
+## Business Context
+
+{{ context_interfaces("business") }}
+
+## Technical Context
+
+{{ context_interfaces("technical") }}
+
+# Solution Strategy
+
+{{ section_body("solution_strategy") }}
+
+# Building Block View
+
+{{ building_block_view() }}
+
+# Runtime View
+
+{{ runtime_scenarios() }}
+
+# Deployment View
+
+{{ deployment_view() }}
+
+# Cross-cutting Concepts
+
+{{ concepts() }}
+
+# Architecture Decisions
+
+{{ adrs() }}
+
+# Quality Requirements
+
+## Quality Requirements Overview
+
+{{ section_body("quality_requirements") }}
+
+## Quality Scenarios
+
+{{ quality_scenarios() }}
+
+# Risks and Technical Debts
+
+{{ risks() }}
+
+# Glossary
+
+{{ glossary_table() }}

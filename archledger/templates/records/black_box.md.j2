@@ -1,0 +1,19 @@
+---
+id: {{ id }}
+type: black_box
+title: {{ title | tojson }}
+status: {{ status }}
+section: {{ section }}
+level: {{ level }}
+parent: {{ parent | default('null') }}
+order: {{ order }}
+interfaces: []
+location: []
+fulfilled_requirements: []
+risks: []
+tags: []
+created_at: {{ created_at | tojson }}
+updated_at: {{ updated_at | tojson }}
+---
+
+Describe the purpose and responsibility of this black box.

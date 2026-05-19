@@ -9,6 +9,8 @@ include = ["archledger*"]
 [tool.setuptools.package-data]
 archledger = [
     "py.typed",
+    "templates/*.md.j2",
+    "templates/records/*.md.j2",
 ]
 
 [tool.pytest.ini_options]
@@ -23,13 +25,13 @@ markers = [
 
 [project]
 name = "archledger"
-description = "Durable project-state storage and CLI for coding workflows"
+description = "Markdown-first architecture documentation ledger for arc42-style documents"
 authors = [{name = "Archledger Contributors"}]
 maintainers = [{name = "Holger Nahrstaedt"}]
 requires-python = ">=3.10"
 readme = "README.md"
 license = "Apache-2.0"
-keywords = ["cli", "durable-state", "project-state", "developer-tools", "workflows"]
+keywords = ["arc42", "architecture", "cli", "developer-tools", "documentation"]
 dependencies = [
     "typer",
     "PyYAML",

@@ -7,9 +7,9 @@ project_uuid = "bf999c8f-4e9e-46d6-9275-892c24d19f85"
 project_name = "archledger"
 
 # Taskledger branch-scoped state. This block is intentionally safe to commit.
-ledger_ref = 'main'
-ledger_parent_ref = ''
-ledger_next_task_number = 1
+ledger_ref = "main"
+ledger_parent_ref = ""
+ledger_next_task_number = 2
 ledger_branch_guard = "off"
 
 # Project-local taskledger overrides.
