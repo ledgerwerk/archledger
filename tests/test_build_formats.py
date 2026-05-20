@@ -220,8 +220,8 @@ def test_json_build_reports_multiple_outputs(
 
 def init_project(tmp_path: Path) -> None:
     init_project_with_format(tmp_path)
- 
- 
+
+
 def init_project_with_format(tmp_path: Path, source_format: str = "asciidoc") -> None:
     result = runner.invoke(
         app,
@@ -248,7 +248,9 @@ def test_markdown_source_markdown_build_requires_no_tools(
 
     monkeypatch.setattr("archledger.converters.subprocess.run", fail_run)
 
-    result = runner.invoke(app, ["--root", str(tmp_path), "build", "--format", "markdown"])
+    result = runner.invoke(
+        app, ["--root", str(tmp_path), "build", "--format", "markdown"]
+    )
 
     assert result.exit_code == 0
     assert (tmp_path / ".archledger" / "build" / "architecture.md").is_file()
@@ -266,7 +268,9 @@ def test_asciidoc_source_asciidoc_build_requires_no_tools(
 
     monkeypatch.setattr("archledger.converters.subprocess.run", fail_run)
 
-    result = runner.invoke(app, ["--root", str(tmp_path), "build", "--format", "asciidoc"])
+    result = runner.invoke(
+        app, ["--root", str(tmp_path), "build", "--format", "asciidoc"]
+    )
 
     assert result.exit_code == 0
     assert (tmp_path / ".archledger" / "build" / "architecture.adoc").is_file()

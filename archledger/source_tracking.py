@@ -344,7 +344,9 @@ def _scan_git_paths(workspace_root: Path) -> list[Path]:
 
 
 def _scan_filesystem_paths(workspace_root: Path) -> list[Path]:
-    return sorted(path.resolve() for path in workspace_root.rglob("*") if path.is_file())
+    return sorted(
+        path.resolve() for path in workspace_root.rglob("*") if path.is_file()
+    )
 
 
 def _should_skip_path(path: Path, paths: ProjectPaths) -> bool:

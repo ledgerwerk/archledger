@@ -111,11 +111,9 @@ def recompute_next_numbers(
         directory = records_dir / RECORD_TYPE_TO_DIR[record_type]
         prefix = RECORD_TYPE_TO_FILENAME_PREFIX[record_type]
         pattern = re.compile(
-            
-                rf"^{re.escape(prefix)}_?(?P<number>\d{{4}})$"
-                if prefix == "adr"
-                else rf"^{re.escape(prefix)}_(?P<number>\d{{4}})$"
-            
+            rf"^{re.escape(prefix)}_?(?P<number>\d{{4}})$"
+            if prefix == "adr"
+            else rf"^{re.escape(prefix)}_(?P<number>\d{{4}})$"
         )
         if not directory.is_dir():
             continue

@@ -159,7 +159,9 @@ def test_v4_config_supports_source_schema_version(tmp_path: Path) -> None:
     assert config.tracking_enabled is True
     assert config.tracking_state_file == "source-state.json"
     assert config.tracking_scanner == "auto"
-    assert paths.source_state_path == workspace_root / ".archledger" / "source-state.json"
+    assert (
+        paths.source_state_path == workspace_root / ".archledger" / "source-state.json"
+    )
 
 
 def test_v5_config_supports_tracking_settings(tmp_path: Path) -> None:

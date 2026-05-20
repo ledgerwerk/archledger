@@ -19,15 +19,14 @@ from archledger.model import (
     REQUIRED_RECORD_FIELDS,
     VALID_BODY_FORMATS,
     ArchitectureRecord,
-    SourceRef,
     SectionSpec,
-    default_extension_for_source_format,
+    SourceRef,
     filename_for,
     is_visible_status,
-    section_body_placeholder_for_source_format,
     normalize_kind,
     record_sort_key,
     record_template_name_for_source_format,
+    section_body_placeholder_for_source_format,
     section_filename_for,
     validate_record,
 )
@@ -215,9 +214,9 @@ class ArchitectureRepository:
             target_path=target_path,
             **kwargs,
         )
-        text = self._template_env.get_template(
-            f"records/{template_name}"
-        ).render(**context)
+        text = self._template_env.get_template(f"records/{template_name}").render(
+            **context
+        )
         write_text(target_path, text)
         self._write_recomputed_counters()
         return self._load_record_from_path(target_path)
@@ -234,9 +233,7 @@ class ArchitectureRepository:
         if kind is not None:
             normalized_kind = normalize_kind(kind)
             all_records = [
-                record
-                for record in all_records
-                if record.type == normalized_kind
+                record for record in all_records if record.type == normalized_kind
             ]
         visible_records = [
             record
@@ -256,8 +253,7 @@ class ArchitectureRepository:
     ) -> list[ArchitectureRecord]:
         self._ensure_storage_ready()
         records = [
-            self._load_record_from_path(path)
-            for path in self._all_record_paths()
+            self._load_record_from_path(path) for path in self._all_record_paths()
         ]
         if include_sections:
             return sorted(records, key=record_sort_key)
@@ -518,8 +514,7 @@ class ArchitectureRepository:
 
     def _load_records(self, *, include_sections: bool) -> list[ArchitectureRecord]:
         records = [
-            self._load_record_from_path(path)
-            for path in self._all_record_paths()
+            self._load_record_from_path(path) for path in self._all_record_paths()
         ]
         if include_sections:
             return records
@@ -683,14 +678,17 @@ class ArchitectureRepository:
         return errors, warnings
 
     def _body_syntax_warnings(self, record: ArchitectureRecord) -> list[str]:
-        body_format_value = record.metadata.get("body_format", self.config.source_format)
+        body_format_value = record.metadata.get(
+            "body_format", self.config.source_format
+        )
         if not isinstance(body_format_value, str):
             return []
         body_format = body_format_value.strip().lower()
         if body_format == "markdown":
             if "[discrete]" in record.body and "\n===" in record.body:
                 return [
-                    f"Markdown record {record.id} contains AsciiDoc-style discrete headings."
+                    f"Markdown record {record.id} contains "
+                    "AsciiDoc-style discrete headings."
                 ]
             return []
         if body_format == "asciidoc":
@@ -752,7 +750,8 @@ def _normalize_source_ref_entry(
         return (
             None,
             [
-                f"Record {record_id} source_refs entry {index} must be a string or mapping."
+                f"Record {record_id} source_refs entry {index} "
+                "must be a string or mapping."
             ],
         )
 
@@ -763,7 +762,8 @@ def _normalize_source_ref_entry(
         return (
             None,
             [
-                f"Record {record_id} source_refs entry {index} symbols must be a list of strings."
+                f"Record {record_id} source_refs entry {index} "
+                "symbols must be a list of strings."
             ],
         )
     symbols: list[str] = []
@@ -772,7 +772,8 @@ def _normalize_source_ref_entry(
             return (
                 None,
                 [
-                    f"Record {record_id} source_refs entry {index} symbols must contain only non-empty strings."
+                    f"Record {record_id} source_refs entry {index} "
+                    "symbols must contain only non-empty strings."
                 ],
             )
         symbols.append(symbol.strip())
@@ -803,7 +804,10 @@ def _build_source_ref(
     if not isinstance(raw_path, str) or not raw_path.strip():
         return (
             None,
-            [f"Record {record_id} source_refs entry {index} must define a non-empty path."],
+            [
+                f"Record {record_id} source_refs entry {index} "
+                "must define a non-empty path."
+            ],
         )
     original_path = raw_path.strip()
     is_directory_ref = original_path.endswith("/")
@@ -818,7 +822,8 @@ def _build_source_ref(
         return (
             None,
             [
-                f"Record {record_id} source_refs entry {index} path must not contain '..': {original_path}"
+                f"Record {record_id} source_refs entry {index} "
+                f"path must not contain '..': {original_path}"
             ],
         )
     posix_path = pure_path.as_posix()
@@ -831,7 +836,8 @@ def _build_source_ref(
         return (
             None,
             [
-                f"Record {record_id} source_refs entry {index} path does not exist: {posix_path}"
+                f"Record {record_id} source_refs entry {index} "
+                f"path does not exist: {posix_path}"
             ],
         )
     if is_directory_ref:
@@ -994,10 +1000,8 @@ def _infrastructure_warnings(record: ArchitectureRecord) -> list[str]:
         and not _non_empty_sequence(record.metadata.get("maps_building_blocks"))
     ):
         warnings.append(
-            
-                f"Infrastructure {record.id} in production must map building "
-                "blocks explicitly."
-            
+            f"Infrastructure {record.id} in production must map building "
+            "blocks explicitly."
         )
     return warnings
 
@@ -1018,9 +1022,7 @@ def _quality_scenario_warnings(record: ArchitectureRecord) -> list[str]:
     if not _non_empty_text(response_measure):
         return [f"Quality scenario {record.id} has no response_measure."]
     if isinstance(response_measure, str) and not _looks_measurable(response_measure):
-        return [
-            f"Quality scenario {record.id} response_measure should be measurable."
-        ]
+        return [f"Quality scenario {record.id} response_measure should be measurable."]
     return []
 
 
@@ -1031,9 +1033,7 @@ def _risk_warnings(record: ArchitectureRecord) -> list[str]:
     if severity not in ALLOWED_RISK_LEVELS:
         warnings.append(f"Risk {record.id} has unsupported severity: {severity}")
     if probability not in ALLOWED_RISK_LEVELS:
-        warnings.append(
-            f"Risk {record.id} has unsupported probability: {probability}"
-        )
+        warnings.append(f"Risk {record.id} has unsupported probability: {probability}")
     return warnings
 
 

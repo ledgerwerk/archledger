@@ -106,7 +106,9 @@ def _resolve_archledger_child(
     try:
         resolved = (archledger_dir / candidate).resolve()
     except OSError as exc:
-        raise ConfigError(f"{field_name} could not be resolved: {relative_path!r}") from exc
+        raise ConfigError(
+            f"{field_name} could not be resolved: {relative_path!r}"
+        ) from exc
     try:
         resolved.relative_to(archledger_dir)
     except ValueError as exc:

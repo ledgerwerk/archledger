@@ -74,9 +74,7 @@ def resolve_requested_formats(
     build_all: bool,
 ) -> tuple[OutputFormat, ...]:
     selected_options = sum(
-        1
-        for value in (format_name, formats_value)
-        if value not in (None, "")
+        1 for value in (format_name, formats_value) if value not in (None, "")
     ) + int(build_all)
     if selected_options > 1:
         raise RenderError("Use only one of --format, --formats, or --all.")

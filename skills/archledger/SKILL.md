@@ -3,7 +3,9 @@ name: archledger
 description: Fill and maintain Markdown- or AsciiDoc-backed arc42 architecture documentation with YAML front matter, direct source reading, validation, and optional exports.
 license: Apache-2.0
 compatibility: opencode,codex,chatgpt
-metadata: architecture-documentation,arc42,coding-agents
+metadata:
+  audience: coding-agents
+  workflow: architecture-documentation,arc42
 ---
 
 # archledger skill

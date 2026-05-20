@@ -1,2 +1,1 @@
 """Storage helpers for archledger."""
-

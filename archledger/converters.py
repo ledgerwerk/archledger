@@ -79,7 +79,9 @@ def convert_assembled_document(
             command = list(plan.command or [])
             if plan.requires_docbook:
                 if docbook_path is None:
-                    docbook_path = _build_docbook_intermediate(assembly, requested_format)
+                    docbook_path = _build_docbook_intermediate(
+                        assembly, requested_format
+                    )
                 command[-1] = str(docbook_path)
             _run_command(command, requested_format)
             outputs.append(
@@ -330,19 +332,13 @@ def _install_hint(
             f"[build.outputs.{requested_format.value}]."
         )
     if source_format == "gfm":
-        return (
-            "Install `pandoc` or disable "
-            f"[build.outputs.{requested_format.value}]."
-        )
+        return f"Install `pandoc` or disable [build.outputs.{requested_format.value}]."
     if source_format == "asciidoc":
         return (
             "Install `pandoc` or configure [build.outputs."
-            f"{requested_format.value}] tool = \"asciidoctor\"."
+            f'{requested_format.value}] tool = "asciidoctor".'
         )
-    return (
-        "Install the required converter for "
-        f"{requested_format.value} output."
-    )
+    return f"Install the required converter for {requested_format.value} output."
 
 
 def _require_tool(

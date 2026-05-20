@@ -82,7 +82,9 @@ def source_state_from_json(data: object) -> SourceState:
 
 def _require_string(value: object, field_name: str) -> str:
     if not isinstance(value, str) or not value.strip():
-        raise StorageError(f"source-state field {field_name} must be a non-empty string.")
+        raise StorageError(
+            f"source-state field {field_name} must be a non-empty string."
+        )
     return value.strip()
 
 

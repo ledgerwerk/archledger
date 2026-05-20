@@ -121,8 +121,7 @@ def _convert_body(
         details = result.stderr.strip() or result.stdout.strip()
         if details:
             raise RenderError(
-                "Cannot convert Markdown source body with pandoc.\n"
-                f"{details}"
+                f"Cannot convert Markdown source body with pandoc.\n{details}"
             )
         raise RenderError("Cannot convert Markdown source body with pandoc.")
     return (result.stdout, "asciidoc", None)

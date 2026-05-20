@@ -23,9 +23,7 @@ def read_front_matter_document(path: Path) -> tuple[dict[str, object], str]:
             yaml_text = text[4:-4]
             body = ""
         else:
-            raise FrontMatterError(
-                f"Source file has no closing YAML delimiter: {path}"
-            )
+            raise FrontMatterError(f"Source file has no closing YAML delimiter: {path}")
     else:
         yaml_text = text[4:end]
         body = text[end + len("\n---\n") :]

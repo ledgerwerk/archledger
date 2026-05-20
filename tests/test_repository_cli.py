@@ -123,11 +123,7 @@ def test_new_black_box_creates_black_box_0001(tmp_path: Path) -> None:
 
     assert result.exit_code == 0
     assert (
-        tmp_path
-        / ".archledger"
-        / "records"
-        / "building_blocks"
-        / "black_box_0001.adoc"
+        tmp_path / ".archledger" / "records" / "building_blocks" / "black_box_0001.adoc"
     ).is_file()
 
 
@@ -141,11 +137,7 @@ def test_new_requirement_creates_requirement_0001(tmp_path: Path) -> None:
 
     assert result.exit_code == 0
     assert (
-        tmp_path
-        / ".archledger"
-        / "records"
-        / "requirements"
-        / "requirement_0001.adoc"
+        tmp_path / ".archledger" / "records" / "requirements" / "requirement_0001.adoc"
     ).is_file()
     created = (
         tmp_path / ".archledger" / "records" / "requirements" / "requirement_0001.adoc"
@@ -154,7 +146,9 @@ def test_new_requirement_creates_requirement_0001(tmp_path: Path) -> None:
     assert "[discrete]\n=== Requirement" in created
 
 
-def test_new_requirement_increments_with_custom_record_extension(tmp_path: Path) -> None:
+def test_new_requirement_increments_with_custom_record_extension(
+    tmp_path: Path,
+) -> None:
     init_result = runner.invoke(
         app,
         ["--root", str(tmp_path), "init", "--source-format", "markdown"],
@@ -216,11 +210,7 @@ def test_new_strategy_item_creates_strategy_item_0001(tmp_path: Path) -> None:
 
     assert result.exit_code == 0
     assert (
-        tmp_path
-        / ".archledger"
-        / "records"
-        / "strategy"
-        / "strategy_item_0001.adoc"
+        tmp_path / ".archledger" / "records" / "strategy" / "strategy_item_0001.adoc"
     ).is_file()
 
 
@@ -301,11 +291,7 @@ def test_new_infrastructure_accepts_environment(tmp_path: Path) -> None:
 
     assert result.exit_code == 0
     created = (
-        tmp_path
-        / ".archledger"
-        / "records"
-        / "deployment"
-        / "infrastructure_0001.adoc"
+        tmp_path / ".archledger" / "records" / "deployment" / "infrastructure_0001.adoc"
     ).read_text(encoding="utf-8")
     assert 'environment: "development"' in created
 
@@ -348,11 +334,7 @@ def test_seed_arc42_minimal_creates_starter_records(tmp_path: Path) -> None:
 
     assert result.exit_code == 0
     assert (
-        tmp_path
-        / ".archledger"
-        / "records"
-        / "building_blocks"
-        / "white_box_0001.adoc"
+        tmp_path / ".archledger" / "records" / "building_blocks" / "white_box_0001.adoc"
     ).is_file()
     assert (
         tmp_path
@@ -362,18 +344,10 @@ def test_seed_arc42_minimal_creates_starter_records(tmp_path: Path) -> None:
         / "quality_goal_0003.adoc"
     ).is_file()
     assert (
-        tmp_path
-        / ".archledger"
-        / "records"
-        / "decisions"
-        / "adr0001.adoc"
+        tmp_path / ".archledger" / "records" / "decisions" / "adr0001.adoc"
     ).is_file()
     assert (
-        tmp_path
-        / ".archledger"
-        / "records"
-        / "glossary"
-        / "glossary_0001.adoc"
+        tmp_path / ".archledger" / "records" / "glossary" / "glossary_0001.adoc"
     ).is_file()
 
 
@@ -387,11 +361,7 @@ def test_new_white_box_creates_white_box_0001(tmp_path: Path) -> None:
 
     assert result.exit_code == 0
     assert (
-        tmp_path
-        / ".archledger"
-        / "records"
-        / "building_blocks"
-        / "white_box_0001.adoc"
+        tmp_path / ".archledger" / "records" / "building_blocks" / "white_box_0001.adoc"
     ).is_file()
 
 
@@ -405,11 +375,7 @@ def test_new_adr_creates_adr0001(tmp_path: Path) -> None:
 
     assert result.exit_code == 0
     assert (
-        tmp_path
-        / ".archledger"
-        / "records"
-        / "decisions"
-        / "adr0001.adoc"
+        tmp_path / ".archledger" / "records" / "decisions" / "adr0001.adoc"
     ).is_file()
 
 
@@ -420,11 +386,7 @@ def test_filename_id_must_match(tmp_path: Path) -> None:
         ["--root", str(tmp_path), "new", "black-box", "--title", "CLI"],
     )
     source = (
-        tmp_path
-        / ".archledger"
-        / "records"
-        / "building_blocks"
-        / "black_box_0001.adoc"
+        tmp_path / ".archledger" / "records" / "building_blocks" / "black_box_0001.adoc"
     )
     renamed = source.with_name("black_box_9999.adoc")
     source.rename(renamed)
@@ -444,19 +406,9 @@ def test_duplicate_id_check_fails(tmp_path: Path) -> None:
         ["--root", str(tmp_path), "new", "black-box", "--title", "CLI"],
     )
     original = (
-        tmp_path
-        / ".archledger"
-        / "records"
-        / "building_blocks"
-        / "black_box_0001.adoc"
+        tmp_path / ".archledger" / "records" / "building_blocks" / "black_box_0001.adoc"
     )
-    duplicate = (
-        tmp_path
-        / ".archledger"
-        / "records"
-        / "concepts"
-        / "concept_0001.adoc"
-    )
+    duplicate = tmp_path / ".archledger" / "records" / "concepts" / "concept_0001.adoc"
     duplicate.write_text(
         original.read_text(encoding="utf-8").replace(
             "type: black_box",
@@ -498,8 +450,7 @@ def test_missing_parent_check_fails(tmp_path: Path) -> None:
     payload = json.loads(check_result.stdout)
     messages = [item["message"] for item in payload["error"]["details"]["errors"]]
     assert any(
-        "Parent reference points to a missing record" in message
-        for message in messages
+        "Parent reference points to a missing record" in message for message in messages
     )
 
 
@@ -575,9 +526,7 @@ def test_check_warns_for_invalid_risk_levels_and_unmeasurable_quality_scenario(
             "reproducibility",
         ],
     )
-    risk_path = (
-        tmp_path / ".archledger" / "records" / "risks" / "risk_0001.adoc"
-    )
+    risk_path = tmp_path / ".archledger" / "records" / "risks" / "risk_0001.adoc"
     risk_path.write_text(
         risk_path.read_text(encoding="utf-8")
         .replace("severity: medium", "severity: critical")
@@ -654,8 +603,8 @@ def test_check_warns_for_invalid_source_ref_path_traversal(tmp_path: Path) -> No
     payload = json.loads(result.stdout)
     messages = [item["message"] for item in payload["result"]["warnings"]]
     assert (
-        "Record white_box_0001 source_refs entry 1 path must not contain '..': ../secret.py"
-        in messages
+        "Record white_box_0001 source_refs entry 1 path must not contain '..':"
+        " ../secret.py" in messages
     )
 
 

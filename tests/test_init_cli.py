@@ -64,7 +64,9 @@ def test_init_markdown_source_writes_markdown_config(tmp_path: Path) -> None:
     assert 'record_extension = ".md"' in config_text
     assert 'default_format = "markdown"' in config_text
     assert "schema_version = 2" in config_text
-    assert (tmp_path / ".archledger" / "sections" / "01_introduction_and_goals.md").is_file()
+    assert (
+        tmp_path / ".archledger" / "sections" / "01_introduction_and_goals.md"
+    ).is_file()
 
 
 def test_init_asciidoc_source_writes_asciidoc_config(tmp_path: Path) -> None:

@@ -60,8 +60,13 @@ def test_read_json_include_draft_flag(tmp_path: Path) -> None:
 
     payload_without_drafts = json.loads(result_without_drafts.stdout)
     payload_with_drafts = json.loads(result_with_drafts.stdout)
-    assert all(item["type"] != "black_box" for item in payload_without_drafts["result"]["records"])
-    assert any(item["type"] == "black_box" for item in payload_with_drafts["result"]["records"])
+    assert all(
+        item["type"] != "black_box"
+        for item in payload_without_drafts["result"]["records"]
+    )
+    assert any(
+        item["type"] == "black_box" for item in payload_with_drafts["result"]["records"]
+    )
 
 
 def test_read_json_filters_by_section(tmp_path: Path) -> None:

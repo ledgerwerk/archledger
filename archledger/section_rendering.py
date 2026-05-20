@@ -96,7 +96,8 @@ def context_interfaces(
     for record in interfaces:
         lines.append(
             dialect.bullet(
-                f"{dialect.strong(record.title)} -> {record.metadata.get('partner', '')}"
+                f"{dialect.strong(record.title)} -> "
+                f"{record.metadata.get('partner', '')}"
             )
         )
         body = record.body.strip()
@@ -129,7 +130,9 @@ def solution_strategy_items(records: list[ArchitectureRecord], dialect: Dialect)
     return "\n".join(lines).rstrip()
 
 
-def building_block_hierarchy(records: list[ArchitectureRecord], dialect: Dialect) -> str:
+def building_block_hierarchy(
+    records: list[ArchitectureRecord], dialect: Dialect
+) -> str:
     white_boxes = _records_of_type(records, "white_box")
     black_boxes = _records_of_type(records, "black_box")
     interfaces = _records_of_type(records, "interface")
@@ -157,11 +160,15 @@ def building_block_hierarchy(records: list[ArchitectureRecord], dialect: Dialect
         }
     )
     for level in black_box_levels:
-        lines.extend([dialect.heading(dialect.record_heading_level + 1, f"Level {level}"), ""])
+        lines.extend(
+            [dialect.heading(dialect.record_heading_level + 1, f"Level {level}"), ""]
+        )
         for record in black_boxes:
             if record.metadata.get("level") != level:
                 continue
-            interfaces_value = ", ".join(_string_list(record.metadata.get("interfaces")))
+            interfaces_value = ", ".join(
+                _string_list(record.metadata.get("interfaces"))
+            )
             locations = ", ".join(_string_list(record.metadata.get("location")))
             fulfilled_requirements = ", ".join(
                 _string_list(record.metadata.get("fulfilled_requirements"))
@@ -174,7 +181,8 @@ def building_block_hierarchy(records: list[ArchitectureRecord], dialect: Dialect
                     f"{dialect.strong('Parent:')} {record.metadata.get('parent', '')}",
                     f"{dialect.strong('Interfaces:')} {interfaces_value}",
                     f"{dialect.strong('Location:')} {locations}",
-                    f"{dialect.strong('Fulfilled requirements:')} {fulfilled_requirements}",
+                    f"{dialect.strong('Fulfilled requirements:')} "
+                    f"{fulfilled_requirements}"
                     f"{dialect.strong('Risks:')} {risks}",
                     "",
                     record.body.strip() or dialect.placeholder(),
@@ -192,7 +200,8 @@ def building_block_hierarchy(records: list[ArchitectureRecord], dialect: Dialect
                     "",
                     f"{dialect.strong('Providers:')} {providers}",
                     f"{dialect.strong('Consumers:')} {consumers}",
-                    f"{dialect.strong('Protocol:')} {record.metadata.get('protocol', '')}",
+                    f"{dialect.strong('Protocol:')} "
+                    f"{record.metadata.get('protocol', '')}"
                     "",
                     record.body.strip() or dialect.placeholder(),
                     "",
@@ -304,7 +313,9 @@ def risk_table(records: list[ArchitectureRecord], dialect: Dialect) -> str:
         ]
         for record in risks
     ]
-    return dialect.table(["Title", "Severity", "Probability", "Mitigation", "Notes"], rows)
+    return dialect.table(
+        ["Title", "Severity", "Probability", "Mitigation", "Notes"], rows
+    )
 
 
 def glossary_table(records: list[ArchitectureRecord], dialect: Dialect) -> str:

@@ -110,7 +110,9 @@ def test_scan_workspace_excludes_archledger_state_build_and_large_files(
     assert "large.json" not in state.files
 
 
-def test_resolve_impacts_reports_linked_records_and_unlinked_files(tmp_path: Path) -> None:
+def test_resolve_impacts_reports_linked_records_and_unlinked_files(
+    tmp_path: Path,
+) -> None:
     init_project(tmp_path)
     source_dir = tmp_path / "src"
     source_dir.mkdir()

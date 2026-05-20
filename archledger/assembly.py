@@ -61,13 +61,13 @@ def assemble_document(
             f"{len(check_result.warnings)} warning(s)."
         )
 
-    resolved_source_format = repo.config.source_format if source_format is None else source_format
+    resolved_source_format = (
+        repo.config.source_format if source_format is None else source_format
+    )
     dialect = get_dialect(resolved_source_format)
     all_records = repo.load_all_records(include_sections=True)
     sections = {
-        record.section: record
-        for record in all_records
-        if record.type == "section"
+        record.section: record for record in all_records if record.type == "section"
     }
     records = _visible_records(
         all_records,

@@ -22,8 +22,8 @@ from archledger.repository import (
     StatusResult,
 )
 from archledger.source_tracking import (
-    ChangeSet,
     ChangedFile,
+    ChangeSet,
     ImpactedRecord,
     SourceState,
     diff_source_states,
@@ -371,7 +371,9 @@ def read(
     ) -> dict[str, object]:
         normalized_kind = None
         if kind is not None:
-            normalized_kind = "section" if kind.strip().lower() == "section" else normalize_kind(kind)
+            normalized_kind = (
+                "section" if kind.strip().lower() == "section" else normalize_kind(kind)
+            )
         records = []
         for record in repo.load_all_records(include_sections=True):
             if record.type != "section" and not is_visible_status(
@@ -695,7 +697,8 @@ def _changed_payload(paths: ProjectPaths, changes: ChangeSet) -> dict[str, objec
         },
         "impact": {
             "records": [
-                _impacted_record_payload(paths, item) for item in changes.impacted_records
+                _impacted_record_payload(paths, item)
+                for item in changes.impacted_records
             ],
             "sections": list(changes.impacted_sections),
             "unlinked_changed_files": list(changes.unlinked_changed_files),
@@ -774,9 +777,7 @@ def _format_seed_message(payload: dict[str, object]) -> str:
     records = payload.get("records")
     if not isinstance(records, list):
         raise RuntimeError("Seed payload was malformed.")
-    return (
-        f"Seeded {payload['preset']} with {len(records)} record(s)."
-    )
+    return f"Seeded {payload['preset']} with {len(records)} record(s)."
 
 
 def _format_list_message(payload: dict[str, object]) -> str:
@@ -787,9 +788,7 @@ def _format_list_message(payload: dict[str, object]) -> str:
     for item in records:
         if not isinstance(item, dict):
             continue
-        lines.append(
-            f"{item['id']}  {item['type']}  {item['status']}  {item['title']}"
-        )
+        lines.append(f"{item['id']}  {item['type']}  {item['status']}  {item['title']}")
     return "\n".join(lines)
 
 
@@ -850,8 +849,10 @@ def _format_changed_message(payload: dict[str, object]) -> str:
     baseline = payload.get("baseline")
     changes = payload.get("changes")
     impact = payload.get("impact")
-    if not isinstance(baseline, dict) or not isinstance(changes, dict) or not isinstance(
-        impact, dict
+    if (
+        not isinstance(baseline, dict)
+        or not isinstance(changes, dict)
+        or not isinstance(impact, dict)
     ):
         raise RuntimeError("Changed payload was malformed.")
     if baseline.get("exists") is False:
@@ -920,7 +921,8 @@ def _load_tracking_baseline(
         return None
     if state.project_uuid != config.project_uuid:
         raise StorageError(
-            "source-state project_uuid does not match the current project configuration."
+            "source-state project_uuid does not match the "
+            "current project configuration."
         )
     return state
 

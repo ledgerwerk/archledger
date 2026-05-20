@@ -296,9 +296,7 @@ def load_project_config(path: Path) -> ProjectConfig:
         front_matter,
         section_extension,
         record_extension,
-    ) = (
-        _parse_source_config(source_data, cast(int, config_version))
-    )
+    ) = _parse_source_config(source_data, cast(int, config_version))
     (
         default_output,
         build_default_format,
@@ -409,7 +407,9 @@ def _parse_source_config(
         "schema_version",
         CURRENT_SOURCE_SCHEMA_VERSION,
     )
-    if isinstance(schema_version_value, bool) or not isinstance(schema_version_value, int):
+    if isinstance(schema_version_value, bool) or not isinstance(
+        schema_version_value, int
+    ):
         raise ConfigError("source.schema_version must be an integer.")
 
     default_extension = default_extension_for_source_format(source_format)

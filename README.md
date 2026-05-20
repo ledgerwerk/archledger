@@ -128,14 +128,14 @@ Paths must be relative to the workspace root. Directory refs end with `/` and ma
 
 ## Build matrix
 
-| Source format | Output format | Tooling |
-| --- | --- | --- |
-| Markdown | Markdown | none |
-| AsciiDoc | AsciiDoc | none |
-| Markdown | HTML, DOCX, RST, Textile, PDF, AsciiDoc | `pandoc` |
-| AsciiDoc | HTML | `asciidoctor` |
-| AsciiDoc | PDF | `asciidoctor-pdf` |
-| AsciiDoc | DOCX, Markdown, RST, Textile | `asciidoctor` + `pandoc` |
+| Source format | Output format                           | Tooling                  |
+| ------------- | --------------------------------------- | ------------------------ |
+| Markdown      | Markdown                                | none                     |
+| AsciiDoc      | AsciiDoc                                | none                     |
+| Markdown      | HTML, DOCX, RST, Textile, PDF, AsciiDoc | `pandoc`                 |
+| AsciiDoc      | HTML                                    | `asciidoctor`            |
+| AsciiDoc      | PDF                                     | `asciidoctor-pdf`        |
+| AsciiDoc      | DOCX, Markdown, RST, Textile            | `asciidoctor` + `pandoc` |
 
 Examples:
 

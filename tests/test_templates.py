@@ -52,7 +52,9 @@ def test_all_asciidoc_templates_include_schema_version_date_body_format() -> Non
         assert "updated_at: {{ updated_at | tojson }}" in text, path.name
 
 
-def test_section_templates_include_schema_version_date_body_format(tmp_path: Path) -> None:
+def test_section_templates_include_schema_version_date_body_format(
+    tmp_path: Path,
+) -> None:
     markdown_root = tmp_path / "markdown"
     asciidoc_root = tmp_path / "asciidoc"
     assert (
