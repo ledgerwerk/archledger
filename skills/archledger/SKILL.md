@@ -1,17 +1,16 @@
 ---
 name: archledger
-description: Fill and maintain Markdown-first arc42 architecture documentation with archledger records, YAML front matter, validation, and deterministic builds.
+description: Fill and maintain AsciiDoc-backed arc42 architecture documentation with YAML front matter, explicit migration, validation, and multi-format builds.
 license: Apache-2.0
 compatibility: opencode,codex,chatgpt
 metadata: architecture-documentation,arc42,coding-agents
-
 ---
 
 # archledger skill
 
 ## When to use this skill
 
-Use this skill when a coding agent needs to create, enrich, repair, or build architecture documentation for a software repository with `archledger`. The target output is a complete arc42-style architecture artifact built from human-editable Markdown records with YAML front matter.
+Use this skill when a coding agent needs to create, enrich, repair, migrate, or build architecture documentation for a software repository with `archledger`. The target output is a complete arc42-style architecture artifact assembled from human-editable source fragments whose canonical format is YAML front matter plus AsciiDoc body content.
 
 Typical triggers:
 
@@ -65,7 +64,7 @@ Typical triggers:
 
    ```bash
    archledger check
-   archledger build --output docs/architecture.md
+   archledger build --format asciidoc
    ```
 
 ## Minimum arc42 fill set
@@ -109,25 +108,26 @@ A useful first artifact should contain at least:
 
 ## Record authoring protocol
 
-Use the CLI to allocate ids and paths, then edit the generated Markdown file.
+Use the CLI to allocate ids and paths, then edit the generated `.adoc` source fragment.
 
 ```bash
-archledger new requirement --title "Render architecture document from Markdown records" --status proposed
+archledger new requirement --title "Render architecture document from AsciiDoc records" --status proposed
 archledger new white-box --title "Overall System" --status proposed
 archledger new black-box --title "CLI" --parent white_box_0001 --status proposed
 archledger new strategy-item --title "Keep records as canonical source" --status proposed
-archledger new adr --title "Use Markdown records with YAML front matter" --status proposed
+archledger new adr --title "Use AsciiDoc fragments with YAML front matter" --status proposed
 archledger new quality-requirement --title "Deterministic builds" --status proposed
 archledger new context-interface --title "GitHub" --context-kind business --partner GitHub --status proposed
 archledger new infrastructure --title "Local CLI runtime" --environment development --status proposed
 archledger new quality-scenario --title "Deterministic build" --quality reproducibility --environment ci --status proposed
 ```
 
-Every record must keep YAML front matter at the top, delimited by `---`, followed by rich Markdown. Treat front matter as machine-readable indexing data and the Markdown body as the human architecture explanation.
+Every record must keep YAML front matter at the top, delimited by `---`, followed by rich AsciiDoc. Treat front matter as machine-readable indexing data and the AsciiDoc body as the human architecture explanation.
 
 Common fields:
 
 ```yaml
+schema_version: 2
 id: black_box_0001
 type: black_box
 title: "CLI"
@@ -136,6 +136,7 @@ section: building_block_view
 order: 10
 parent: white_box_0001
 level: 1
+body_format: asciidoc
 tags: []
 created_at: "2026-05-19T00:00:00Z"
 updated_at: "2026-05-19T00:00:00Z"
@@ -162,13 +163,15 @@ When deriving architecture from code:
 
 Mark assumptions explicitly:
 
-```markdown
-## Evidence
+```adoc
+[discrete]
+=== Evidence
 
 - `pyproject.toml` declares the `archledger` console script.
-- `archledger/render.py` renders the generated architecture document.
+- `archledger/assembly.py` assembles the canonical architecture document.
 
-## Assumptions
+[discrete]
+=== Assumptions
 
 - Production usage is local CLI execution until deployment evidence exists.
 ```
@@ -179,7 +182,8 @@ Before finalizing:
 
 ```bash
 archledger check
-archledger build --output docs/architecture.md
+archledger build --format asciidoc
+archledger build --format html
 python -m pytest -q
 ```
 
@@ -187,7 +191,7 @@ For automation, prefer JSON:
 
 ```bash
 archledger --json check
-archledger --json build --output docs/architecture.md
+archledger --json build --formats html,markdown
 ```
 
 A record is not done until:
@@ -198,6 +202,15 @@ A record is not done until:
 - The record is in the correct arc42 section.
 - `archledger check` has no errors.
 - Strict warnings are either fixed or intentionally left as proposed/draft work.
+
+## Migration and export rules
+
+- Treat Markdown source projects as legacy inputs. Use `archledger convert-sources --to asciidoc --write` before expecting canonical AsciiDoc assembly or export formats.
+- Do not hand-edit generated `.archledger/build/*` outputs.
+- `archledger build --format asciidoc` is the dependency-free canonical build for AsciiDoc-backed projects.
+- HTML export requires `asciidoctor`.
+- PDF export requires `asciidoctor-pdf`.
+- DOCX, Markdown, reStructuredText, and Textile export require `pandoc`.
 
 ## Content quality bar
 

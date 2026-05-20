@@ -1,18 +1,30 @@
 # Project-local archledger configuration.
 # This file lives in the source project root.
-config_version = 1
+config_version = 3
 archledger_dir = "../archledger-state/archledger"
 
 # Stable project identity. Commit this with your source tree.
 project_uuid = "6bddbb56-b273-4aae-9860-bfa4de93f115"
 project_name = "archledger"
 
+[source]
+format = "markdown"
+front_matter = "yaml"
+section_extension = ".mk"
+record_extension = ".mk"
+
 [build]
-default_output = "architecture.md"
+default_format = "mk"
 include_draft = false
+include_superseded = false
 strict = false
 
 [arc42]
 template_version = "9.0-EN"
 language = "en"
 title = "Architecture Documentation"
+include_help = false
+
+[skill]
+installed = false
+path = "skills/archledger/SKILL.md"

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import cast
@@ -14,7 +15,6 @@ from archledger.model import (
     RECORD_TYPE_TO_DEFAULT_SECTION,
     RECORD_TYPE_TO_DIR,
     RECORD_TYPE_TO_FILENAME_PREFIX,
-    RECORD_TYPE_TO_TEMPLATE,
     REQUIRED_RECORD_FIELDS,
     ArchitectureRecord,
     SectionSpec,
@@ -22,13 +22,15 @@ from archledger.model import (
     is_visible_status,
     normalize_kind,
     record_sort_key,
+    record_template_name_for_source_format,
+    section_filename_for,
     validate_record,
 )
 from archledger.storage.common import ensure_dir, utc_now_iso, write_text
 from archledger.storage.frontmatter import (
     FrontMatterError,
-    iter_markdown_files,
-    read_markdown_front_matter,
+    iter_source_files,
+    read_front_matter_document,
 )
 from archledger.storage.meta import (
     StorageMeta,
@@ -116,9 +118,15 @@ class ArchitectureRepository:
             ensure_dir(directory_path)
 
         for section_spec in MAJOR_SECTION_SPECS:
-            section_path = self.paths.sections_dir / section_spec.filename
+            section_path = self.paths.sections_dir / section_filename_for(
+                section_spec,
+                self.config.section_extension,
+            )
             if not section_path.exists() or overwrite:
-                write_text(section_path, _section_document(section_spec))
+                write_text(
+                    section_path,
+                    _section_document(section_spec, self.config.source_format),
+                )
                 created_paths.append(section_path)
 
         meta = default_storage_meta(self.config.project_uuid, __version__)
@@ -134,7 +142,12 @@ class ArchitectureRepository:
 
     def status(self) -> StatusResult:
         read_storage_meta(self.paths.storage_meta_path)
-        section_count = len(list(self.paths.sections_dir.glob("*.md")))
+        section_count = len(
+            iter_source_files(
+                self.paths.sections_dir,
+                (self.config.section_extension,),
+            )
+        )
         record_directories_count = sum(
             1 for path in self.paths.records_dir.iterdir() if path.is_dir()
         )
@@ -159,12 +172,19 @@ class ArchitectureRepository:
         next_numbers = recompute_next_numbers(self.paths.records_dir)
         prefix = RECORD_TYPE_TO_FILENAME_PREFIX[normalized_kind]
         number = next_numbers[prefix]
-        filename = filename_for(normalized_kind, number)
+        filename = filename_for(
+            normalized_kind,
+            number,
+            extension=self.config.record_extension,
+        )
         target_dir = self.paths.records_dir / RECORD_TYPE_TO_DIR[normalized_kind]
         target_path = target_dir / filename
         order = self._next_order(normalized_kind)
         created_at = utc_now_iso()
-        template_name = RECORD_TYPE_TO_TEMPLATE[normalized_kind]
+        template_name = record_template_name_for_source_format(
+            normalized_kind,
+            self.config.source_format,
+        )
         context = self._template_context(
             normalized_kind,
             title=title,
@@ -340,7 +360,8 @@ class ArchitectureRepository:
                 CheckFinding(
                     "warning",
                     f"Section {section_spec.key} has no accepted/proposed records.",
-                    self.paths.sections_dir / section_spec.filename,
+                    self.paths.sections_dir
+                    / section_filename_for(section_spec, self.config.section_extension),
                 )
             )
 
@@ -475,12 +496,18 @@ class ArchitectureRepository:
 
     def _all_record_paths(self) -> list[Path]:
         return [
-            *iter_markdown_files(self.paths.sections_dir),
-            *iter_markdown_files(self.paths.records_dir),
+            *iter_source_files(
+                self.paths.sections_dir,
+                (self.config.section_extension,),
+            ),
+            *iter_source_files(
+                self.paths.records_dir,
+                (self.config.record_extension,),
+            ),
         ]
 
     def _load_record_from_path(self, path: Path) -> ArchitectureRecord:
-        metadata, body = read_markdown_front_matter(path)
+        metadata, body = read_front_matter_document(path)
         missing_fields = [
             field for field in REQUIRED_RECORD_FIELDS if field not in metadata
         ]
@@ -552,22 +579,32 @@ class ArchitectureRepository:
         return checker(record)
 
 
-def _section_document(section_spec: SectionSpec) -> str:
-    return "\n".join(
+def _section_document(section_spec: SectionSpec, source_format: str) -> str:
+    lines = [
+        "---",
+        f"id: section_{section_spec.key}",
+        "type: section",
+        f"section: {section_spec.key}",
+        f"title: {section_spec.title}",
+        f"order: {section_spec.order}",
+        "status: accepted",
+    ]
+    if source_format == "asciidoc":
+        lines.extend(
+            [
+                "schema_version: 2",
+                "body_format: asciidoc",
+            ]
+        )
+    lines.extend(
         [
-            "---",
-            f"id: section_{section_spec.key}",
-            "type: section",
-            f"section: {section_spec.key}",
-            f"title: {section_spec.title}",
-            f"order: {section_spec.order}",
-            "status: accepted",
             "---",
             "",
             "<!-- archledger: add section-level prose here -->",
             "",
         ]
     )
+    return "\n".join(lines)
 
 
 def _non_empty_sequence(value: object) -> bool:
@@ -581,8 +618,12 @@ def _non_empty_text(value: object) -> bool:
 def _contains_adr_sections(body: str) -> bool:
     body_lower = body.lower()
     return all(
-        heading in body_lower
-        for heading in ("## context", "## decision", "## consequences")
+        any(heading in body_lower for heading in headings)
+        for headings in (
+            ("## context", "=== context"),
+            ("## decision", "=== decision"),
+            ("## consequences", "=== consequences"),
+        )
     )
 
 
@@ -735,7 +776,7 @@ def _risk_warnings(record: ArchitectureRecord) -> list[str]:
     return warnings
 
 
-_CONTENT_WARNING_CHECKERS: dict[str, callable] = {
+_CONTENT_WARNING_CHECKERS: dict[str, Callable[[ArchitectureRecord], list[str]]] = {
     "quality_goal": _quality_goal_warnings,
     "stakeholder": _stakeholder_warnings,
     "constraint": _constraint_warnings,

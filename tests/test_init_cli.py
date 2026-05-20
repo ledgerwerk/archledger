@@ -19,6 +19,9 @@ def test_init_writes_archledger_toml_and_default_storage(tmp_path: Path) -> None
     assert (tmp_path / ".archledger" / "storage.yaml").is_file()
     assert (tmp_path / ".archledger" / "sections").is_dir()
     assert (tmp_path / ".archledger" / "records" / "building_blocks").is_dir()
+    assert (
+        tmp_path / ".archledger" / "sections" / "01_introduction_and_goals.adoc"
+    ).is_file()
     storage_text = (tmp_path / ".archledger" / "storage.yaml").read_text(
         encoding="utf-8"
     )
@@ -32,7 +35,10 @@ def test_init_project_name_defaults_to_workspace_basename(tmp_path: Path) -> Non
 
     assert result.exit_code == 0
     config_text = (tmp_path / "archledger.toml").read_text(encoding="utf-8")
-    assert "config_version = 2" in config_text
+    assert "config_version = 3" in config_text
+    assert "[source]" in config_text
+    assert 'format = "asciidoc"' in config_text
+    assert 'section_extension = ".adoc"' in config_text
     assert f'project_name = "{normalize_project_name(tmp_path.name)}"' in config_text
     assert "include_superseded = false" in config_text
     assert "[skill]" in config_text

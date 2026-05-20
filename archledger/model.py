@@ -3,6 +3,23 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+VALID_SOURCE_FORMATS = frozenset({"markdown", "asciidoc"})
+SOURCE_FORMAT_EXTENSIONS = {
+    "markdown": ".md",
+    "asciidoc": ".adoc",
+}
+VALID_OUTPUT_FORMATS = frozenset(
+    {"asciidoc", "html", "pdf", "docx", "markdown", "rst", "textile"}
+)
+OUTPUT_FORMAT_EXTENSIONS = {
+    "asciidoc": ".adoc",
+    "html": ".html",
+    "pdf": ".pdf",
+    "docx": ".docx",
+    "markdown": ".md",
+    "rst": ".rst",
+    "textile": ".textile",
+}
 VALID_STATUSES = frozenset(
     {"draft", "proposed", "accepted", "deprecated", "superseded"}
 )
@@ -274,12 +291,58 @@ def validate_record(record: ArchitectureRecord) -> list[str]:
     return issues
 
 
-def filename_for(kind: str, number: int) -> str:
+def default_extension_for_source_format(source_format: str) -> str:
+    try:
+        return SOURCE_FORMAT_EXTENSIONS[source_format]
+    except KeyError as exc:
+        raise ValueError(f"Unsupported source format: {source_format}") from exc
+
+
+def infer_output_format_from_path(path: str | Path) -> str | None:
+    suffix = Path(path).suffix.lower()
+    for output_format, extension in OUTPUT_FORMAT_EXTENSIONS.items():
+        if extension == suffix:
+            return output_format
+    return None
+
+
+def default_document_filename_for_output_format(output_format: str) -> str:
+    try:
+        extension = OUTPUT_FORMAT_EXTENSIONS[output_format]
+    except KeyError as exc:
+        raise ValueError(f"Unsupported output format: {output_format}") from exc
+    return f"architecture{extension}"
+
+
+def document_template_name_for_source_format(source_format: str) -> str:
+    if source_format not in VALID_SOURCE_FORMATS:
+        raise ValueError(f"Unsupported source format: {source_format}")
+    return f"arc42_document{default_extension_for_source_format(source_format)}.j2"
+
+
+def record_template_name_for_source_format(
+    kind: str,
+    source_format: str = "markdown",
+) -> str:
+    normalized_kind = normalize_kind(kind)
+    template_name = RECORD_TYPE_TO_TEMPLATE[normalized_kind]
+    if source_format == "markdown":
+        return template_name
+    if source_format == "asciidoc":
+        return template_name.replace(".md.j2", ".adoc.j2")
+    raise ValueError(f"Unsupported source format: {source_format}")
+
+
+def section_filename_for(section_spec: SectionSpec, extension: str = ".md") -> str:
+    return f"{Path(section_spec.filename).stem}{extension}"
+
+
+def filename_for(kind: str, number: int, extension: str = ".md") -> str:
     normalized_kind = normalize_kind(kind)
     prefix = RECORD_TYPE_TO_FILENAME_PREFIX[normalized_kind]
     if prefix == "adr":
-        return f"adr{number:04d}.md"
-    return f"{prefix}_{number:04d}.md"
+        return f"adr{number:04d}{extension}"
+    return f"{prefix}_{number:04d}{extension}"
 
 
 def id_from_filename(path: Path) -> str:

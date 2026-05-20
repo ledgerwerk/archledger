@@ -6,14 +6,7 @@ from pathlib import Path
 from jinja2 import Environment, PackageLoader, select_autoescape
 
 from archledger import __version__
-from archledger.assembly import assemble_asciidoc_document
-from archledger.converters import (
-    BuildResult,
-    ConversionResult,
-    convert_assembled_document,
-)
 from archledger.errors import RenderError
-from archledger.formats import OutputFormat, resolve_requested_formats
 from archledger.model import ArchitectureRecord, is_visible_status, record_sort_key
 from archledger.repository import ArchitectureRepository
 from archledger.storage.common import utc_now_iso, write_text
@@ -21,78 +14,21 @@ from archledger.storage.common import utc_now_iso, write_text
 EMPTY_PLACEHOLDER = "<!-- archledger: no accepted records for this section yet -->"
 
 
-def build_document(
-    repo: ArchitectureRepository,
-    *,
-    output: Path | None = None,
-    format: str | None = None,
-    formats: str | None = None,
-    all_formats: bool = False,
-    include_draft: bool = False,
-    include_superseded: bool = False,
-    strict: bool = False,
-) -> BuildResult:
-    requested_formats = resolve_requested_formats(
-        repo.config,
-        output=output,
-        format_name=format,
-        formats_value=formats,
-        build_all=all_formats,
-    )
-    if repo.config.source_format == "asciidoc":
-        assembly = assemble_asciidoc_document(
-            repo,
-            output=None,
-            include_draft=include_draft,
-            include_superseded=include_superseded,
-            strict=strict,
-        )
-        return convert_assembled_document(
-            repo.config,
-            repo.paths.workspace_root,
-            repo.paths.build_dir,
-            assembly,
-            requested_formats,
-            output=output,
-        )
-    if requested_formats != (OutputFormat.MARKDOWN,):
-        raise RenderError(
-            "Cannot build non-Markdown outputs from a Markdown source project. "
-            "Run archledger convert-sources --to asciidoc --write first."
-        )
-    markdown_result = _build_markdown_document(
-        repo,
-        output=output,
-        include_draft=include_draft,
-        include_superseded=include_superseded,
-        strict=strict,
-    )
-    return BuildResult(
-        assembled_path=markdown_result.output_path,
-        outputs=(
-            ConversionResult(
-                format=OutputFormat.MARKDOWN.value,
-                output_path=markdown_result.output_path,
-                command=None,
-            ),
-        ),
-    )
-
-
 @dataclass(frozen=True, slots=True)
-class MarkdownBuildResult:
+class AssemblyResult:
     output_path: Path
     rendered_text: str
+    source_format: str = "asciidoc"
 
 
-def _build_markdown_document(
+def assemble_asciidoc_document(
     repo: ArchitectureRepository,
     *,
     output: Path | None = None,
     include_draft: bool = False,
     include_superseded: bool = False,
     strict: bool = False,
-) -> MarkdownBuildResult:
+) -> AssemblyResult:
     check_result = repo.check(strict=strict, repair_counters=False)
     if check_result.has_failures(strict=strict):
         raise RenderError(
@@ -125,7 +61,7 @@ def _build_markdown_document(
         ),
         keep_trailing_newline=True,
     )
-    template = env.get_template("arc42_document.md.j2")
+    template = env.get_template("arc42_document.adoc.j2")
     rendered = template.render(
         title=repo.config.arc42_title,
         date=utc_now_iso()[:10],
@@ -145,14 +81,14 @@ def _build_markdown_document(
         runtime_scenarios=lambda: _render_named_records(
             records,
             "runtime_scenario",
-            "##",
+            "===",
         ),
         deployment_view=lambda: _render_named_records(
             records,
             "infrastructure",
-            "##",
+            "===",
         ),
-        concepts=lambda: _render_named_records(records, "concept", "##"),
+        concepts=lambda: _render_named_records(records, "concept", "==="),
         adr_sections=lambda: _adr_sections(records),
         quality_requirements_overview=lambda: _quality_requirements_overview(records),
         quality_scenarios=lambda: _quality_scenarios(records),
@@ -161,7 +97,7 @@ def _build_markdown_document(
     )
     output_path = _resolve_output_path(repo, output)
     write_text(output_path, rendered)
-    return MarkdownBuildResult(output_path=output_path, rendered_text=rendered)
+    return AssemblyResult(output_path=output_path, rendered_text=rendered)
 
 
 def _resolve_output_path(repo: ArchitectureRepository, output: Path | None) -> Path:
@@ -197,7 +133,7 @@ def _requirements_overview(records: list[ArchitectureRecord]) -> str:
         ]
         for record in requirements
     ]
-    return _markdown_table(
+    return _asciidoc_table(
         ["Title", "Priority", "Source", "Stakeholders", "Quality goals"],
         rows,
     )
@@ -213,7 +149,7 @@ def _quality_goals_table(records: list[ArchitectureRecord]) -> str:
         ]
         for record in quality_goals
     ]
-    return _markdown_table(["Title", "Priority", "Scenario"], rows)
+    return _asciidoc_table(["Title", "Priority", "Scenario"], rows)
 
 
 def _stakeholders_table(records: list[ArchitectureRecord]) -> str:
@@ -226,7 +162,7 @@ def _stakeholders_table(records: list[ArchitectureRecord]) -> str:
         ]
         for record in stakeholders
     ]
-    return _markdown_table(["Title", "Contact", "Expectations"], rows)
+    return _asciidoc_table(["Title", "Contact", "Expectations"], rows)
 
 
 def _constraints_list(records: list[ArchitectureRecord]) -> str:
@@ -237,13 +173,13 @@ def _constraints_list(records: list[ArchitectureRecord]) -> str:
     for record in constraints:
         chunks.extend(
             [
-                f"- **{record.title}**",
-                f"  - Impact: {record.metadata.get('impact', '')}",
+                f"* *{record.title}*",
+                f"** Impact: {record.metadata.get('impact', '')}",
             ]
         )
         body = record.body.strip()
         if body:
-            chunks.append(f"  - Notes: {body}")
+            chunks.append(f"** Notes: {body}")
     return "\n".join(chunks)
 
 
@@ -257,10 +193,10 @@ def _context_interfaces(records: list[ArchitectureRecord], context_kind: str) ->
         return EMPTY_PLACEHOLDER
     lines: list[str] = []
     for record in interfaces:
-        lines.append(f"- **{record.title}** -> {record.metadata.get('partner', '')}")
+        lines.append(f"* *{record.title}* -> {record.metadata.get('partner', '')}")
         body = record.body.strip()
         if body:
-            lines.append(f"  - {body}")
+            lines.append(f"** {body}")
     return "\n".join(lines)
 
 
@@ -276,11 +212,11 @@ def _solution_strategy_items(records: list[ArchitectureRecord]) -> str:
         related_adrs = ", ".join(_string_list(record.metadata.get("related_adrs")))
         lines.extend(
             [
-                f"## {record.title}",
+                f"==== {record.title}",
                 "",
-                f"**Drivers:** {drivers}",
-                f"**Constraints:** {constraints}",
-                f"**Related ADRs:** {related_adrs}",
+                f"*Drivers:* {drivers}",
+                f"*Constraints:* {constraints}",
+                f"*Related ADRs:* {related_adrs}",
                 "",
                 record.body.strip() or EMPTY_PLACEHOLDER,
                 "",
@@ -300,7 +236,7 @@ def _building_block_hierarchy(records: list[ArchitectureRecord]) -> str:
     for record in white_boxes:
         lines.extend(
             [
-                f"## Whitebox {record.title}",
+                f"=== Whitebox {record.title}",
                 "",
                 record.body.strip() or EMPTY_PLACEHOLDER,
                 "",
@@ -317,7 +253,7 @@ def _building_block_hierarchy(records: list[ArchitectureRecord]) -> str:
         }
     )
     for level in black_box_levels:
-        lines.extend([f"### Level {level}", ""])
+        lines.extend([f"==== Level {level}", ""])
         for record in black_boxes:
             if record.metadata.get("level") != level:
                 continue
@@ -331,30 +267,30 @@ def _building_block_hierarchy(records: list[ArchitectureRecord]) -> str:
             risks = ", ".join(_string_list(record.metadata.get("risks")))
             lines.extend(
                 [
-                    f"#### {record.title}",
+                    f"===== {record.title}",
                     "",
-                    f"**Parent:** {record.metadata.get('parent', '')}",
-                    f"**Interfaces:** {interfaces_value}",
-                    f"**Location:** {locations}",
-                    f"**Fulfilled requirements:** {fulfilled_requirements}",
-                    f"**Risks:** {risks}",
+                    f"*Parent:* {record.metadata.get('parent', '')}",
+                    f"*Interfaces:* {interfaces_value}",
+                    f"*Location:* {locations}",
+                    f"*Fulfilled requirements:* {fulfilled_requirements}",
+                    f"*Risks:* {risks}",
                     "",
                     record.body.strip() or EMPTY_PLACEHOLDER,
                     "",
                 ]
             )
     if interfaces:
-        lines.extend(["## Interfaces", ""])
+        lines.extend(["=== Interfaces", ""])
         for record in interfaces:
             providers = ", ".join(_string_list(record.metadata.get("providers")))
             consumers = ", ".join(_string_list(record.metadata.get("consumers")))
             lines.extend(
                 [
-                    f"### {record.title}",
+                    f"==== {record.title}",
                     "",
-                    f"**Providers:** {providers}",
-                    f"**Consumers:** {consumers}",
-                    f"**Protocol:** {record.metadata.get('protocol', '')}",
+                    f"*Providers:* {providers}",
+                    f"*Consumers:* {consumers}",
+                    f"*Protocol:* {record.metadata.get('protocol', '')}",
                     "",
                     record.body.strip() or EMPTY_PLACEHOLDER,
                     "",
@@ -375,13 +311,13 @@ def _adr_sections(records: list[ArchitectureRecord]) -> str:
         lines.append("")
         lines.extend(
             [
-                f"## {record.title}",
+                f"=== {record.title}",
                 "",
-                f"**Status:** {record.status}",
-                f"**Date:** {record.metadata.get('date', '')}",
-                f"**Deciders:** {deciders}",
-                f"**Supersedes:** {supersedes}",
-                f"**Related:** {related}",
+                f"*Status:* {record.status}",
+                f"*Date:* {record.metadata.get('date', '')}",
+                f"*Deciders:* {deciders}",
+                f"*Supersedes:* {supersedes}",
+                f"*Related:* {related}",
                 "",
                 record.body.strip() or EMPTY_PLACEHOLDER,
                 "",
@@ -422,7 +358,7 @@ def _quality_scenarios(records: list[ArchitectureRecord]) -> str:
         ]
         for record in scenarios
     ]
-    return _markdown_table(
+    return _asciidoc_table(
         ["Title", "Quality", "Stimulus", "Response measure"],
         rows,
     )
@@ -439,7 +375,7 @@ def _quality_requirements_overview(records: list[ArchitectureRecord]) -> str:
         ]
         for record in requirements
     ]
-    return _markdown_table(
+    return _asciidoc_table(
         ["Title", "Category", "Measure", "Scenarios"],
         rows,
     )
@@ -457,7 +393,7 @@ def _risk_table(records: list[ArchitectureRecord]) -> str:
         ]
         for record in risks
     ]
-    return _markdown_table(
+    return _asciidoc_table(
         ["Title", "Severity", "Probability", "Mitigation", "Notes"],
         rows,
     )
@@ -472,16 +408,25 @@ def _glossary_table(records: list[ArchitectureRecord]) -> str:
         ]
         for record in terms
     ]
-    return _markdown_table(["Term", "Definition"], rows)
+    return _asciidoc_table(["Term", "Definition"], rows)
 
 
-def _markdown_table(headers: list[str], rows: list[list[str]]) -> str:
+def _asciidoc_table(headers: list[str], rows: list[list[str]]) -> str:
     if not rows:
         return EMPTY_PLACEHOLDER
-    header_row = "| " + " | ".join(headers) + " |"
-    separator = "| " + " | ".join("---" for _ in headers) + " |"
-    body_rows = ["| " + " | ".join(row) + " |" for row in rows]
-    return "\n".join([header_row, separator, *body_rows])
+    cols = ",".join("1" for _ in headers)
+    header_row = "|" + " |".join(headers)
+    body_rows = ["|" + " |".join(row) for row in rows]
+    return "\n".join(
+        [
+            f'[cols="{cols}", options="header"]',
+            "|===",
+            header_row,
+            "",
+            *body_rows,
+            "|===",
+        ]
+    )
 
 
 def _records_of_type(

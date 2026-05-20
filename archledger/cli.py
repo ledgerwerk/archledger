@@ -11,6 +11,8 @@ import yaml
 
 from archledger import __version__
 from archledger.errors import ArchledgerError
+from archledger.migration import convert_sources
+from archledger.model import ArchitectureRecord
 from archledger.render import build_document
 from archledger.repository import (
     ArchitectureRepository,
@@ -359,6 +361,9 @@ def check(
 def build(
     ctx: typer.Context,
     output: Annotated[Path | None, typer.Option("--output")] = None,
+    format: Annotated[str | None, typer.Option("--format")] = None,
+    formats: Annotated[str | None, typer.Option("--formats")] = None,
+    all_formats: Annotated[bool, typer.Option("--all")] = False,
     include_draft: Annotated[bool, typer.Option("--include-draft")] = False,
     include_superseded: Annotated[bool, typer.Option("--include-superseded")] = False,
     strict: Annotated[bool, typer.Option("--strict")] = False,
@@ -374,15 +379,71 @@ def build(
         result = build_document(
             repo,
             output=output,
+            format=format,
+            formats=formats,
+            all_formats=all_formats,
             include_draft=include_draft,
             include_superseded=include_superseded,
             strict=strict,
         )
         return {
-            "output_path": str(result.output_path),
+            "assembled_path": str(result.assembled_path),
+            "outputs": [
+                {
+                    "format": output_result.format,
+                    "output_path": str(output_result.output_path),
+                }
+                for output_result in result.outputs
+            ],
         }
 
     _run_configured_command(state, "build", build_result, _format_build_message)
+
+
+@app.command("convert-sources")
+def convert_sources_command(
+    ctx: typer.Context,
+    to: Annotated[str, typer.Option("--to")] = "asciidoc",
+    write: Annotated[bool, typer.Option("--write")] = False,
+    replace: Annotated[bool, typer.Option("--replace")] = False,
+) -> None:
+    state = _state(ctx)
+
+    def build_result(
+        repo: ArchitectureRepository,
+        paths: ProjectPaths,
+        config: ProjectConfig,
+    ) -> dict[str, object]:
+        del repo
+        result = convert_sources(
+            paths,
+            config,
+            target_format=to,
+            write=write,
+            replace=replace,
+        )
+        return {
+            "target_format": result.target_format,
+            "write": result.write,
+            "replace": result.replace,
+            "config_path": str(result.config_path),
+            "converted": [
+                {
+                    "source_path": str(item.source_path),
+                    "output_path": str(item.output_path),
+                    "body_format": item.body_format,
+                }
+                for item in result.converted
+            ],
+            "warnings": list(result.warnings),
+        }
+
+    _run_configured_command(
+        state,
+        "convert-sources",
+        build_result,
+        _format_convert_sources_message,
+    )
 
 
 def _run_configured_command(
@@ -545,7 +606,33 @@ def _format_check_message(payload: dict[str, object]) -> str:
 
 
 def _format_build_message(payload: dict[str, object]) -> str:
-    return f"Built architecture document: {payload['output_path']}"
+    outputs = payload.get("outputs")
+    if not isinstance(outputs, list) or not outputs:
+        raise RuntimeError("Build payload was malformed.")
+    if len(outputs) == 1 and isinstance(outputs[0], dict):
+        return f"Built {outputs[0]['format']}: {outputs[0]['output_path']}"
+
+    lines = ["Built outputs:"]
+    for item in outputs:
+        if isinstance(item, dict):
+            lines.append(f"{item['format']}: {item['output_path']}")
+    return "\n".join(lines)
+
+
+def _format_convert_sources_message(payload: dict[str, object]) -> str:
+    converted = payload.get("converted")
+    warnings = payload.get("warnings")
+    if not isinstance(converted, list) or not isinstance(warnings, list):
+        raise RuntimeError("convert-sources payload was malformed.")
+    action = "Converted" if payload.get("write") else "Planned"
+    lines = [
+        f"{action} {len(converted)} source file(s) to {payload['target_format']}.",
+    ]
+    if not payload.get("write"):
+        lines.append("Re-run with --write to apply the migration.")
+    for warning in warnings:
+        lines.append(f"warning: {warning}")
+    return "\n".join(lines)
 
 
 def _state(ctx: typer.Context) -> CLIState:
@@ -636,7 +723,7 @@ def _check_error(result: CheckResult, *, strict: bool) -> ArchledgerError:
     )
 
 
-def _seed_arc42_minimal(repo: ArchitectureRepository) -> list[object]:
+def _seed_arc42_minimal(repo: ArchitectureRepository) -> list[ArchitectureRecord]:
     created_records = [
         repo.create_record("white-box", "Overall System", status="proposed"),
         repo.create_record("quality-goal", "Maintainability", status="proposed"),

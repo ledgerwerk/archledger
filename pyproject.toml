@@ -9,7 +9,9 @@ include = ["archledger*"]
 [tool.setuptools.package-data]
 archledger = [
     "py.typed",
+    "templates/*.adoc.j2",
     "templates/*.md.j2",
+    "templates/records/*.adoc.j2",
     "templates/records/*.md.j2",
 ]
 

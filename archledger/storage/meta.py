@@ -11,6 +11,7 @@ from archledger.errors import StorageError
 from archledger.model import (
     RECORD_TYPE_TO_DIR,
     RECORD_TYPE_TO_FILENAME_PREFIX,
+    SOURCE_FORMAT_EXTENSIONS,
     VALID_RECORD_TYPES,
 )
 from archledger.storage.common import read_text, utc_now_iso, write_text
@@ -98,6 +99,7 @@ def write_storage_meta(path: Path, meta: StorageMeta) -> None:
 
 def recompute_next_numbers(records_dir: Path) -> dict[str, int]:
     next_numbers = {counter_key: 1 for counter_key in _counter_keys()}
+    known_extensions = set(SOURCE_FORMAT_EXTENSIONS.values())
     for record_type in VALID_RECORD_TYPES:
         directory = records_dir / RECORD_TYPE_TO_DIR[record_type]
         prefix = RECORD_TYPE_TO_FILENAME_PREFIX[record_type]
@@ -111,7 +113,9 @@ def recompute_next_numbers(records_dir: Path) -> dict[str, int]:
         if not directory.is_dir():
             continue
         highest = 0
-        for path in directory.glob("*.md"):
+        for path in directory.iterdir():
+            if not path.is_file() or path.suffix.lower() not in known_extensions:
+                continue
             match = pattern.match(path.stem)
             if match is None:
                 continue
