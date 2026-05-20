@@ -180,7 +180,10 @@ class ArchitectureRepository:
     ) -> ArchitectureRecord:
         normalized_kind = normalize_kind(kind)
         self._ensure_storage_ready()
-        next_numbers = recompute_next_numbers(self.paths.records_dir)
+        next_numbers = recompute_next_numbers(
+            self.paths.records_dir,
+            record_extensions=(self.config.record_extension,),
+        )
         prefix = RECORD_TYPE_TO_FILENAME_PREFIX[normalized_kind]
         number = next_numbers[prefix]
         filename = filename_for(
@@ -190,6 +193,14 @@ class ArchitectureRepository:
         )
         target_dir = self.paths.records_dir / RECORD_TYPE_TO_DIR[normalized_kind]
         target_path = target_dir / filename
+        while target_path.exists():
+            number += 1
+            filename = filename_for(
+                normalized_kind,
+                number,
+                extension=self.config.record_extension,
+            )
+            target_path = target_dir / filename
         order = self._next_order(normalized_kind)
         created_at = utc_now_iso()
         template_name = record_template_name_for_source_format(
@@ -583,7 +594,10 @@ class ArchitectureRepository:
             created_with_archledger=current_meta.created_with_archledger,
             project_uuid=current_meta.project_uuid,
             created_at=current_meta.created_at,
-            next_numbers=recompute_next_numbers(self.paths.records_dir),
+            next_numbers=recompute_next_numbers(
+                self.paths.records_dir,
+                record_extensions=(self.config.record_extension,),
+            ),
         )
         write_storage_meta(self.paths.storage_meta_path, refreshed_meta)
 

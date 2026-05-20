@@ -154,6 +154,51 @@ def test_new_requirement_creates_requirement_0001(tmp_path: Path) -> None:
     assert "[discrete]\n=== Requirement" in created
 
 
+def test_new_requirement_increments_with_custom_record_extension(tmp_path: Path) -> None:
+    init_result = runner.invoke(
+        app,
+        ["--root", str(tmp_path), "init", "--source-format", "markdown"],
+    )
+    assert init_result.exit_code == 0, init_result.stdout
+    config_path = tmp_path / "archledger.toml"
+    config_path.write_text(
+        config_path.read_text(encoding="utf-8").replace(
+            'record_extension = ".md"',
+            'record_extension = ".mk"',
+        ),
+        encoding="utf-8",
+    )
+
+    for title in ["A", "B", "C"]:
+        result = runner.invoke(
+            app,
+            [
+                "--root",
+                str(tmp_path),
+                "new",
+                "requirement",
+                "--title",
+                title,
+                "--status",
+                "accepted",
+            ],
+        )
+        assert result.exit_code == 0, result.stdout
+
+    record_dir = tmp_path / ".archledger" / "records" / "requirements"
+    assert sorted(path.name for path in record_dir.iterdir()) == [
+        "requirement_0001.mk",
+        "requirement_0002.mk",
+        "requirement_0003.mk",
+    ]
+    assert 'title: "C"' in (record_dir / "requirement_0003.mk").read_text(
+        encoding="utf-8"
+    )
+    assert "requirement: 4" in (tmp_path / ".archledger" / "storage.yaml").read_text(
+        encoding="utf-8"
+    )
+
+
 def test_new_strategy_item_creates_strategy_item_0001(tmp_path: Path) -> None:
     init_project(tmp_path)
 

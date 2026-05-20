@@ -97,9 +97,16 @@ def write_storage_meta(path: Path, meta: StorageMeta) -> None:
     write_text(path, content)
 
 
-def recompute_next_numbers(records_dir: Path) -> dict[str, int]:
+def recompute_next_numbers(
+    records_dir: Path,
+    *,
+    record_extensions: tuple[str, ...] = (),
+) -> dict[str, int]:
     next_numbers = {counter_key: 1 for counter_key in _counter_keys()}
-    known_extensions = set(SOURCE_FORMAT_EXTENSIONS.values())
+    known_extensions = {
+        *SOURCE_FORMAT_EXTENSIONS.values(),
+        *(extension.lower() for extension in record_extensions),
+    }
     for record_type in VALID_RECORD_TYPES:
         directory = records_dir / RECORD_TYPE_TO_DIR[record_type]
         prefix = RECORD_TYPE_TO_FILENAME_PREFIX[record_type]
