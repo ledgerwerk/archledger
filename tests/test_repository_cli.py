@@ -34,6 +34,7 @@ def test_snapshot_writes_source_state_json(tmp_path: Path) -> None:
             "--root",
             str(tmp_path),
             "--json",
+            "source",
             "snapshot",
             "--reason",
             "after-archledger-update",
@@ -62,7 +63,10 @@ def test_snapshot_respects_tracking_disabled(tmp_path: Path) -> None:
         encoding="utf-8",
     )
 
-    result = runner.invoke(app, ["--root", str(tmp_path), "--json", "snapshot"])
+    result = runner.invoke(
+        app,
+        ["--root", str(tmp_path), "--json", "source", "snapshot"],
+    )
 
     assert result.exit_code == 1
     payload = json.loads(result.stdout)
@@ -76,7 +80,10 @@ def test_changed_json_is_stable_without_baseline(tmp_path: Path) -> None:
     (tmp_path / "src").mkdir()
     (tmp_path / "src" / "module.py").write_text("print('hello')\n", encoding="utf-8")
 
-    result = runner.invoke(app, ["--root", str(tmp_path), "--json", "changed"])
+    result = runner.invoke(
+        app,
+        ["--root", str(tmp_path), "--json", "source", "changed"],
+    )
 
     assert result.exit_code == 0
     payload = json.loads(result.stdout)
@@ -96,7 +103,10 @@ def test_changed_respects_tracking_disabled(tmp_path: Path) -> None:
         encoding="utf-8",
     )
 
-    result = runner.invoke(app, ["--root", str(tmp_path), "--json", "changed"])
+    result = runner.invoke(
+        app,
+        ["--root", str(tmp_path), "--json", "source", "changed"],
+    )
 
     assert result.exit_code == 1
     payload = json.loads(result.stdout)
@@ -116,7 +126,6 @@ def test_changed_json_reports_modified_file_and_impacted_record(tmp_path: Path) 
             str(tmp_path),
             "new",
             "white-box",
-            "--title",
             "Tracking layer",
             "--status",
             "proposed",
@@ -135,14 +144,22 @@ def test_changed_json_reports_modified_file_and_impacted_record(tmp_path: Path) 
     )
     snapshot_result = runner.invoke(
         app,
-        ["--root", str(tmp_path), "--json", "snapshot", "--reason", "baseline"],
+        [
+            "--root",
+            str(tmp_path),
+            "--json",
+            "source",
+            "snapshot",
+            "--reason",
+            "baseline",
+        ],
     )
     assert snapshot_result.exit_code == 0
 
     source_path.write_text("print('v2')\n", encoding="utf-8")
     result = runner.invoke(
         app,
-        ["--root", str(tmp_path), "--json", "changed", "--include-draft"],
+        ["--root", str(tmp_path), "--json", "source", "changed", "--include-drafts"],
     )
 
     assert result.exit_code == 0
@@ -163,7 +180,7 @@ def test_new_black_box_creates_black_box_0001(tmp_path: Path) -> None:
 
     result = runner.invoke(
         app,
-        ["--root", str(tmp_path), "new", "black-box", "--title", "CLI"],
+        ["--root", str(tmp_path), "new", "black-box", "CLI"],
     )
 
     assert result.exit_code == 0
@@ -177,7 +194,7 @@ def test_new_requirement_creates_requirement_0001(tmp_path: Path) -> None:
 
     result = runner.invoke(
         app,
-        ["--root", str(tmp_path), "new", "requirement", "--title", "Render output"],
+        ["--root", str(tmp_path), "new", "requirement", "Render output"],
     )
 
     assert result.exit_code == 0
@@ -216,7 +233,6 @@ def test_new_requirement_increments_with_custom_record_extension(
                 str(tmp_path),
                 "new",
                 "requirement",
-                "--title",
                 title,
                 "--status",
                 "accepted",
@@ -248,7 +264,6 @@ def test_new_strategy_item_creates_strategy_item_0001(tmp_path: Path) -> None:
             str(tmp_path),
             "new",
             "strategy-item",
-            "--title",
             "Keep records canonical",
         ],
     )
@@ -271,7 +286,6 @@ def test_new_quality_requirement_creates_quality_requirement_0001(
             str(tmp_path),
             "new",
             "quality-requirement",
-            "--title",
             "Deterministic builds",
         ],
     )
@@ -296,7 +310,6 @@ def test_new_context_interface_accepts_context_kind_and_partner(tmp_path: Path) 
             str(tmp_path),
             "new",
             "context-interface",
-            "--title",
             "GitHub",
             "--context-kind",
             "business",
@@ -327,7 +340,6 @@ def test_new_infrastructure_accepts_environment(tmp_path: Path) -> None:
             str(tmp_path),
             "new",
             "infrastructure",
-            "--title",
             "Local CLI runtime",
             "--environment",
             "development",
@@ -351,7 +363,6 @@ def test_new_quality_scenario_accepts_quality_and_environment(tmp_path: Path) ->
             str(tmp_path),
             "new",
             "quality-scenario",
-            "--title",
             "Deterministic build",
             "--quality",
             "reproducibility",
@@ -401,7 +412,7 @@ def test_new_white_box_creates_white_box_0001(tmp_path: Path) -> None:
 
     result = runner.invoke(
         app,
-        ["--root", str(tmp_path), "new", "white-box", "--title", "Overall System"],
+        ["--root", str(tmp_path), "new", "white-box", "Overall System"],
     )
 
     assert result.exit_code == 0
@@ -415,7 +426,7 @@ def test_new_adr_creates_adr0001(tmp_path: Path) -> None:
 
     result = runner.invoke(
         app,
-        ["--root", str(tmp_path), "new", "adr", "--title", "Use Markdown records"],
+        ["--root", str(tmp_path), "new", "adr", "Use Markdown records"],
     )
 
     assert result.exit_code == 0
@@ -428,7 +439,7 @@ def test_filename_id_must_match(tmp_path: Path) -> None:
     init_project(tmp_path)
     runner.invoke(
         app,
-        ["--root", str(tmp_path), "new", "black-box", "--title", "CLI"],
+        ["--root", str(tmp_path), "new", "black-box", "CLI"],
     )
     source = (
         tmp_path / ".archledger" / "records" / "building_blocks" / "black_box_0001.adoc"
@@ -448,7 +459,7 @@ def test_duplicate_id_check_fails(tmp_path: Path) -> None:
     init_project(tmp_path)
     runner.invoke(
         app,
-        ["--root", str(tmp_path), "new", "black-box", "--title", "CLI"],
+        ["--root", str(tmp_path), "new", "black-box", "CLI"],
     )
     original = (
         tmp_path / ".archledger" / "records" / "building_blocks" / "black_box_0001.adoc"
@@ -481,7 +492,6 @@ def test_missing_parent_check_fails(tmp_path: Path) -> None:
             "--json",
             "new",
             "black-box",
-            "--title",
             "CLI",
             "--parent",
             "white_box_0009",
@@ -503,11 +513,11 @@ def test_check_warns_for_incomplete_content_metadata(tmp_path: Path) -> None:
     init_project(tmp_path)
     runner.invoke(
         app,
-        ["--root", str(tmp_path), "new", "quality-goal", "--title", "Reproducibility"],
+        ["--root", str(tmp_path), "new", "quality-goal", "Reproducibility"],
     )
     runner.invoke(
         app,
-        ["--root", str(tmp_path), "new", "stakeholder", "--title", "Architect"],
+        ["--root", str(tmp_path), "new", "stakeholder", "Architect"],
     )
     runner.invoke(
         app,
@@ -516,7 +526,6 @@ def test_check_warns_for_incomplete_content_metadata(tmp_path: Path) -> None:
             str(tmp_path),
             "new",
             "context-interface",
-            "--title",
             "GitHub",
             "--context-kind",
             "business",
@@ -524,7 +533,7 @@ def test_check_warns_for_incomplete_content_metadata(tmp_path: Path) -> None:
     )
     runner.invoke(
         app,
-        ["--root", str(tmp_path), "new", "runtime", "--title", "CLI execution"],
+        ["--root", str(tmp_path), "new", "runtime", "CLI execution"],
     )
 
     result = runner.invoke(app, ["--root", str(tmp_path), "--json", "check"])
@@ -554,7 +563,6 @@ def test_check_warns_for_invalid_risk_levels_and_unmeasurable_quality_scenario(
             str(tmp_path),
             "new",
             "risk",
-            "--title",
             "Missing template coverage",
         ],
     )
@@ -565,7 +573,6 @@ def test_check_warns_for_invalid_risk_levels_and_unmeasurable_quality_scenario(
             str(tmp_path),
             "new",
             "quality-scenario",
-            "--title",
             "Fast build",
             "--quality",
             "reproducibility",
@@ -610,7 +617,7 @@ def test_check_strict_fails_on_new_content_warning(tmp_path: Path) -> None:
     init_project(tmp_path)
     runner.invoke(
         app,
-        ["--root", str(tmp_path), "new", "context-interface", "--title", "GitHub"],
+        ["--root", str(tmp_path), "new", "context-interface", "GitHub"],
     )
 
     result = runner.invoke(
@@ -628,7 +635,7 @@ def test_check_warns_for_invalid_source_ref_path_traversal(tmp_path: Path) -> No
     init_project(tmp_path)
     runner.invoke(
         app,
-        ["--root", str(tmp_path), "new", "white-box", "--title", "Tracking layer"],
+        ["--root", str(tmp_path), "new", "white-box", "Tracking layer"],
     )
     record_path = (
         tmp_path / ".archledger" / "records" / "building_blocks" / "white_box_0001.adoc"
@@ -657,7 +664,7 @@ def test_check_warns_for_missing_directory_source_ref(tmp_path: Path) -> None:
     init_project(tmp_path)
     runner.invoke(
         app,
-        ["--root", str(tmp_path), "new", "white-box", "--title", "Tracking layer"],
+        ["--root", str(tmp_path), "new", "white-box", "Tracking layer"],
     )
     record_path = (
         tmp_path / ".archledger" / "records" / "building_blocks" / "white_box_0001.adoc"
@@ -688,7 +695,7 @@ def test_check_warns_for_backslash_source_ref_path(tmp_path: Path) -> None:
     init_project(tmp_path)
     runner.invoke(
         app,
-        ["--root", str(tmp_path), "new", "white-box", "--title", "Tracking layer"],
+        ["--root", str(tmp_path), "new", "white-box", "Tracking layer"],
     )
     record_path = (
         tmp_path / ".archledger" / "records" / "building_blocks" / "white_box_0001.adoc"
@@ -717,7 +724,7 @@ def test_list_excludes_draft_by_default(tmp_path: Path) -> None:
     init_project(tmp_path)
     runner.invoke(
         app,
-        ["--root", str(tmp_path), "new", "black-box", "--title", "CLI"],
+        ["--root", str(tmp_path), "new", "black-box", "CLI"],
     )
 
     result = runner.invoke(app, ["--root", str(tmp_path), "list"])
@@ -730,10 +737,10 @@ def test_list_includes_draft_with_flag(tmp_path: Path) -> None:
     init_project(tmp_path)
     runner.invoke(
         app,
-        ["--root", str(tmp_path), "new", "black-box", "--title", "CLI"],
+        ["--root", str(tmp_path), "new", "black-box", "CLI"],
     )
 
-    result = runner.invoke(app, ["--root", str(tmp_path), "list", "--include-draft"])
+    result = runner.invoke(app, ["--root", str(tmp_path), "list", "--include-drafts"])
 
     assert result.exit_code == 0
     assert "black_box_0001" in result.stdout
@@ -760,6 +767,49 @@ def test_status_json_output(tmp_path: Path) -> None:
     assert payload["command"] == "status"
 
 
+def test_source_group_help_lists_snapshot_changed_convert() -> None:
+    result = runner.invoke(app, ["source", "--help"])
+
+    assert result.exit_code == 0
+    assert "snapshot" in result.stdout
+    assert "changed" in result.stdout
+    assert "convert" in result.stdout
+
+
+def test_visibility_all_statuses_includes_drafts_and_superseded(tmp_path: Path) -> None:
+    init_project(tmp_path)
+    runner.invoke(app, ["--root", str(tmp_path), "new", "black-box", "Draft CLI"])
+    runner.invoke(
+        app,
+        [
+            "--root",
+            str(tmp_path),
+            "new",
+            "black-box",
+            "Old CLI",
+            "--status",
+            "superseded",
+        ],
+    )
+
+    default_result = runner.invoke(app, ["--root", str(tmp_path), "--json", "read"])
+    all_statuses_result = runner.invoke(
+        app,
+        ["--root", str(tmp_path), "--json", "read", "--all-statuses"],
+    )
+
+    assert default_result.exit_code == 0
+    assert all_statuses_result.exit_code == 0
+    default_records = json.loads(default_result.stdout)["result"]["records"]
+    all_statuses_records = json.loads(all_statuses_result.stdout)["result"]["records"]
+    default_titles = {item["title"] for item in default_records}
+    all_titles = {item["title"] for item in all_statuses_records}
+    assert "Draft CLI" not in default_titles
+    assert "Old CLI" not in default_titles
+    assert "Draft CLI" in all_titles
+    assert "Old CLI" in all_titles
+
+
 def test_new_json_output(tmp_path: Path) -> None:
     init_project(tmp_path)
 
@@ -771,7 +821,6 @@ def test_new_json_output(tmp_path: Path) -> None:
             "--json",
             "new",
             "black-box",
-            "--title",
             "CLI",
         ],
     )
@@ -805,7 +854,7 @@ def test_new_legacy_v2_project_keeps_markdown_template(tmp_path: Path) -> None:
 
     result = runner.invoke(
         app,
-        ["--root", str(tmp_path), "new", "requirement", "--title", "Render output"],
+        ["--root", str(tmp_path), "new", "requirement", "Render output"],
     )
 
     assert result.exit_code == 0

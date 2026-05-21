@@ -19,7 +19,6 @@ def test_read_json_includes_current_source_bodies(tmp_path: Path) -> None:
             str(tmp_path),
             "new",
             "black-box",
-            "--title",
             "CLI",
             "--status",
             "accepted",
@@ -28,7 +27,7 @@ def test_read_json_includes_current_source_bodies(tmp_path: Path) -> None:
 
     result = runner.invoke(
         app,
-        ["--root", str(tmp_path), "--json", "read", "--include-body"],
+        ["--root", str(tmp_path), "--json", "read", "--body"],
     )
 
     assert result.exit_code == 0
@@ -46,7 +45,7 @@ def test_read_json_include_draft_flag(tmp_path: Path) -> None:
     init_project(tmp_path, source_format="markdown")
     runner.invoke(
         app,
-        ["--root", str(tmp_path), "new", "black-box", "--title", "CLI"],
+        ["--root", str(tmp_path), "new", "black-box", "CLI"],
     )
 
     result_without_drafts = runner.invoke(
@@ -55,7 +54,7 @@ def test_read_json_include_draft_flag(tmp_path: Path) -> None:
     )
     result_with_drafts = runner.invoke(
         app,
-        ["--root", str(tmp_path), "--json", "read", "--include-draft"],
+        ["--root", str(tmp_path), "--json", "read", "--include-drafts"],
     )
 
     payload_without_drafts = json.loads(result_without_drafts.stdout)

@@ -60,7 +60,7 @@ Converter-backed formats are part of the supported workflow only when those tool
 ```bash
 archledger init --source-format markdown
 archledger seed arc42-minimal
-archledger --json read --include-body
+archledger --json read --body
 archledger build --format markdown
 ```
 
@@ -69,7 +69,7 @@ archledger build --format markdown
 ```bash
 archledger init --source-format asciidoc
 archledger seed arc42-minimal
-archledger --json read --include-body
+archledger --json read --body
 archledger build --format asciidoc
 ```
 
@@ -148,12 +148,12 @@ Do **not** treat generated build output as canonical source. The default locatio
 Use `read` and the JSON commands to inspect the current source state directly:
 
 ```bash
-archledger --json where
+archledger --json paths
 archledger --json status
 archledger --json check
-archledger --json read --include-body --include-draft
-archledger --json read --section building_block_view --include-body
-archledger --json read --kind adr --include-body
+archledger --json read --body --include-drafts
+archledger --json read --section building_block_view --body
+archledger --json read --kind adr --body
 ```
 
 `--json` is a global option. Use `archledger --json read ...`, not `archledger read --json`.
@@ -165,7 +165,7 @@ archledger --json read --kind adr --include-body
 ### Snapshots
 
 ```bash
-archledger --json snapshot --reason after-archledger-update
+archledger --json source snapshot --reason after-archledger-update
 ```
 
 `snapshot` writes `.archledger/source-state.json` by default. Source-state payloads store SHA-256 content hashes only for files, do not persist mtimes or file sizes, and include a derived directory hash map. If `[tracking].enabled = false`, `snapshot` and `changed` fail explicitly instead of silently creating misleading tracking state.
@@ -173,8 +173,8 @@ archledger --json snapshot --reason after-archledger-update
 ### Changed files
 
 ```bash
-archledger --json changed
-archledger --json changed --include-draft
+archledger --json source changed
+archledger --json source changed --include-drafts
 ```
 
 `changed` reports added, modified, deleted, and possible renamed files plus impacted records and sections linked through `source_refs`.
@@ -200,11 +200,11 @@ Paths must be relative to the workspace root. Directory refs end with `/` and mu
 ### Practical drift workflow
 
 ```bash
-archledger --json changed
-archledger --json read --include-body --include-draft
+archledger --json source changed
+archledger --json read --body --include-drafts
 # update the affected fragments and their source_refs
 archledger --json check
-archledger --json snapshot --reason after-archledger-update
+archledger --json source snapshot --reason after-archledger-update
 ```
 
 A useful pattern is:
@@ -227,8 +227,8 @@ archledger build --format asciidoc
 
 ```bash
 archledger build --format html
-archledger build --formats html,markdown
-archledger --json build --formats html,markdown
+archledger build --format html --format markdown
+archledger --json build --format html --format markdown
 ```
 
 ### Tooling matrix
@@ -246,24 +246,24 @@ Per-output overrides live under `[build.outputs.<format>]`. Supported keys are `
 
 ## Migrating source dialects
 
-`convert-sources` is a source migration command, not a general build/export command. It currently supports Markdown-source projects to AsciiDoc-source projects only.
+`source convert` is a source migration command, not a general build/export command. It currently supports Markdown-source projects to AsciiDoc-source projects only.
 
 Dry-run the migration first:
 
 ```bash
-archledger convert-sources --to asciidoc
+archledger source convert --to asciidoc
 ```
 
 Write the migration:
 
 ```bash
-archledger convert-sources --to asciidoc --write
+archledger source convert --to asciidoc --apply
 ```
 
-`--write` now requires `pandoc` by default so the migrated `.adoc` files and the resulting `source.format = "asciidoc"` config stay consistent. If you intentionally want a temporary mixed-body migration, use:
+`--apply` now requires `pandoc` by default so the migrated `.adoc` files and the resulting `source.format = "asciidoc"` config stay consistent. If you intentionally want a temporary mixed-body migration, use:
 
 ```bash
-archledger convert-sources --to asciidoc --write --allow-mixed-body-format
+archledger source convert --to asciidoc --apply --allow-mixed-body-format
 ```
 
 Use this escape hatch only when you explicitly accept a manual cleanup step. Run the command from a clean VCS state.
@@ -311,13 +311,13 @@ scanner = "auto"          # auto | git | filesystem
 
 For coding agents, prefer this loop:
 
-1. `archledger --json where`
-2. `archledger --json changed`
-3. `archledger --json read --include-body --include-draft`
+1. `archledger --json paths`
+2. `archledger --json source changed`
+3. `archledger --json read --body --include-drafts`
 4. Edit only source fragments under `archledger_dir/sections` and `archledger_dir/records`
 5. `archledger --json check`
 6. Build only when the user asks for an exported artifact
-7. `archledger --json snapshot --reason after-archledger-update` after the docs have been updated and validated
+7. `archledger --json source snapshot --reason after-archledger-update` after the docs have been updated and validated
 
 ## Development
 
@@ -349,12 +349,12 @@ For the full maintainer checklist, see `docs/release-process.rst`.
 | Symptom                                           | Cause                                                                 | Fix                                                                                              |
 | ------------------------------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
 | `No archledger.toml found`                        | Command ran outside a configured workspace.                           | Run from the project tree or pass `--root`.                                                      |
-| Draft records missing from builds                 | Drafts are excluded by default.                                       | Use `--include-draft` or promote the record status.                                              |
+| Draft records missing from builds                 | Drafts are excluded by default.                                       | Use `--include-drafts` or promote the record status.                                             |
 | Build blocked by warnings                         | `--strict` treats warnings as failures.                               | Fix the warnings or build without `--strict`.                                                    |
 | Converter executable not found                    | Requested output needs `pandoc`, `asciidoctor`, or `asciidoctor-pdf`. | Install the required tool or change the per-output converter config.                             |
-| `changed` says no baseline found                  | No source snapshot exists yet.                                        | Run `archledger --json snapshot --reason after-archledger-update` after the docs are current.    |
+| `source changed` says no baseline found           | No source snapshot exists yet.                                        | Run `archledger --json source snapshot --reason after-archledger-update` after the docs are current. |
 | `snapshot` or `changed` says tracking is disabled | `[tracking].enabled = false`.                                         | Re-enable tracking or avoid tracking commands for that workspace.                                |
-| `convert-sources --write` fails without `pandoc`  | Write mode is strict by default.                                      | Install `pandoc` or re-run with `--allow-mixed-body-format` if you accept a manual cleanup step. |
+| `source convert --apply` fails without `pandoc`   | Apply mode is strict by default.                                      | Install `pandoc` or re-run with `--allow-mixed-body-format` if you accept a manual cleanup step. |
 
 ## Skill
 

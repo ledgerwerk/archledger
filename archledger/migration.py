@@ -50,10 +50,10 @@ def convert_sources(
     if normalized_target != "asciidoc":
         raise RenderError(f"Unsupported conversion target: {target_format}")
     if replace and not write:
-        raise RenderError("Use --write when combining convert-sources with --replace.")
+        raise RenderError("Use --apply when combining source convert with --replace.")
     if config.source_format != "markdown":
         raise RenderError(
-            "convert-sources currently supports Markdown source projects only."
+            "source convert currently supports Markdown source projects only."
         )
 
     warnings: list[str] = []

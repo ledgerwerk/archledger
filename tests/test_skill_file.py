@@ -7,9 +7,9 @@ def test_archledger_skill_exists() -> None:
     skill = Path("skills/archledger/SKILL.md")
     assert skill.is_file()
     text = skill.read_text(encoding="utf-8")
-    assert "archledger --json where" in text
+    assert "archledger --json paths" in text
     assert "archledger --json check" in text
-    assert "archledger --json read --include-body" in text
+    assert "archledger --json read --body" in text
     assert "archledger seed arc42-minimal" in text
     assert "generated build output" in text.lower()
 
@@ -22,7 +22,7 @@ def test_skill_file_mentions_markdown_and_asciidoc() -> None:
 
 def test_skill_file_instructs_read_without_export() -> None:
     text = Path("skills/archledger/SKILL.md").read_text(encoding="utf-8").lower()
-    assert "archledger --json read --include-body" in text
+    assert "archledger --json read --body" in text
     assert "configured build output directory" in text
     assert "source of truth" in text
 

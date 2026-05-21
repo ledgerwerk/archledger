@@ -17,8 +17,7 @@ def build_document(
     repo: ArchitectureRepository,
     *,
     output: Path | None = None,
-    format: str | None = None,
-    formats: str | None = None,
+    formats: tuple[str, ...] | None = None,
     all_formats: bool = False,
     include_draft: bool = False,
     include_superseded: bool = False,
@@ -27,9 +26,8 @@ def build_document(
     requested_formats = resolve_requested_formats(
         repo.config,
         output=output,
-        format_name=format,
-        formats_value=formats,
-        build_all=all_formats,
+        format_names=formats,
+        all_formats=all_formats,
     )
     native_format = parse_output_format(
         native_output_format_for_source_format(repo.config.source_format)

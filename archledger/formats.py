@@ -51,20 +51,6 @@ def parse_output_format(value: str) -> OutputFormat:
         ) from exc
 
 
-def parse_output_formats_csv(value: str) -> tuple[OutputFormat, ...]:
-    formats: list[OutputFormat] = []
-    seen: set[OutputFormat] = set()
-    for item in value.split(","):
-        output_format = parse_output_format(item)
-        if output_format in seen:
-            continue
-        formats.append(output_format)
-        seen.add(output_format)
-    if not formats:
-        raise RenderError("No output formats were provided.")
-    return tuple(formats)
-
-
 def infer_output_format_from_output_path(output: Path) -> OutputFormat:
     suffix = output.suffix.lower()
     for format_name, extension in OUTPUT_FORMAT_EXTENSIONS.items():
@@ -80,17 +66,14 @@ def resolve_requested_formats(
     config: ProjectConfig,
     *,
     output: Path | None,
-    format_name: str | None,
-    formats_value: str | None,
-    build_all: bool,
+    format_names: tuple[str, ...] | None,
+    all_formats: bool,
 ) -> tuple[OutputFormat, ...]:
-    selected_options = sum(
-        1 for value in (format_name, formats_value) if value not in (None, "")
-    ) + int(build_all)
+    selected_options = int(bool(format_names)) + int(all_formats)
     if selected_options > 1:
-        raise RenderError("Use only one of --format, --formats, or --all.")
+        raise RenderError("Use only one of --format or --all-formats.")
 
-    if build_all:
+    if all_formats:
         requested_all_formats = tuple(
             output_format
             for output_format in ALL_OUTPUT_FORMATS
@@ -98,11 +81,19 @@ def resolve_requested_formats(
         )
         if requested_all_formats:
             return requested_all_formats
-        raise RenderError("No output formats are enabled for build --all.")
-    if formats_value:
-        return parse_output_formats_csv(formats_value)
-    if format_name:
-        return (parse_output_format(format_name),)
+        raise RenderError("No output formats are enabled for build --all-formats.")
+    if format_names:
+        formats: list[OutputFormat] = []
+        seen: set[OutputFormat] = set()
+        for format_name in format_names:
+            output_format = parse_output_format(format_name)
+            if output_format in seen:
+                continue
+            formats.append(output_format)
+            seen.add(output_format)
+        if not formats:
+            raise RenderError("No output formats were provided.")
+        return tuple(formats)
     if output is not None:
         return (infer_output_format_from_output_path(output),)
     default_format = parse_output_format(config.build_default_format)

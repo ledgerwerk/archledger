@@ -28,15 +28,15 @@ remain the lowest-friction path because they do not depend on external converter
 Source migration
 ----------------
 
-``convert-sources`` migrates Markdown-source projects to AsciiDoc-source projects.
+``source convert`` migrates Markdown-source projects to AsciiDoc-source projects.
 Write mode is strict by default and requires ``pandoc``:
 
 .. code-block:: bash
 
-   archledger convert-sources --to asciidoc --write
+   archledger source convert --to asciidoc --apply
 
 For an explicit temporary mixed-body migration:
 
 .. code-block:: bash
 
-   archledger convert-sources --to asciidoc --write --allow-mixed-body-format
+   archledger source convert --to asciidoc --apply --allow-mixed-body-format

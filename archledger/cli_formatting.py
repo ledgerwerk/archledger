@@ -26,7 +26,7 @@ def format_status_message(payload: dict[str, object]) -> str:
     )
 
 
-def format_where_message(payload: dict[str, object]) -> str:
+def format_paths_message(payload: dict[str, object]) -> str:
     return "\n".join(
         [
             f"Workspace: {payload['workspace_root']}",
@@ -36,6 +36,32 @@ def format_where_message(payload: dict[str, object]) -> str:
             f"Records: {payload['records_dir']}",
             f"Build: {payload['build_dir']}",
             f"Storage metadata: {payload['storage_meta_path']}",
+            f"Source state: {payload['source_state_path']}",
+        ]
+    )
+
+
+def format_schema_message(payload: dict[str, object]) -> str:
+    record_types = payload.get("record_types")
+    statuses = payload.get("statuses")
+    sections = payload.get("sections")
+    source_formats = payload.get("source_formats")
+    output_formats = payload.get("output_formats")
+    if (
+        not isinstance(record_types, list)
+        or not isinstance(statuses, list)
+        or not isinstance(sections, list)
+        or not isinstance(source_formats, list)
+        or not isinstance(output_formats, list)
+    ):
+        raise RuntimeError("Schema payload was malformed.")
+    return "\n".join(
+        [
+            f"Record types: {len(record_types)}",
+            f"Statuses: {', '.join(statuses)}",
+            f"Sections: {len(sections)}",
+            f"Source formats: {', '.join(source_formats)}",
+            f"Output formats: {', '.join(output_formats)}",
         ]
     )
 
@@ -127,7 +153,7 @@ def format_changed_message(payload: dict[str, object]) -> str:
     ):
         raise RuntimeError("Changed payload was malformed.")
     if baseline.get("exists") is False:
-        lines = ["No source baseline found. Run: archledger snapshot"]
+        lines = ["No source baseline found. Run: archledger source snapshot"]
         for path in changes.get("unbaselined_files", []):
             lines.append(f"- unbaselined: {path}")
         return "\n".join(lines)
@@ -193,7 +219,7 @@ def format_convert_sources_message(payload: dict[str, object]) -> str:
         f"{action} {len(converted)} source file(s) to {payload['target_format']}.",
     ]
     if not payload.get("write"):
-        lines.append("Re-run with --write to apply the migration.")
+        lines.append("Re-run with --apply to apply the migration.")
     for warning in warnings:
         lines.append(f"warning: {warning}")
     return "\n".join(lines)

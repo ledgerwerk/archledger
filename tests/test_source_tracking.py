@@ -174,7 +174,7 @@ def test_resolve_impacts_reports_linked_records_and_unlinked_files(
     source_file.write_text("print('v1')\n", encoding="utf-8")
     runner.invoke(
         app,
-        ["--root", str(tmp_path), "new", "white-box", "--title", "Tracking layer"],
+        ["--root", str(tmp_path), "new", "white-box", "Tracking layer"],
     )
     record_path = (
         tmp_path / ".archledger" / "records" / "building_blocks" / "white_box_0001.md"

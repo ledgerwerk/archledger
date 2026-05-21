@@ -173,7 +173,6 @@ def test_new_succeeds_for_every_record_type(tmp_path: Path) -> None:
                 str(tmp_path),
                 "new",
                 cli_kind,
-                "--title",
                 cli_kind,
                 "--status",
                 "proposed",

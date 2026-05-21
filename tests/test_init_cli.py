@@ -139,7 +139,7 @@ def test_cli_discovers_archledger_toml_from_subdirectory(tmp_path: Path) -> None
 
     nested_dir = tmp_path / "src" / "pkg"
     nested_dir.mkdir(parents=True)
-    result = runner.invoke(app, ["--root", str(nested_dir), "where"])
+    result = runner.invoke(app, ["--root", str(nested_dir), "paths"])
 
     assert result.exit_code == 0
     assert str(tmp_path / "archledger.toml") in result.stdout
@@ -190,7 +190,7 @@ def test_hidden_archledger_toml_is_supported(tmp_path: Path) -> None:
         encoding="utf-8",
     )
 
-    result = runner.invoke(app, ["--root", str(tmp_path), "where"])
+    result = runner.invoke(app, ["--root", str(tmp_path), "paths"])
 
     assert result.exit_code == 0
     assert str(hidden_config) in result.stdout
@@ -216,6 +216,40 @@ def test_invalid_source_format_is_rejected(tmp_path: Path) -> None:
 
     assert result.exit_code == 1
     assert "source_format must be one of" in result.output
+
+
+def test_paths_json_includes_source_state_path(tmp_path: Path) -> None:
+    init_result = runner.invoke(app, ["--root", str(tmp_path), "init"])
+    assert init_result.exit_code == 0
+
+    result = runner.invoke(app, ["--root", str(tmp_path), "--json", "paths"])
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload["command"] == "paths"
+    assert payload["result"]["source_state_path"].endswith(
+        ".archledger/source-state.json"
+    )
+
+
+def test_schema_json_lists_record_types_statuses_sections_and_formats(
+    tmp_path: Path,
+) -> None:
+    init_result = runner.invoke(app, ["--root", str(tmp_path), "init"])
+    assert init_result.exit_code == 0
+
+    result = runner.invoke(app, ["--root", str(tmp_path), "--json", "schema"])
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    schema = payload["result"]
+    assert payload["command"] == "schema"
+    assert schema["schema"] == "archledger.schema.v1"
+    assert schema["record_types"]
+    assert schema["statuses"]
+    assert schema["sections"]
+    assert schema["source_formats"]
+    assert schema["output_formats"]
 
 
 def test_repo_init_does_not_rewrite_existing_storage_meta_without_overwrite(

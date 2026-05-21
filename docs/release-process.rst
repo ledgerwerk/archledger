@@ -50,7 +50,7 @@ Always verify the built wheel from outside the source checkout:
    /tmp/archledger-wheel-test/bin/archledger seed arc42-minimal
    /tmp/archledger-wheel-test/bin/archledger new requirement --title "Smoke" --status accepted
    /tmp/archledger-wheel-test/bin/archledger build --format markdown
-   /tmp/archledger-wheel-test/bin/archledger --json read --include-body
+   /tmp/archledger-wheel-test/bin/archledger --json read --body
 
 Converter-backed release confidence
 -----------------------------------

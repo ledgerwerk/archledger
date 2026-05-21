@@ -15,17 +15,17 @@ def test_convert_sources_requires_write_for_mutation(tmp_path: Path) -> None:
     init_legacy_project(tmp_path)
     runner.invoke(
         app,
-        ["--root", str(tmp_path), "new", "requirement", "--title", "Render output"],
+        ["--root", str(tmp_path), "new", "requirement", "Render output"],
     )
 
     result = runner.invoke(
         app,
-        ["--root", str(tmp_path), "convert-sources", "--to", "asciidoc"],
+        ["--root", str(tmp_path), "source", "convert", "--to", "asciidoc"],
     )
 
     assert result.exit_code == 0
     assert "Planned" in result.stdout
-    assert "Re-run with --write" in result.stdout
+    assert "Re-run with --apply" in result.stdout
     assert not (
         tmp_path / ".archledger" / "records" / "requirements" / "requirement_0001.adoc"
     ).exists()
@@ -43,7 +43,6 @@ def test_convert_sources_write_requires_pandoc_unless_mixed_is_allowed(
             str(tmp_path),
             "new",
             "requirement",
-            "--title",
             "Render output",
         ],
     )
@@ -51,7 +50,7 @@ def test_convert_sources_write_requires_pandoc_unless_mixed_is_allowed(
 
     result = runner.invoke(
         app,
-        ["--root", str(tmp_path), "convert-sources", "--to", "asciidoc", "--write"],
+        ["--root", str(tmp_path), "source", "convert", "--to", "asciidoc", "--apply"],
     )
 
     assert result.exit_code == 1
@@ -74,7 +73,6 @@ def test_convert_sources_allow_mixed_body_format_without_pandoc(
             str(tmp_path),
             "new",
             "requirement",
-            "--title",
             "Render output",
         ],
     )
@@ -85,10 +83,11 @@ def test_convert_sources_allow_mixed_body_format_without_pandoc(
         [
             "--root",
             str(tmp_path),
-            "convert-sources",
+            "source",
+            "convert",
             "--to",
             "asciidoc",
-            "--write",
+            "--apply",
             "--allow-mixed-body-format",
         ],
     )
@@ -119,7 +118,6 @@ def test_convert_sources_uses_pandoc_when_available(
             str(tmp_path),
             "new",
             "requirement",
-            "--title",
             "Render output",
         ],
     )
@@ -147,7 +145,7 @@ def test_convert_sources_uses_pandoc_when_available(
 
     result = runner.invoke(
         app,
-        ["--root", str(tmp_path), "convert-sources", "--to", "asciidoc", "--write"],
+        ["--root", str(tmp_path), "source", "convert", "--to", "asciidoc", "--apply"],
     )
 
     assert result.exit_code == 0
@@ -206,7 +204,6 @@ def test_convert_sources_preserves_v5_tracking_and_build_config(
             str(tmp_path),
             "new",
             "requirement",
-            "--title",
             "Render output",
             "--status",
             "accepted",
@@ -234,7 +231,7 @@ def test_convert_sources_preserves_v5_tracking_and_build_config(
 
     result = runner.invoke(
         app,
-        ["--root", str(tmp_path), "convert-sources", "--to", "asciidoc", "--write"],
+        ["--root", str(tmp_path), "source", "convert", "--to", "asciidoc", "--apply"],
     )
 
     assert result.exit_code == 0
@@ -270,7 +267,6 @@ def test_convert_sources_replace_removes_markdown_files(
             str(tmp_path),
             "new",
             "requirement",
-            "--title",
             "Render output",
         ],
     )
@@ -297,10 +293,11 @@ def test_convert_sources_replace_removes_markdown_files(
         [
             "--root",
             str(tmp_path),
-            "convert-sources",
+            "source",
+            "convert",
             "--to",
             "asciidoc",
-            "--write",
+            "--apply",
             "--replace",
         ],
     )

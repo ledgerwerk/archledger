@@ -26,7 +26,7 @@ Use this skill when a coding agent needs to create, inspect, enrich, repair, or 
 - Do not edit generated build output as canonical source.
 - Do not require `archledger build` before understanding the current documentation state.
 - Do not describe Markdown projects as legacy unless the user explicitly asks about an older migration path.
-- Do not migrate source dialects unless the user explicitly asks for `convert-sources`.
+- Do not migrate source dialects unless the user explicitly asks for `source convert`.
 - Do not invent architecture facts without repository evidence.
 - Do not leave placeholder bodies in accepted records.
 
@@ -35,16 +35,16 @@ Use this skill when a coding agent needs to create, inspect, enrich, repair, or 
 When the user asks to update existing archledger content, detect source drift first:
 
 ```bash
-archledger --json changed
+archledger --json source changed
 ```
 
 Then read current archledger source state directly:
 
 ```bash
-archledger --json where
+archledger --json paths
 archledger --json status
 archledger --json check
-archledger --json read --include-body --include-draft
+archledger --json read --body --include-drafts
 ```
 
 Then:
@@ -120,9 +120,9 @@ Rules:
 
 ## Reading and editing rules
 
-- Prefer `archledger --json changed` before broad repository reads when the user wants architecture docs refreshed.
-- Always run `archledger --json changed` before refreshing architecture docs unless the user only asked to inspect a single known record.
-- Prefer `archledger --json read --include-body` over `archledger build` when you need the current architecture state.
+- Prefer `archledger --json source changed` before broad repository reads when the user wants architecture docs refreshed.
+- Always run `archledger --json source changed` before refreshing architecture docs unless the user only asked to inspect a single known record.
+- Prefer `archledger --json read --body` over `archledger build` when you need the current architecture state.
 - Read the repository evidence before writing documentation: README, tests, package metadata, CI, deployment files, and design notes.
 - Update section files and record files directly; never patch generated complete documents as the source of truth.
 - Never edit generated build output in the configured build output directory; it is derived output only.
@@ -157,7 +157,7 @@ archledger check
 archledger build --format markdown
 archledger build --format asciidoc
 python -m pytest -q
-archledger --json snapshot --reason after-archledger-update
+archledger --json source snapshot --reason after-archledger-update
 ```
 
 Choose the native build that matches the project source format. Use optional export builds only when the user asked for those artifacts or when validating converter-backed formats.
@@ -166,11 +166,11 @@ Do not run `snapshot` until the documentation updates have been applied and vali
 For automation, prefer JSON:
 
 ```bash
-archledger --json changed
+archledger --json source changed
 archledger --json check
-archledger --json read --include-body
-archledger --json snapshot --reason after-archledger-update
-archledger --json build --formats html,markdown
+archledger --json read --body
+archledger --json source snapshot --reason after-archledger-update
+archledger --json build --format html --format markdown
 ```
 
 ## Content quality bar

@@ -18,24 +18,24 @@ Inspect the current source state:
 
 .. code-block:: bash
 
-   archledger --json where
+   archledger --json paths
    archledger --json status
    archledger --json check
-   archledger --json read --include-body --include-draft
+   archledger --json read --body --include-drafts
 
 Track implementation drift:
 
 .. code-block:: bash
 
-   archledger --json snapshot --reason after-archledger-update
-   archledger --json changed
+   archledger --json source snapshot --reason after-archledger-update
+   archledger --json source changed
 
 Create records:
 
 .. code-block:: bash
 
-   archledger new requirement --title "Render architecture document" --status proposed
-   archledger new adr --title "Treat source fragments as canonical" --status proposed
+   archledger new requirement "Render architecture document" --status proposed
+   archledger new adr "Treat source fragments as canonical" --status proposed
 
 Build output:
 
@@ -43,4 +43,4 @@ Build output:
 
    archledger build --format markdown
    archledger build --format asciidoc
-   archledger build --formats html,markdown
+   archledger build --format html --format markdown

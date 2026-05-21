@@ -8,7 +8,7 @@ Snapshots
 
 .. code-block:: bash
 
-   archledger --json snapshot --reason after-archledger-update
+   archledger --json source snapshot --reason after-archledger-update
 
 ``source-state.json`` stores SHA-256 content hashes only for files. It does not
 persist mtimes or file sizes. Directory hashes are derived from file hashes
@@ -21,8 +21,8 @@ Changes
 
 .. code-block:: bash
 
-   archledger --json changed
-   archledger --json changed --include-draft
+   archledger --json source changed
+   archledger --json source changed --include-drafts
 
 If ``[tracking].enabled = false``, both commands fail explicitly instead of
 creating or reading misleading tracking state.
@@ -55,10 +55,10 @@ Use tracking as a repeatable drift loop instead of a one-off report:
 
 .. code-block:: bash
 
-   archledger --json changed
-   archledger --json read --include-body --include-draft
+   archledger --json source changed
+   archledger --json read --body --include-drafts
    archledger --json check
-   archledger --json snapshot --reason after-archledger-update
+   archledger --json source snapshot --reason after-archledger-update
 
 In practice:
 

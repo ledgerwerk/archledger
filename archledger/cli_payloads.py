@@ -4,7 +4,16 @@ from pathlib import Path
 
 from archledger.converters import BuildResult
 from archledger.migration import MigrationResult
-from archledger.model import ArchitectureRecord, is_visible_status, normalize_kind
+from archledger.model import (
+    MAJOR_SECTION_SPECS,
+    VALID_OUTPUT_FORMATS,
+    VALID_SOURCE_FORMATS,
+    VALID_STATUSES,
+    ArchitectureRecord,
+    is_visible_status,
+    normalize_kind,
+)
+from archledger.record_types import RECORD_TYPE_SPECS
 from archledger.repository import (
     ArchitectureRepository,
     CheckFinding,
@@ -64,6 +73,39 @@ def where_payload(
         "records_dir": str(paths.records_dir),
         "build_dir": str(paths.build_dir),
         "storage_meta_path": str(paths.storage_meta_path),
+        "source_state_path": str(paths.source_state_path),
+    }
+
+
+def schema_payload(
+    repo: ArchitectureRepository,
+    paths: ProjectPaths,
+    config: ProjectConfig,
+) -> dict[str, object]:
+    del repo, paths, config
+    return {
+        "schema": "archledger.schema.v1",
+        "record_types": [
+            {
+                "kind": spec.kind,
+                "aliases": list(spec.aliases),
+                "default_section": spec.default_section,
+                "directory": spec.directory,
+                "filename_prefix": spec.filename_prefix,
+            }
+            for spec in RECORD_TYPE_SPECS
+        ],
+        "statuses": sorted(VALID_STATUSES),
+        "sections": [
+            {
+                "key": section.key,
+                "title": section.title,
+                "order": section.order,
+            }
+            for section in MAJOR_SECTION_SPECS
+        ],
+        "source_formats": sorted(VALID_SOURCE_FORMATS),
+        "output_formats": sorted(VALID_OUTPUT_FORMATS),
     }
 
 

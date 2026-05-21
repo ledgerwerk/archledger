@@ -208,7 +208,16 @@ def test_json_build_reports_multiple_outputs(
 
     result = runner.invoke(
         app,
-        ["--root", str(tmp_path), "--json", "build", "--formats", "html,markdown"],
+        [
+            "--root",
+            str(tmp_path),
+            "--json",
+            "build",
+            "--format",
+            "html",
+            "--format",
+            "markdown",
+        ],
     )
 
     assert result.exit_code == 0
@@ -288,7 +297,10 @@ def test_build_all_honors_disabled_outputs(
 
     monkeypatch.setattr("archledger.converters.subprocess.run", fake_run)
 
-    result = runner.invoke(app, ["--root", str(tmp_path), "--json", "build", "--all"])
+    result = runner.invoke(
+        app,
+        ["--root", str(tmp_path), "--json", "build", "--all-formats"],
+    )
 
     assert result.exit_code == 0
     outputs = json.loads(result.stdout)["result"]["outputs"]
@@ -328,6 +340,32 @@ def test_explicit_format_overrides_disabled_output(
 
     assert result.exit_code == 0
     assert (tmp_path / "build" / "architecture.html").is_file()
+
+
+def test_build_rejects_multiple_formats_with_output_file(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    init_project(tmp_path)
+    monkeypatch.setattr("archledger.converters.shutil.which", _fake_which)
+
+    result = runner.invoke(
+        app,
+        [
+            "--root",
+            str(tmp_path),
+            "build",
+            "--output",
+            "docs/architecture.md",
+            "--format",
+            "html",
+            "--format",
+            "markdown",
+        ],
+    )
+
+    assert result.exit_code == 1
+    assert "Use --output only when building a single format." in result.output
 
 
 def init_project(tmp_path: Path) -> None:

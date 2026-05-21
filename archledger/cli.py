@@ -31,7 +31,13 @@ from archledger.cli_formatting import (
     format_new_message as _format_new_message,
 )
 from archledger.cli_formatting import (
+    format_paths_message as _format_paths_message,
+)
+from archledger.cli_formatting import (
     format_read_message as _format_read_message,
+)
+from archledger.cli_formatting import (
+    format_schema_message as _format_schema_message,
 )
 from archledger.cli_formatting import (
     format_seed_message as _format_seed_message,
@@ -44,9 +50,6 @@ from archledger.cli_formatting import (
 )
 from archledger.cli_formatting import (
     format_status_message as _format_status_message,
-)
-from archledger.cli_formatting import (
-    format_where_message as _format_where_message,
 )
 from archledger.cli_payloads import (
     build_result_payload as _build_payload,
@@ -74,6 +77,9 @@ from archledger.cli_payloads import (
 )
 from archledger.cli_payloads import (
     read_payload as _read_payload,
+)
+from archledger.cli_payloads import (
+    schema_payload as _schema_payload,
 )
 from archledger.cli_payloads import (
     seed_payload as _seed_payload,
@@ -118,12 +124,36 @@ from archledger.storage.project_config import (
 from archledger.storage.source_state import read_source_state, write_source_state
 
 app = typer.Typer(add_completion=False, no_args_is_help=True)
+source_app = typer.Typer(add_completion=False, no_args_is_help=True)
+app.add_typer(
+    source_app,
+    name="source",
+    help="Inspect implementation drift and convert source dialects.",
+)
 
 
 @dataclass(frozen=True, slots=True)
 class CLIState:
     root: Path
     json_output: bool
+
+
+@dataclass(frozen=True, slots=True)
+class VisibilityOptions:
+    include_drafts: bool
+    include_superseded: bool
+
+
+def _resolve_visibility(
+    *,
+    include_drafts: bool,
+    include_superseded: bool,
+    all_statuses: bool,
+) -> VisibilityOptions:
+    return VisibilityOptions(
+        include_drafts=include_drafts or all_statuses,
+        include_superseded=include_superseded or all_statuses,
+    )
 
 
 def _version_callback(value: bool | None) -> None:
@@ -241,14 +271,25 @@ def status(ctx: typer.Context) -> None:
     )
 
 
-@app.command()
-def where(ctx: typer.Context) -> None:
+@app.command("paths")
+def paths(ctx: typer.Context) -> None:
     state = _state(ctx)
     _run_configured_command(
         state,
-        "where",
+        "paths",
         _where_payload,
-        _format_where_message,
+        _format_paths_message,
+    )
+
+
+@app.command("schema")
+def schema(ctx: typer.Context) -> None:
+    state = _state(ctx)
+    _run_configured_command(
+        state,
+        "schema",
+        _schema_payload,
+        _format_schema_message,
     )
 
 
@@ -258,7 +299,7 @@ def new_record(
     kind: Annotated[str, typer.Argument()],
     title: Annotated[
         str,
-        typer.Option("--title", help="Human-readable record title."),
+        typer.Argument(help="Human-readable record title."),
     ],
     parent: Annotated[
         str | None,
@@ -354,9 +395,16 @@ def seed(
 def list_records(
     ctx: typer.Context,
     kind: Annotated[str | None, typer.Argument()] = None,
-    include_draft: Annotated[bool, typer.Option("--include-draft")] = False,
+    include_drafts: Annotated[bool, typer.Option("--include-drafts")] = False,
+    include_superseded: Annotated[bool, typer.Option("--include-superseded")] = False,
+    all_statuses: Annotated[bool, typer.Option("--all-statuses")] = False,
 ) -> None:
     state = _state(ctx)
+    visibility = _resolve_visibility(
+        include_drafts=include_drafts,
+        include_superseded=include_superseded,
+        all_statuses=all_statuses,
+    )
 
     def build_result(
         repo: ArchitectureRepository,
@@ -364,7 +412,13 @@ def list_records(
         config: ProjectConfig,
     ) -> dict[str, object]:
         del paths, config
-        return _list_payload(repo.list_records(include_draft=include_draft, kind=kind))
+        return _list_payload(
+            repo.list_records(
+                include_draft=visibility.include_drafts,
+                include_superseded=visibility.include_superseded,
+                kind=kind,
+            )
+        )
 
     _run_configured_command(state, "list", build_result, _format_list_message)
 
@@ -390,13 +444,19 @@ def show(
 @app.command()
 def read(
     ctx: typer.Context,
-    include_body: Annotated[bool, typer.Option("--include-body")] = False,
-    include_draft: Annotated[bool, typer.Option("--include-draft")] = False,
+    body: Annotated[bool, typer.Option("--body")] = False,
+    include_drafts: Annotated[bool, typer.Option("--include-drafts")] = False,
     include_superseded: Annotated[bool, typer.Option("--include-superseded")] = False,
+    all_statuses: Annotated[bool, typer.Option("--all-statuses")] = False,
     section: Annotated[str | None, typer.Option("--section")] = None,
     kind: Annotated[str | None, typer.Option("--kind")] = None,
 ) -> None:
     state = _state(ctx)
+    visibility = _resolve_visibility(
+        include_drafts=include_drafts,
+        include_superseded=include_superseded,
+        all_statuses=all_statuses,
+    )
 
     def build_result(
         repo: ArchitectureRepository,
@@ -407,9 +467,9 @@ def read(
             repo,
             paths,
             config,
-            include_body=include_body,
-            include_draft=include_draft,
-            include_superseded=include_superseded,
+            include_body=body,
+            include_draft=visibility.include_drafts,
+            include_superseded=visibility.include_superseded,
             section=section,
             kind=kind,
         )
@@ -421,7 +481,7 @@ def read(
 def check(
     ctx: typer.Context,
     strict: Annotated[bool, typer.Option("--strict")] = False,
-    repair_counters: Annotated[bool, typer.Option("--repair-counters")] = False,
+    fix: Annotated[bool, typer.Option("--fix")] = False,
 ) -> None:
     state = _state(ctx)
 
@@ -431,7 +491,7 @@ def check(
         config: ProjectConfig,
     ) -> dict[str, object]:
         del paths, config
-        result = repo.check(strict=strict, repair_counters=repair_counters)
+        result = repo.check(strict=strict, repair_counters=fix)
         if result.has_failures(strict=strict):
             raise _check_error(result, strict=strict)
         return _check_payload(result)
@@ -439,7 +499,7 @@ def check(
     _run_configured_command(state, "check", build_result, _format_check_message)
 
 
-@app.command()
+@source_app.command("snapshot")
 def snapshot(
     ctx: typer.Context,
     reason: Annotated[str, typer.Option("--reason")] = "manual",
@@ -463,16 +523,27 @@ def snapshot(
         write_source_state(paths.source_state_path, scanned_state)
         return _snapshot_payload(paths, scanned_state)
 
-    _run_configured_command(state, "snapshot", build_result, _format_snapshot_message)
+    _run_configured_command(
+        state,
+        "source snapshot",
+        build_result,
+        _format_snapshot_message,
+    )
 
 
-@app.command()
+@source_app.command("changed")
 def changed(
     ctx: typer.Context,
-    include_draft: Annotated[bool, typer.Option("--include-draft")] = False,
+    include_drafts: Annotated[bool, typer.Option("--include-drafts")] = False,
     include_superseded: Annotated[bool, typer.Option("--include-superseded")] = False,
+    all_statuses: Annotated[bool, typer.Option("--all-statuses")] = False,
 ) -> None:
     state = _state(ctx)
+    visibility = _resolve_visibility(
+        include_drafts=include_drafts,
+        include_superseded=include_superseded,
+        all_statuses=all_statuses,
+    )
 
     def build_result(
         repo: ArchitectureRepository,
@@ -491,26 +562,36 @@ def changed(
             changes = resolve_impacts(
                 repo.load_all_records(include_sections=True),
                 changes,
-                include_draft=include_draft,
-                include_superseded=include_superseded,
+                include_draft=visibility.include_drafts,
+                include_superseded=visibility.include_superseded,
             )
         return _changed_payload(paths, changes)
 
-    _run_configured_command(state, "changed", build_result, _format_changed_message)
+    _run_configured_command(
+        state,
+        "source changed",
+        build_result,
+        _format_changed_message,
+    )
 
 
 @app.command()
 def build(
     ctx: typer.Context,
     output: Annotated[Path | None, typer.Option("--output")] = None,
-    format: Annotated[str | None, typer.Option("--format")] = None,
-    formats: Annotated[str | None, typer.Option("--formats")] = None,
-    all_formats: Annotated[bool, typer.Option("--all")] = False,
-    include_draft: Annotated[bool, typer.Option("--include-draft")] = False,
+    format_names: Annotated[list[str] | None, typer.Option("--format")] = None,
+    all_formats: Annotated[bool, typer.Option("--all-formats")] = False,
+    include_drafts: Annotated[bool, typer.Option("--include-drafts")] = False,
     include_superseded: Annotated[bool, typer.Option("--include-superseded")] = False,
+    all_statuses: Annotated[bool, typer.Option("--all-statuses")] = False,
     strict: Annotated[bool, typer.Option("--strict")] = False,
 ) -> None:
     state = _state(ctx)
+    visibility = _resolve_visibility(
+        include_drafts=include_drafts,
+        include_superseded=include_superseded,
+        all_statuses=all_statuses,
+    )
 
     def build_result(
         repo: ArchitectureRepository,
@@ -521,11 +602,10 @@ def build(
         result = build_document(
             repo,
             output=output,
-            format=format,
-            formats=formats,
+            formats=tuple(format_names or ()),
             all_formats=all_formats,
-            include_draft=include_draft,
-            include_superseded=include_superseded,
+            include_draft=visibility.include_drafts,
+            include_superseded=visibility.include_superseded,
             strict=strict,
         )
         return _build_payload(result)
@@ -533,11 +613,11 @@ def build(
     _run_configured_command(state, "build", build_result, _format_build_message)
 
 
-@app.command("convert-sources")
+@source_app.command("convert")
 def convert_sources_command(
     ctx: typer.Context,
     to: Annotated[str, typer.Option("--to")] = "asciidoc",
-    write: Annotated[bool, typer.Option("--write")] = False,
+    apply: Annotated[bool, typer.Option("--apply")] = False,
     replace: Annotated[bool, typer.Option("--replace")] = False,
     allow_mixed_body_format: Annotated[
         bool,
@@ -562,7 +642,7 @@ def convert_sources_command(
             paths,
             config,
             target_format=to,
-            write=write,
+            write=apply,
             replace=replace,
             allow_mixed_body_format=allow_mixed_body_format,
         )
@@ -570,7 +650,7 @@ def convert_sources_command(
 
     _run_configured_command(
         state,
-        "convert-sources",
+        "source convert",
         build_result,
         _format_convert_sources_message,
     )
