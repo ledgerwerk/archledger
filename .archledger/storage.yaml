@@ -10,13 +10,13 @@ next_numbers:
   context_interface: 4
   strategy_item: 2
   white_box: 2
-  black_box: 6
+  black_box: 16
   interface: 1
-  runtime: 4
+  runtime: 6
   infrastructure: 3
-  concept: 3
+  concept: 5
   adr: 4
   quality_requirement: 1
   quality_scenario: 3
-  risk: 3
-  glossary: 5
+  risk: 4
+  glossary: 8

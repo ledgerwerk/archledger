@@ -9,7 +9,7 @@ participants:
   - CLI Layer
   - Source Tracking Layer
   - Repository Layer
-trigger: "User invokes archledger changed"
+trigger: "User invokes archledger source changed"
 result: "List of changed files, impacted architecture records, impacted sections, and unlinked changed files."
 ---
 

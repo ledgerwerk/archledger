@@ -8,6 +8,9 @@ order: 20
 applies_to:
   - Storage Layer
   - CLI Layer
+  - Config Layer
 ---
 
-archledger discovers its project configuration by walking up from the current directory looking for `archledger.toml` or `.archledger.toml`. The `archledger_dir` setting in the config can be relative (resolved from the config file's directory) or absolute (used as-is). This allows the storage directory to live outside the source tree, for example in a separate state repository. All path resolution happens in `storage/paths.py`.
+archledger discovers its project configuration by walking up from the current directory looking for `archledger.toml` or `.archledger.toml`. The `archledger_dir` setting in the config can be relative (resolved from the config file's directory) or absolute (used as-is). This allows the storage directory to live outside the source tree, for example in a separate state repository.
+
+Config parsing is handled by the Config Layer (`config/` subpackage): `config/parse.py` loads and validates the TOML file, `config/model.py` defines typed dataclasses for each configuration domain (source, build, arc42, skill, tracking), and `config/render.py` generates default configuration files for `archledger init`. Path resolution happens in `storage/paths.py`.
