@@ -1,0 +1,15 @@
+---
+id: stakeholder_0002
+type: stakeholder
+title: "Developer"
+status: accepted
+section: introduction_and_goals
+order: 20
+contact: 
+expectations:
+  - Simple installation via pip
+  - Clear CLI commands for init, new, check, build
+  - Human-readable Markdown records easy to edit in any text editor
+---
+
+Software developers who write and maintain architecture documentation alongside code. They use archledger locally to create records, validate them, and generate a single rendered document for review.

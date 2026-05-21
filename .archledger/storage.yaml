@@ -1,0 +1,22 @@
+storage_version: 1
+created_with_archledger: 0.1.dev2+gfebe6dc46.d19800101
+project_uuid: 6bddbb56-b273-4aae-9860-bfa4de93f115
+created_at: '2026-05-19T18:50:37Z'
+next_numbers:
+  requirement: 1
+  stakeholder: 4
+  quality_goal: 4
+  constraint: 6
+  context_interface: 4
+  strategy_item: 2
+  white_box: 2
+  black_box: 6
+  interface: 1
+  runtime: 4
+  infrastructure: 3
+  concept: 3
+  adr: 4
+  quality_requirement: 1
+  quality_scenario: 3
+  risk: 3
+  glossary: 5

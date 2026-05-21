@@ -1,0 +1,442 @@
+{
+  "created_at": "2026-05-20T12:52:48Z",
+  "files": {
+    ".archledger.toml": {
+      "mtime_ns": 1779281089696522276,
+      "sha256": "4bd6784083722fc15bab982368a40b05644cc6ec0cdfb99d27415215b778a351",
+      "size": 680
+    },
+    ".codecrate.toml": {
+      "mtime_ns": 1779276108644660236,
+      "sha256": "f3330094d922e9be895a19d8733f9543936d710e1f65dc52617ec4ec38019e4d",
+      "size": 493
+    },
+    ".pre-commit-config.yaml": {
+      "mtime_ns": 1779213103893139716,
+      "sha256": "f62c5fe9146a9e7f992c5af12f5f02010bc1896d9a5426c02d6829547b016dc9",
+      "size": 2282
+    },
+    ".readthedocs.yaml": {
+      "mtime_ns": 1779216208668912046,
+      "sha256": "da28d5b8d562fdb135b048a945b344a2a99ad9132754dc0aa5e3125f04c09e71",
+      "size": 619
+    },
+    ".ruff.toml": {
+      "mtime_ns": 1779213109421139301,
+      "sha256": "a2772615e41d74ec62417cea55b13a2b371822b0ce7f02552198f33822f184b1",
+      "size": 556
+    },
+    ".taskledger.toml": {
+      "mtime_ns": 1779278195451880998,
+      "sha256": "5e442ef2243353c95321643a777f3e1478fdd10570b7e0da793659000e9c2316",
+      "size": 2541
+    },
+    "README.md": {
+      "mtime_ns": 1779279628851260313,
+      "sha256": "eccb5fd634a3fd07f9beabb0be08b29ab01c631b181cb1e79a584776161f36e0",
+      "size": 6216
+    },
+    "archledger/__init__.py": {
+      "mtime_ns": 1779215371912215569,
+      "sha256": "c442496577c6ee3d7260f799fa229c81f0b3fa94eb372fbd88797cc37f8de242",
+      "size": 193
+    },
+    "archledger/assembly.py": {
+      "mtime_ns": 1779276075072654639,
+      "sha256": "8d6c74da07be98bb424330d8bdd94cc235d29e74b3fc141e57ba8c5d538551af",
+      "size": 5695
+    },
+    "archledger/cli.py": {
+      "mtime_ns": 1779279519662483172,
+      "sha256": "67bab7a4c3ba7f3e237593764300297fd46cb32047a1dd9e162ef8c6869c34c0",
+      "size": 34062
+    },
+    "archledger/converters.py": {
+      "mtime_ns": 1779276152876632880,
+      "sha256": "a3ce4eaf2989494407d330fde32473b3a90c432cac78ead292999a83a6e35aef",
+      "size": 11657
+    },
+    "archledger/dialects.py": {
+      "mtime_ns": 1779276050676650450,
+      "sha256": "4c0e530de7ac5bc0333cd9cb3239a5f377e66db4185e5c80ead8877ca00d0a77",
+      "size": 3387
+    },
+    "archledger/errors.py": {
+      "mtime_ns": 1779215371724216136,
+      "sha256": "4a5cadc0da8048805ad947edb2ec14c4043ede0edca8dce684d6bd5f0e0bb01a",
+      "size": 886
+    },
+    "archledger/formats.py": {
+      "mtime_ns": 1779263679414050899,
+      "sha256": "e56bfc76717e057184abd1fecfe289fdc916d133d99bc408c09adba23de0d245",
+      "size": 2666
+    },
+    "archledger/launcher.py": {
+      "mtime_ns": 1779215371908215582,
+      "sha256": "78a12e829c4c4bca4d174d5158cfe36b3c9afd0bf3d4565e54f8c6d578fe51b8",
+      "size": 99
+    },
+    "archledger/migration.py": {
+      "mtime_ns": 1779264287896105708,
+      "sha256": "5ce45c7c6a24be6025e3fc9ecca35478643e20b70b40f8c2c9e7243c445788f5",
+      "size": 5460
+    },
+    "archledger/model.py": {
+      "mtime_ns": 1779279239340116949,
+      "sha256": "5de288a8e0ab53e83b39383df055d19cb2c0e79a7673a16fe46e7d70669481ee",
+      "size": 13107
+    },
+    "archledger/render.py": {
+      "mtime_ns": 1779276091096657564,
+      "sha256": "01cba2642b56014d2d77c293c15fb3a944c6a88e8da0ac55971790fcbdd09fb2",
+      "size": 1245
+    },
+    "archledger/repository.py": {
+      "mtime_ns": 1779279363917330601,
+      "sha256": "d91e787c54af698c6833264e6a44e0804fef14f2c35fd0dee088dbdc31e9d66e",
+      "size": 36563
+    },
+    "archledger/section_rendering.py": {
+      "mtime_ns": 1779276081124655740,
+      "sha256": "7b712cacf42b0847dd8934dae8d2f7109e4a9f5a98dcdb3d61bcf90aba989399",
+      "size": 11988
+    },
+    "archledger/source_tracking.py": {
+      "mtime_ns": 1779279379245433984,
+      "sha256": "416679d05aa296e8f4946978252ad79994ffe91d4b081cfcbac4c72e91372385",
+      "size": 12490
+    },
+    "archledger/storage/__init__.py": {
+      "mtime_ns": 1779215371776215979,
+      "sha256": "487051e18b69f81453795aea9fd02616dbaa2a426f555e1e1a20f7e87659bb55",
+      "size": 39
+    },
+    "archledger/storage/common.py": {
+      "mtime_ns": 1779215371876215677,
+      "sha256": "dc36bea3e1a2f2e082720d7a4a064bc53b3e9f290907f200f8abaff8ec57fae0",
+      "size": 710
+    },
+    "archledger/storage/frontmatter.py": {
+      "mtime_ns": 1779262877146806439,
+      "sha256": "d458596990026f39dcea148c6252ed8661a9c1b9150415ce6a764c3d4894e78b",
+      "size": 2427
+    },
+    "archledger/storage/meta.py": {
+      "mtime_ns": 1779262877154806486,
+      "sha256": "b7b4ee7d10494cd6c325544ddf4cb0cf59a2274920da9611f78888d461893861",
+      "size": 4346
+    },
+    "archledger/storage/paths.py": {
+      "mtime_ns": 1779278701466265742,
+      "sha256": "704c4bd9d213d32013bd7ed1846c15ef79bb084a0be5cb251391af2728446fe8",
+      "size": 3816
+    },
+    "archledger/storage/project_config.py": {
+      "mtime_ns": 1779278701370266051,
+      "sha256": "5b8810e73f06de98f81f6361afc7e52b4da3674c4b282ba38dadbd9913f46070",
+      "size": 22307
+    },
+    "archledger/storage/source_state.py": {
+      "mtime_ns": 1779278997461303284,
+      "sha256": "eadfff009a6279f9ea900994c9d0c44dde430803bc126d12d6ccf1e0d91be260",
+      "size": 4348
+    },
+    "archledger/templates/__init__.py": {
+      "mtime_ns": 1779215728011684900,
+      "sha256": "490c376c2f3e8acde50ae80326748d8fa974f34ab3774269bc24088838fbb917",
+      "size": 40
+    },
+    "archledger/templates/arc42_document.adoc.j2": {
+      "mtime_ns": 1779263117427104689,
+      "sha256": "17ad5e923742546cc4c898018644c8192e9eb37c7c353018b01587d7c67d8222",
+      "size": 1778
+    },
+    "archledger/templates/arc42_document.md.j2": {
+      "mtime_ns": 1779218422786632878,
+      "sha256": "a0ddc7d579800a97e5f191d2cfe53214aec2a94648f70fc49de15f26ab0dd546",
+      "size": 1690
+    },
+    "archledger/templates/records/adr.adoc.j2": {
+      "mtime_ns": 1779263117439104687,
+      "sha256": "3e97be4b38d55b1630b8d0048795db8652473e4941a51d34a19a3feb1e6a04c0",
+      "size": 568
+    },
+    "archledger/templates/records/adr.md.j2": {
+      "mtime_ns": 1779275920412628078,
+      "sha256": "531897ea3fbb24ece10df9a2b847712e9ab4e5a05caa0bc4ade4a01f5d03b778",
+      "size": 520
+    },
+    "archledger/templates/records/black_box.adoc.j2": {
+      "mtime_ns": 1779275920508628079,
+      "sha256": "190ba63d1da55351166d4aa04dc5dfa3650170b6f6594eb353544141a5752762",
+      "size": 462
+    },
+    "archledger/templates/records/black_box.md.j2": {
+      "mtime_ns": 1779275874224636075,
+      "sha256": "affa191ba7b4c7a8c3d139c5c8b2c37d02e6b3622b7629560c4b2f804a9a8416",
+      "size": 462
+    },
+    "archledger/templates/records/concept.adoc.j2": {
+      "mtime_ns": 1779275938944649029,
+      "sha256": "b3d1657170e68b58b4a91a715d5919e5f983461501fc9d8242b237f12f49cb30",
+      "size": 318
+    },
+    "archledger/templates/records/concept.md.j2": {
+      "mtime_ns": 1779275920416628078,
+      "sha256": "8d36ed85653fbcd9da6f200712fb372a3cfde1df7d9a4cc88c2d874d7b2c42a6",
+      "size": 318
+    },
+    "archledger/templates/records/constraint.adoc.j2": {
+      "mtime_ns": 1779275920428628078,
+      "sha256": "62d0be334d1d55c6258b09364085324aad165880a9218b998ba917c2252c48d4",
+      "size": 363
+    },
+    "archledger/templates/records/constraint.md.j2": {
+      "mtime_ns": 1779275874220636074,
+      "sha256": "73ab6de7786d9edd1cc9c2483ec8b4b1362b2f6d440ffb806dd784c769b580ff",
+      "size": 363
+    },
+    "archledger/templates/records/context_interface.adoc.j2": {
+      "mtime_ns": 1779275920428628078,
+      "sha256": "4ef1437d3ed3ba517077add356990060453bb873c3efec1f07b40e96213ca7c1",
+      "size": 422
+    },
+    "archledger/templates/records/context_interface.md.j2": {
+      "mtime_ns": 1779275874220636074,
+      "sha256": "e5291535617a19bc8394f2d010eb2045684941dc314e29d1fbc4682a8ddc4305",
+      "size": 422
+    },
+    "archledger/templates/records/glossary_term.adoc.j2": {
+      "mtime_ns": 1779275938948649030,
+      "sha256": "f9da78e6c3f63ef053be43710ea50333aca1b32109a11c9da40c1892227b13e3",
+      "size": 345
+    },
+    "archledger/templates/records/glossary_term.md.j2": {
+      "mtime_ns": 1779275920416628078,
+      "sha256": "622c58b41908c43e506011d0a21b3b1cc2653ee467fdf6de62af5d43e7e28caa",
+      "size": 346
+    },
+    "archledger/templates/records/infrastructure.adoc.j2": {
+      "mtime_ns": 1779275938940649027,
+      "sha256": "38743ffef402cb79f71c5bedb83f0b23ffe1ae76a26e0fad97ad7a94347ded6b",
+      "size": 389
+    },
+    "archledger/templates/records/infrastructure.md.j2": {
+      "mtime_ns": 1779275920412628078,
+      "sha256": "9b1845506c1c8d53e902d8c58d377a5498a805e5ccf5d7c6f26d50af0fa28f8f",
+      "size": 447
+    },
+    "archledger/templates/records/interface.adoc.j2": {
+      "mtime_ns": 1779275938940649027,
+      "sha256": "cf4792e332877d2ec8ca2c1abf7df48dae8a977ef980f94eebb03dfb24f9b8f6",
+      "size": 381
+    },
+    "archledger/templates/records/interface.md.j2": {
+      "mtime_ns": 1779275874228636076,
+      "sha256": "8eaf10f1c06888079d65c6d7680145f38a1c3ae2873bd4cab78ea6399ec0c277",
+      "size": 420
+    },
+    "archledger/templates/records/quality_goal.adoc.j2": {
+      "mtime_ns": 1779275920424628078,
+      "sha256": "85815105cf7af99b649d1c40a502a91b706fe3feacff3291f0bf96dc6bf13558",
+      "size": 340
+    },
+    "archledger/templates/records/quality_goal.md.j2": {
+      "mtime_ns": 1779275874216636073,
+      "sha256": "0967b63cd69e38f1925c32c2606ebde24405ac2d00e71fc7ed6f2b2985d6e56a",
+      "size": 327
+    },
+    "archledger/templates/records/quality_requirement.adoc.j2": {
+      "mtime_ns": 1779275938944649029,
+      "sha256": "15224d7df6ae82907f43bf73a722e75d91e54354ae304e620c84232b2fd952eb",
+      "size": 438
+    },
+    "archledger/templates/records/quality_requirement.md.j2": {
+      "mtime_ns": 1779275920412628078,
+      "sha256": "ee3c53c2fd31e22ff3821c1eb779def58ad27df3d1d37bd32c7111da641eff65",
+      "size": 414
+    },
+    "archledger/templates/records/quality_scenario.adoc.j2": {
+      "mtime_ns": 1779275938948649030,
+      "sha256": "2cdf5b590fddeb71c64106919c84c92855b346a86022c06397bf5a158cf051cc",
+      "size": 452
+    },
+    "archledger/templates/records/quality_scenario.md.j2": {
+      "mtime_ns": 1779275920416628078,
+      "sha256": "c79b25f60cb5761c2de02665bd92f156b04b7b66f601bf60bc55ff4ca7b15674",
+      "size": 452
+    },
+    "archledger/templates/records/requirement.adoc.j2": {
+      "mtime_ns": 1779275920420628078,
+      "sha256": "3ce70abb7a98abbf1829918c186d7063f2e0e6af68815f2f3ea0cf9b164252aa",
+      "size": 422
+    },
+    "archledger/templates/records/requirement.md.j2": {
+      "mtime_ns": 1779275874212636072,
+      "sha256": "4754414ccc05a873ac5eef2dd94dd058bb96cdaca5158adb14a0a698a032eb6b",
+      "size": 398
+    },
+    "archledger/templates/records/risk.adoc.j2": {
+      "mtime_ns": 1779275938948649030,
+      "sha256": "e92455975b5d1a761875ddc16139e6e94d112931c3ce48a983dadbf34cde4e82",
+      "size": 357
+    },
+    "archledger/templates/records/risk.md.j2": {
+      "mtime_ns": 1779275920416628078,
+      "sha256": "0a5bbc9bc289a46c6b14d784f3331f8f87d00c4c62178a4d2ee45e2592345317",
+      "size": 357
+    },
+    "archledger/templates/records/runtime_scenario.adoc.j2": {
+      "mtime_ns": 1779275938940649027,
+      "sha256": "766fd16ea93718d719715188526d31e443ac2924306d10b0f862fd17240530ef",
+      "size": 349
+    },
+    "archledger/templates/records/runtime_scenario.md.j2": {
+      "mtime_ns": 1779275874228636076,
+      "sha256": "60dbc11002a78f7ac306595691466eab77f9503e7e5f57e85877157f02a32a98",
+      "size": 349
+    },
+    "archledger/templates/records/stakeholder.adoc.j2": {
+      "mtime_ns": 1779275920424628078,
+      "sha256": "4d4e6f91724b4a03806d23d63def33f0c936a14c1073f4124b600b9eec19d46f",
+      "size": 352
+    },
+    "archledger/templates/records/stakeholder.md.j2": {
+      "mtime_ns": 1779275874216636073,
+      "sha256": "94f071f527103243e4374f3f6b8344885535991727da088dabb4830b4be29d50",
+      "size": 352
+    },
+    "archledger/templates/records/strategy_item.adoc.j2": {
+      "mtime_ns": 1779275920504628079,
+      "sha256": "b7bebdd5b1d37186026218408eea3c6dfb3bdbc3740d6553cd91cc92b0e49059",
+      "size": 407
+    },
+    "archledger/templates/records/strategy_item.md.j2": {
+      "mtime_ns": 1779275874220636074,
+      "sha256": "ddcb8b2085556620d9f7af3513441ded405195869d8d497ebf29ab2860c9d5b7",
+      "size": 383
+    },
+    "archledger/templates/records/white_box.adoc.j2": {
+      "mtime_ns": 1779275920508628079,
+      "sha256": "2e96dc3546b6eccffcae0ece466013bcc2516556dd36931d3b1f2f17e8f3d41f",
+      "size": 604
+    },
+    "archledger/templates/records/white_box.md.j2": {
+      "mtime_ns": 1779275874224636075,
+      "sha256": "e553426a8427b1ece256792fdd9cabd767528615fbe1b71577c16409320c1274",
+      "size": 568
+    },
+    "docs/conf.py": {
+      "mtime_ns": 1779216873939214071,
+      "sha256": "30748a55fecdf534c1513b5d82b32cad2f8b1de31d1d50c215c2ace93cae57ef",
+      "size": 1474
+    },
+    "pyproject.toml": {
+      "mtime_ns": 1779263067319092374,
+      "sha256": "b6da415968b41dc1fa5342038eed7b8dc175b76fbdbf76b07c730571666688f9",
+      "size": 2697
+    },
+    "setup.py": {
+      "mtime_ns": 1779213694207829106,
+      "sha256": "6bc6a9314a2fe45052077178ce42c65615a4506993e99e1b53e8cc84356962a5",
+      "size": 138
+    },
+    "skills/archledger/SKILL.md": {
+      "mtime_ns": 1779279628851260313,
+      "sha256": "7bfed1da3b9934db8760c3b70897d866507e5a66442fd3661efee25a79ccffc6",
+      "size": 5966
+    },
+    "tests/__init__.py": {
+      "mtime_ns": 1779213644843828725,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size": 0
+    },
+    "tests/test_build.py": {
+      "mtime_ns": 1779263315630941063,
+      "sha256": "4f3efaea3ffc23120d9fdfe17ed8b2c36c9bc6fcd2bacde86682cea9c8359d03",
+      "size": 8843
+    },
+    "tests/test_build_formats.py": {
+      "mtime_ns": 1779276585400072426,
+      "sha256": "3721a49bee8d1d45ecc7535fe5c89a761efa2367efe1c1205f6695afe800004b",
+      "size": 11025
+    },
+    "tests/test_frontmatter.py": {
+      "mtime_ns": 1779262877158806509,
+      "sha256": "2e9ddd419560ab614ca011c3ec565881cd1012b0c36282586ff4839e90f961ff",
+      "size": 2613
+    },
+    "tests/test_init_cli.py": {
+      "mtime_ns": 1779278701474265717,
+      "sha256": "d0a73fed70121b574223ddd8b079441631375aa0ace386ca654ed87aa1bcf567",
+      "size": 7036
+    },
+    "tests/test_migration.py": {
+      "mtime_ns": 1779264287908105712,
+      "sha256": "e13e0850a348e5ebb34c1f60f52f28bb07ae73905f29d57725bdd6890811e564",
+      "size": 5107
+    },
+    "tests/test_paths.py": {
+      "mtime_ns": 1779278803629930176,
+      "sha256": "e8a82298168b1bbd354099a56417631c7e4b0756815b0ca2508f09659088b40c",
+      "size": 8303
+    },
+    "tests/test_read_cli.py": {
+      "mtime_ns": 1779276647943985807,
+      "sha256": "77b5d8c1ddcfcd859aa4c9a6388c5f1c7ff896e92c1d5f29152f0489c5e22cb0",
+      "size": 3521
+    },
+    "tests/test_repository_cli.py": {
+      "mtime_ns": 1779279532534582854,
+      "sha256": "43ee8a60b0398143bcf8dddb3a4913f6997c74c8c0f79e5fee396173ce5a280c",
+      "size": 20160
+    },
+    "tests/test_skill_file.py": {
+      "mtime_ns": 1779276426348351973,
+      "sha256": "6651645469d3c893670977da11bdfe86120ec87aebe0dcbc3d1b6ede41566ad6",
+      "size": 1212
+    },
+    "tests/test_source_tracking.py": {
+      "mtime_ns": 1779279388793509942,
+      "sha256": "ca542d052eb78302ef9b243154d7d0b8c4f215fb063137a240a69a85e707e10b",
+      "size": 6145
+    },
+    "tests/test_templates.py": {
+      "mtime_ns": 1779276426344351977,
+      "sha256": "71888bd0e5d80513c6c2173d0ef6f1429f98a65d4c7d085797fa866ec3a3717d",
+      "size": 4363
+    }
+  },
+  "project_name": "archledger",
+  "project_uuid": "6bddbb56-b273-4aae-9860-bfa4de93f115",
+  "reason": "after-archledger-update",
+  "scanner": {
+    "exclude": [
+      ".git/**",
+      ".venv/**",
+      "**/__pycache__/**",
+      ".mypy_cache/**",
+      ".pytest_cache/**",
+      ".ruff_cache/**",
+      "dist/**",
+      "build/**"
+    ],
+    "hash_algorithm": "sha256",
+    "include": [
+      "**/*.py",
+      "**/*.toml",
+      "**/*.md",
+      "**/*.adoc",
+      "**/*.rst",
+      "**/*.j2",
+      "**/*.yaml",
+      "**/*.yml",
+      "**/*.json"
+    ],
+    "max_file_bytes": 1000000,
+    "mode": "auto",
+    "used": "git"
+  },
+  "schema": "archledger.source-state.v1",
+  "updated_at": "2026-05-20T12:52:48Z"
+}
