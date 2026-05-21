@@ -1,10 +1,15 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 
 from archledger.errors import RenderError
-from archledger.model import OUTPUT_FORMAT_EXTENSIONS, VALID_OUTPUT_FORMATS
+from archledger.model import (
+    OUTPUT_FORMAT_EXTENSIONS,
+    VALID_OUTPUT_FORMATS,
+    default_document_filename_for_output_format,
+)
 from archledger.storage.project_config import ProjectConfig
 
 
@@ -27,6 +32,12 @@ ALL_OUTPUT_FORMATS = (
     OutputFormat.RST,
     OutputFormat.TEXTILE,
 )
+
+
+@dataclass(frozen=True, slots=True)
+class ResolvedOutput:
+    format: OutputFormat
+    output_path: Path
 
 
 def parse_output_format(value: str) -> OutputFormat:
@@ -80,11 +91,55 @@ def resolve_requested_formats(
         raise RenderError("Use only one of --format, --formats, or --all.")
 
     if build_all:
-        return ALL_OUTPUT_FORMATS
+        requested_all_formats = tuple(
+            output_format
+            for output_format in ALL_OUTPUT_FORMATS
+            if not _is_explicitly_disabled(config, output_format)
+        )
+        if requested_all_formats:
+            return requested_all_formats
+        raise RenderError("No output formats are enabled for build --all.")
     if formats_value:
         return parse_output_formats_csv(formats_value)
     if format_name:
         return (parse_output_format(format_name),)
     if output is not None:
         return (infer_output_format_from_output_path(output),)
-    return (parse_output_format(config.build_default_format),)
+    default_format = parse_output_format(config.build_default_format)
+    default_requested_formats: list[OutputFormat] = [default_format]
+    for output_format in ALL_OUTPUT_FORMATS:
+        if output_format is default_format or not _is_explicitly_enabled(
+            config, output_format
+        ):
+            continue
+        default_requested_formats.append(output_format)
+    return tuple(default_requested_formats)
+
+
+def resolve_output_path(
+    config: ProjectConfig,
+    workspace_root: Path,
+    build_dir: Path,
+    requested_format: OutputFormat,
+    output: Path | None,
+) -> Path:
+    if output is not None:
+        if output.is_absolute():
+            return output
+        return workspace_root / output
+    default_format = parse_output_format(config.build_default_format)
+    if requested_format is default_format:
+        return build_dir / Path(config.build_default_output)
+    return build_dir / default_document_filename_for_output_format(
+        requested_format.value
+    )
+
+
+def _is_explicitly_disabled(config: ProjectConfig, output_format: OutputFormat) -> bool:
+    output_config = config.build_outputs.get(output_format.value, {})
+    return output_config.get("enabled") is False
+
+
+def _is_explicitly_enabled(config: ProjectConfig, output_format: OutputFormat) -> bool:
+    output_config = config.build_outputs.get(output_format.value, {})
+    return output_config.get("enabled") is True

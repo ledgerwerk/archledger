@@ -1,4 +1,4 @@
-from archledger.config import (
+from archledger.config.model import (
     DEFAULT_TRACKING_EXCLUDE,
     DEFAULT_TRACKING_INCLUDE,
     Arc42Config,
@@ -8,11 +8,10 @@ from archledger.config import (
     SkillConfig,
     SourceConfig,
     TrackingConfig,
-    load_project_config,
     normalize_project_name,
-    render_default_config,
-    render_project_config,
 )
+from archledger.config.parse import load_project_config
+from archledger.config.render import render_default_config, render_project_config
 
 __all__ = [
     "Arc42Config",

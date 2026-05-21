@@ -4,6 +4,9 @@ CLI guide
 Key commands
 ------------
 
+``--json`` is a global option, so place it before the subcommand:
+``archledger --json read ...`` rather than ``archledger read --json``.
+
 Initialize a workspace:
 
 .. code-block:: bash

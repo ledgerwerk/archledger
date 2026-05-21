@@ -123,25 +123,25 @@ Do **not** treat `.archledger/build/**` as canonical source. Generated build out
 
 ## Record types
 
-| Kind | Common aliases | Default section |
-| --- | --- | --- |
-| `requirement` | `requirement` | `introduction_and_goals` |
-| `stakeholder` | `stakeholder` | `introduction_and_goals` |
-| `quality_goal` | `quality-goal` | `introduction_and_goals` |
-| `constraint` | `constraint` | `architecture_constraints` |
-| `context_interface` | `context-interface` | `context_and_scope` |
-| `strategy_item` | `strategy-item` | `solution_strategy` |
-| `white_box` | `white-box` | `building_block_view` |
-| `black_box` | `black-box` | `building_block_view` |
-| `interface` | `interface` | `building_block_view` |
-| `runtime_scenario` | `runtime` | `runtime_view` |
-| `infrastructure` | `infrastructure` | `deployment_view` |
-| `concept` | `concept` | `cross_cutting_concepts` |
-| `adr` | `adr` | `architecture_decisions` |
-| `quality_requirement` | `quality-requirement` | `quality_requirements` |
-| `quality_scenario` | `quality-scenario` | `quality_requirements` |
-| `risk` | `risk` | `risks_and_technical_debt` |
-| `glossary_term` | `glossary-term` | `glossary` |
+| Kind                  | Common aliases        | Default section            |
+| --------------------- | --------------------- | -------------------------- |
+| `requirement`         | `requirement`         | `introduction_and_goals`   |
+| `stakeholder`         | `stakeholder`         | `introduction_and_goals`   |
+| `quality_goal`        | `quality-goal`        | `introduction_and_goals`   |
+| `constraint`          | `constraint`          | `architecture_constraints` |
+| `context_interface`   | `context-interface`   | `context_and_scope`        |
+| `strategy_item`       | `strategy-item`       | `solution_strategy`        |
+| `white_box`           | `white-box`           | `building_block_view`      |
+| `black_box`           | `black-box`           | `building_block_view`      |
+| `interface`           | `interface`           | `building_block_view`      |
+| `runtime_scenario`    | `runtime`             | `runtime_view`             |
+| `infrastructure`      | `infrastructure`      | `deployment_view`          |
+| `concept`             | `concept`             | `cross_cutting_concepts`   |
+| `adr`                 | `adr`                 | `architecture_decisions`   |
+| `quality_requirement` | `quality-requirement` | `quality_requirements`     |
+| `quality_scenario`    | `quality-scenario`    | `quality_requirements`     |
+| `risk`                | `risk`                | `risks_and_technical_debt` |
+| `glossary_term`       | `glossary-term`       | `glossary`                 |
 
 ## Reading source without exporting
 
@@ -155,6 +155,8 @@ archledger --json read --include-body --include-draft
 archledger --json read --section building_block_view --include-body
 archledger --json read --kind adr --include-body
 ```
+
+`--json` is a global option. Use `archledger --json read ...`, not `archledger read --json`.
 
 `read` does not call the build pipeline and does not create `.archledger/build` outputs.
 
@@ -231,14 +233,14 @@ archledger --json build --formats html,markdown
 
 ### Tooling matrix
 
-| Source format | Output format | Tooling |
-| --- | --- | --- |
-| Markdown | Markdown | none |
-| AsciiDoc | AsciiDoc | none |
-| Markdown | HTML, DOCX, RST, Textile, PDF, AsciiDoc | `pandoc` |
-| AsciiDoc | HTML | `asciidoctor` or `pandoc` |
-| AsciiDoc | PDF | `asciidoctor-pdf` or `pandoc` |
-| AsciiDoc | DOCX, Markdown, RST, Textile | `asciidoctor` + `pandoc` |
+| Source format | Output format                           | Tooling                       |
+| ------------- | --------------------------------------- | ----------------------------- |
+| Markdown      | Markdown                                | none                          |
+| AsciiDoc      | AsciiDoc                                | none                          |
+| Markdown      | HTML, DOCX, RST, Textile, PDF, AsciiDoc | `pandoc`                      |
+| AsciiDoc      | HTML                                    | `asciidoctor` or `pandoc`     |
+| AsciiDoc      | PDF                                     | `asciidoctor-pdf` or `pandoc` |
+| AsciiDoc      | DOCX, Markdown, RST, Textile            | `asciidoctor` + `pandoc`      |
 
 Per-output overrides live under `[build.outputs.<format>]`. Supported keys are `tool`, `pdf_engine`, `reference_docx`, and `enabled`. Supported tool values are `auto`, `pandoc`, and `asciidoctor`.
 
@@ -340,15 +342,15 @@ For the full maintainer checklist, see `docs/release-process.rst`.
 
 ## Troubleshooting
 
-| Symptom | Cause | Fix |
-| --- | --- | --- |
-| `No archledger.toml found` | Command ran outside a configured workspace. | Run from the project tree or pass `--root`. |
-| Draft records missing from builds | Drafts are excluded by default. | Use `--include-draft` or promote the record status. |
-| Build blocked by warnings | `--strict` treats warnings as failures. | Fix the warnings or build without `--strict`. |
-| Converter executable not found | Requested output needs `pandoc`, `asciidoctor`, or `asciidoctor-pdf`. | Install the required tool or change the per-output converter config. |
-| `changed` says no baseline found | No source snapshot exists yet. | Run `archledger --json snapshot --reason after-archledger-update` after the docs are current. |
-| `snapshot` or `changed` says tracking is disabled | `[tracking].enabled = false`. | Re-enable tracking or avoid tracking commands for that workspace. |
-| `convert-sources --write` fails without `pandoc` | Write mode is strict by default. | Install `pandoc` or re-run with `--allow-mixed-body-format` if you accept a manual cleanup step. |
+| Symptom                                           | Cause                                                                 | Fix                                                                                              |
+| ------------------------------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `No archledger.toml found`                        | Command ran outside a configured workspace.                           | Run from the project tree or pass `--root`.                                                      |
+| Draft records missing from builds                 | Drafts are excluded by default.                                       | Use `--include-draft` or promote the record status.                                              |
+| Build blocked by warnings                         | `--strict` treats warnings as failures.                               | Fix the warnings or build without `--strict`.                                                    |
+| Converter executable not found                    | Requested output needs `pandoc`, `asciidoctor`, or `asciidoctor-pdf`. | Install the required tool or change the per-output converter config.                             |
+| `changed` says no baseline found                  | No source snapshot exists yet.                                        | Run `archledger --json snapshot --reason after-archledger-update` after the docs are current.    |
+| `snapshot` or `changed` says tracking is disabled | `[tracking].enabled = false`.                                         | Re-enable tracking or avoid tracking commands for that workspace.                                |
+| `convert-sources --write` fails without `pandoc`  | Write mode is strict by default.                                      | Install `pandoc` or re-run with `--allow-mixed-body-format` if you accept a manual cleanup step. |
 
 ## Skill
 

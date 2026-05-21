@@ -8,7 +8,6 @@ from pathlib import Path
 from archledger.assembly import AssemblyResult
 from archledger.errors import RenderError
 from archledger.formats import OutputFormat
-from archledger.model import default_document_filename_for_output_format
 from archledger.storage.project_config import ProjectConfig
 
 ToolResolver = Callable[[str], str | None]
@@ -119,22 +118,6 @@ def plan_conversion(
     raise RenderError(
         f"Cannot build {requested_format.value} from {assembly.source_format} source."
     )
-
-
-def resolve_output_path(
-    workspace_root: Path,
-    build_dir: Path,
-    requested_format: OutputFormat,
-    output: Path | None,
-) -> Path:
-    if output is None:
-        return build_dir / default_document_filename_for_output_format(
-            requested_format.value
-        )
-    if output.is_absolute():
-        return output
-    return workspace_root / output
-
 
 def docbook_output_path(assembly: AssemblyResult) -> Path:
     return assembly.output_path.with_suffix(".docbook.xml")

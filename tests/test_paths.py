@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+from dataclasses import fields
 from pathlib import Path
 
 import pytest
 
 from archledger.errors import ConfigError
 from archledger.storage.paths import resolve_project_paths
+from archledger.storage.project_config import ProjectConfig
 
 
 def test_relative_archledger_dir_is_relative_to_config_path(tmp_path: Path) -> None:
@@ -207,9 +209,57 @@ def test_v5_config_supports_tracking_settings(tmp_path: Path) -> None:
     assert config.tracking_exclude == (".git/**", ".archledger/**")
     assert config.tracking_max_file_bytes == 2048
     assert config.tracking_hash_algorithm == "sha256"
+    assert config.source.format == "markdown"
+    assert config.build.default_output_dir == "build"
+    assert config.build.outputs == {}
+    assert config.arc42.title == "Architecture Documentation"
+    assert config.skill.path == "skills/archledger/SKILL.md"
+    assert config.tracking.state_file == "tracking/source-state.json"
     assert paths.source_state_path == (
         workspace_root / ".archledger" / "tracking" / "source-state.json"
     )
+
+
+def test_project_config_fields_are_accounted_for() -> None:
+    # Behavior-linked fields have dedicated tests across build/path/migration/tracking
+    # coverage; metadata-only fields are kept explicit here so new parsed fields
+    # cannot be added silently without test updates.
+    behavior_or_metadata_fields = {
+        "config_version",
+        "archledger_dir",
+        "project_uuid",
+        "project_name",
+        "source_format",
+        "source_schema_version",
+        "front_matter",
+        "section_extension",
+        "record_extension",
+        "build_default_output",
+        "build_default_format",
+        "build_output_dir",
+        "build_include_draft",
+        "build_include_superseded",
+        "build_strict",
+        "build_keep_intermediate",
+        "build_converter",
+        "build_pdf_engine",
+        "build_reference_docx",
+        "build_outputs",
+        "arc42_template_version",
+        "arc42_language",
+        "arc42_title",
+        "arc42_include_help",
+        "skill_installed",
+        "skill_path",
+        "tracking_enabled",
+        "tracking_state_file",
+        "tracking_scanner",
+        "tracking_include",
+        "tracking_exclude",
+        "tracking_max_file_bytes",
+        "tracking_hash_algorithm",
+    }
+    assert {item.name for item in fields(ProjectConfig)} == behavior_or_metadata_fields
 
 
 def test_tracking_state_file_must_stay_inside_archledger_dir(tmp_path: Path) -> None:
@@ -237,6 +287,99 @@ def test_tracking_state_file_must_stay_inside_archledger_dir(tmp_path: Path) -> 
     with pytest.raises(ConfigError) as excinfo:
         resolve_project_paths(workspace_root)
     assert str(excinfo.value) == "tracking.state_file must stay inside archledger_dir."
+
+
+def test_build_output_dir_must_stay_inside_archledger_dir(tmp_path: Path) -> None:
+    workspace_root = tmp_path / "workspace-build-output-dir-escape"
+    workspace_root.mkdir()
+    (workspace_root / "archledger.toml").write_text(
+        "\n".join(
+            [
+                "config_version = 5",
+                'archledger_dir = ".archledger"',
+                'project_uuid = "12345678-1234-1234-1234-123456789abc"',
+                'project_name = "demo"',
+                "",
+                "[source]",
+                'format = "markdown"',
+                "",
+                "[build]",
+                'default_output_dir = "../build"',
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ConfigError) as excinfo:
+        resolve_project_paths(workspace_root)
+    assert (
+        str(excinfo.value)
+        == "build.default_output_dir must stay inside archledger_dir."
+    )
+
+
+def test_build_default_output_must_stay_inside_build_output_dir(tmp_path: Path) -> None:
+    workspace_root = tmp_path / "workspace-build-output-escape"
+    workspace_root.mkdir()
+    (workspace_root / "archledger.toml").write_text(
+        "\n".join(
+            [
+                "config_version = 5",
+                'archledger_dir = ".archledger"',
+                'project_uuid = "12345678-1234-1234-1234-123456789abc"',
+                'project_name = "demo"',
+                "",
+                "[source]",
+                'format = "markdown"',
+                "",
+                "[build]",
+                'default_output = "../architecture.md"',
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ConfigError) as excinfo:
+        resolve_project_paths(workspace_root)
+    assert (
+        str(excinfo.value)
+        == "build.default_output must stay inside build.default_output_dir."
+    )
+
+
+def test_build_default_output_extension_must_match_default_format(
+    tmp_path: Path,
+) -> None:
+    workspace_root = tmp_path / "workspace-build-output-extension"
+    workspace_root.mkdir()
+    (workspace_root / "archledger.toml").write_text(
+        "\n".join(
+            [
+                "config_version = 5",
+                'archledger_dir = ".archledger"',
+                'project_uuid = "12345678-1234-1234-1234-123456789abc"',
+                'project_name = "demo"',
+                "",
+                "[source]",
+                'format = "markdown"',
+                "",
+                "[build]",
+                'default_format = "markdown"',
+                'default_output = "architecture.html"',
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ConfigError) as excinfo:
+        resolve_project_paths(workspace_root)
+    assert (
+        str(excinfo.value)
+        == "build.default_output extension must match build.default_format."
+    )
 
 
 def test_build_outputs_rejects_unknown_output_format(tmp_path: Path) -> None:

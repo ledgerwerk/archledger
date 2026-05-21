@@ -172,26 +172,27 @@ def test_convert_sources_preserves_v5_tracking_and_build_config(
     )
     assert result.exit_code == 0
     config_path = tmp_path / "archledger.toml"
+    config_text = config_path.read_text(encoding="utf-8")
+    config_text = config_text.replace(
+        'default_output_dir = "build"',
+        'default_output_dir = "site-build"',
+    )
+    config_text = config_text.replace(
+        "keep_intermediate = false",
+        "keep_intermediate = true",
+    )
+    config_text = config_text.replace(
+        'converter = "auto"',
+        '\n'.join(
+            [
+                'converter = "pandoc"',
+                'pdf_engine = "tectonic"',
+                'reference_docx = "docs/reference.docx"',
+            ]
+        ),
+    )
     config_path.write_text(
-        config_path.read_text(encoding="utf-8").replace(
-            'default_format = "markdown"\n'
-            'default_output_dir = "build"\n'
-            "include_draft = false\n"
-            "include_superseded = false\n"
-            "strict = false\n"
-            "keep_intermediate = false\n"
-            'converter = "auto"\n',
-            'default_output = "architecture.md"\n'
-            'default_format = "markdown"\n'
-            'default_output_dir = "site-build"\n'
-            "include_draft = false\n"
-            "include_superseded = false\n"
-            "strict = false\n"
-            "keep_intermediate = true\n"
-            'converter = "pandoc"\n'
-            'pdf_engine = "tectonic"\n'
-            'reference_docx = "docs/reference.docx"\n',
-        )
+        config_text
         + "\n[build.outputs.html]\n"
         'tool = "pandoc"\n'
         "\n[build.outputs.docx]\n"

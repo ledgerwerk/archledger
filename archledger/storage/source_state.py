@@ -6,7 +6,7 @@ from pathlib import Path
 from archledger.errors import StorageError
 from archledger.source_refs import RelativePosixPathError, validate_relative_posix_path
 from archledger.source_tracking import SOURCE_STATE_SCHEMA, SourceState, TrackedFile
-from archledger.storage.common import read_text, write_text
+from archledger.storage.common import read_text, write_text_atomic
 
 
 def read_source_state(path: Path) -> SourceState | None:
@@ -20,7 +20,7 @@ def read_source_state(path: Path) -> SourceState | None:
 
 
 def write_source_state(path: Path, state: SourceState) -> None:
-    write_text(
+    write_text_atomic(
         path,
         json.dumps(source_state_to_json(state), indent=2, sort_keys=True) + "\n",
     )

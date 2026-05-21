@@ -12,10 +12,9 @@ from archledger.conversion_plan import (
     install_hint,
     plan_conversion,
     require_tool,
-    resolve_output_path,
 )
 from archledger.errors import RenderError
-from archledger.formats import OutputFormat
+from archledger.formats import OutputFormat, resolve_output_path
 from archledger.storage.common import write_text
 from archledger.storage.project_config import ProjectConfig
 
@@ -51,6 +50,7 @@ def convert_assembled_document(
     try:
         for requested_format in requested_formats:
             output_path = resolve_output_path(
+                config,
                 workspace_root,
                 build_dir,
                 requested_format,

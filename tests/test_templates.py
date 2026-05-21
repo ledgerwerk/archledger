@@ -6,11 +6,17 @@ from typer.testing import CliRunner
 
 from archledger.cli import app
 from archledger.model import (
+    CLI_KIND_ALIASES,
+    RECORD_TYPE_TO_DEFAULT_SECTION,
+    RECORD_TYPE_TO_DIR,
+    RECORD_TYPE_TO_FILENAME_PREFIX,
     RECORD_TYPE_TO_TEMPLATE,
+    RECORD_TYPES,
     VALID_SOURCE_FORMATS,
     document_template_name_for_source_format,
     record_template_name_for_source_format,
 )
+from archledger.record_types import RecordContextInput
 
 runner = CliRunner()
 
@@ -28,6 +34,55 @@ def test_all_record_templates_are_bundled() -> None:
                 source_format,
             )
             assert (template_root / "records" / template_name).is_file()
+
+
+def test_record_type_registry_preserves_legacy_maps() -> None:
+    assert (
+        {kind: spec.directory for kind, spec in RECORD_TYPES.items()}
+        == RECORD_TYPE_TO_DIR
+    )
+    assert {
+        kind: spec.filename_prefix for kind, spec in RECORD_TYPES.items()
+    } == RECORD_TYPE_TO_FILENAME_PREFIX
+    assert {
+        kind: spec.default_section for kind, spec in RECORD_TYPES.items()
+    } == RECORD_TYPE_TO_DEFAULT_SECTION
+    assert {
+        kind: f"{spec.template_basename}.md.j2" for kind, spec in RECORD_TYPES.items()
+    } == RECORD_TYPE_TO_TEMPLATE
+    assert {
+        alias: kind
+        for kind, spec in RECORD_TYPES.items()
+        for alias in spec.aliases
+    } == CLI_KIND_ALIASES
+
+
+def test_record_type_registry_covers_all_templates() -> None:
+    template_root = Path("archledger/templates/records")
+    markdown_templates = {
+        path.name.removesuffix(".md.j2") for path in template_root.glob("*.md.j2")
+    }
+    asciidoc_templates = {
+        path.name.removesuffix(".adoc.j2") for path in template_root.glob("*.adoc.j2")
+    }
+    registry_templates = {spec.template_basename for spec in RECORD_TYPES.values()}
+
+    assert registry_templates == markdown_templates
+    assert registry_templates == asciidoc_templates
+
+
+def test_all_registry_entries_have_context_factories_or_empty_defaults() -> None:
+    for spec in RECORD_TYPES.values():
+        context = spec.context_factory(
+            RecordContextInput(
+                title="Demo",
+                status=spec.default_status,
+                section=spec.default_section,
+                parent=None,
+                kwargs={},
+            )
+        )
+        assert isinstance(context, dict)
 
 
 def test_all_markdown_templates_include_schema_version_date_body_format() -> None:

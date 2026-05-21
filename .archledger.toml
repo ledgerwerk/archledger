@@ -1,7 +1,7 @@
 # Project-local archledger configuration.
 # This file lives in the source project root.
 config_version = 3
-archledger_dir = "../archledger-state/archledger"
+archledger_dir = ".archledger"
 
 # Stable project identity. Commit this with your source tree.
 project_uuid = "6bddbb56-b273-4aae-9860-bfa4de93f115"

@@ -57,10 +57,22 @@ def resolve_project_paths(start: Path) -> tuple[ProjectPaths, ProjectConfig, lis
     config = load_project_config(config_path)
     workspace_root = config_path.parent.resolve()
     archledger_dir = _resolve_archledger_dir(workspace_root, config.archledger_dir)
+    build_dir = _resolve_relative_child(
+        archledger_dir,
+        config.build_output_dir,
+        "build.default_output_dir",
+        parent_label="archledger_dir",
+    )
     source_state_path = _resolve_archledger_child(
         archledger_dir,
         config.tracking_state_file,
         "tracking.state_file",
+    )
+    _resolve_relative_child(
+        build_dir,
+        config.build_default_output,
+        "build.default_output",
+        parent_label="build.default_output_dir",
     )
     return (
         ProjectPaths(
@@ -69,7 +81,7 @@ def resolve_project_paths(start: Path) -> tuple[ProjectPaths, ProjectConfig, lis
             archledger_dir=archledger_dir,
             sections_dir=archledger_dir / "sections",
             records_dir=archledger_dir / "records",
-            build_dir=archledger_dir / "build",
+            build_dir=build_dir,
             storage_meta_path=archledger_dir / "storage.yaml",
             source_state_path=source_state_path,
         ),
@@ -100,17 +112,32 @@ def _resolve_archledger_child(
     relative_path: str,
     field_name: str,
 ) -> Path:
+    return _resolve_relative_child(
+        archledger_dir,
+        relative_path,
+        field_name,
+        parent_label="archledger_dir",
+    )
+
+
+def _resolve_relative_child(
+    base_dir: Path,
+    relative_path: str,
+    field_name: str,
+    *,
+    parent_label: str,
+) -> Path:
     candidate = Path(relative_path)
     if candidate.is_absolute():
-        raise ConfigError(f"{field_name} must be relative to archledger_dir.")
+        raise ConfigError(f"{field_name} must be relative to {parent_label}.")
     try:
-        resolved = (archledger_dir / candidate).resolve()
+        resolved = (base_dir / candidate).resolve()
     except OSError as exc:
         raise ConfigError(
             f"{field_name} could not be resolved: {relative_path!r}"
         ) from exc
     try:
-        resolved.relative_to(archledger_dir)
+        resolved.relative_to(base_dir)
     except ValueError as exc:
-        raise ConfigError(f"{field_name} must stay inside archledger_dir.") from exc
+        raise ConfigError(f"{field_name} must stay inside {parent_label}.") from exc
     return resolved

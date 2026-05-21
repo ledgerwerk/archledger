@@ -14,7 +14,7 @@ from archledger.model import (
     SOURCE_FORMAT_EXTENSIONS,
     VALID_RECORD_TYPES,
 )
-from archledger.storage.common import read_text, utc_now_iso, write_text
+from archledger.storage.common import read_text, utc_now_iso, write_text_atomic
 
 
 @dataclass(frozen=True, slots=True)
@@ -94,7 +94,7 @@ def write_storage_meta(path: Path, meta: StorageMeta) -> None:
         },
         sort_keys=False,
     )
-    write_text(path, content)
+    write_text_atomic(path, content)
 
 
 def recompute_next_numbers(

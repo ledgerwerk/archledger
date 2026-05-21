@@ -46,6 +46,7 @@ def test_init_project_name_defaults_to_workspace_basename(tmp_path: Path) -> Non
     assert 'section_extension = ".adoc"' in config_text
     assert f'project_name = "{normalize_project_name(tmp_path.name)}"' in config_text
     assert 'default_format = "asciidoc"' in config_text
+    assert 'default_output = "architecture.adoc"' in config_text
     assert 'default_output_dir = "build"' in config_text
     assert "include_superseded = false" in config_text
     assert 'converter = "auto"' in config_text
@@ -67,6 +68,7 @@ def test_init_markdown_source_writes_markdown_config(tmp_path: Path) -> None:
     assert 'section_extension = ".md"' in config_text
     assert 'record_extension = ".md"' in config_text
     assert 'default_format = "markdown"' in config_text
+    assert 'default_output = "architecture.md"' in config_text
     assert "schema_version = 2" in config_text
     assert (
         tmp_path / ".archledger" / "sections" / "01_introduction_and_goals.md"
@@ -85,6 +87,7 @@ def test_init_asciidoc_source_writes_asciidoc_config(tmp_path: Path) -> None:
     assert 'section_extension = ".adoc"' in config_text
     assert 'record_extension = ".adoc"' in config_text
     assert 'default_format = "asciidoc"' in config_text
+    assert 'default_output = "architecture.adoc"' in config_text
     assert "schema_version = 2" in config_text
 
 
@@ -97,6 +100,16 @@ def test_init_project_name_option_overrides_basename(tmp_path: Path) -> None:
     assert result.exit_code == 0
     config_text = (tmp_path / "archledger.toml").read_text(encoding="utf-8")
     assert 'project_name = "my-cool-app"' in config_text
+
+
+def test_rendered_default_config_has_no_duplicate_tracking_excludes(
+    tmp_path: Path,
+) -> None:
+    result = runner.invoke(app, ["--root", str(tmp_path), "init"])
+
+    assert result.exit_code == 0
+    config_text = (tmp_path / "archledger.toml").read_text(encoding="utf-8")
+    assert config_text.count('"**/__pycache__/**"') == 1
 
 
 def test_init_with_external_archledger_dir_uses_directory_directly(

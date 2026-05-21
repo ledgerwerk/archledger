@@ -3,6 +3,26 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from archledger.record_types import (
+    CLI_KIND_ALIASES as _CLI_KIND_ALIASES,
+)
+from archledger.record_types import (
+    RECORD_TYPE_TO_DEFAULT_SECTION as _RECORD_TYPE_TO_DEFAULT_SECTION,
+)
+from archledger.record_types import (
+    RECORD_TYPE_TO_DIR as _RECORD_TYPE_TO_DIR,
+)
+from archledger.record_types import (
+    RECORD_TYPE_TO_FILENAME_PREFIX as _RECORD_TYPE_TO_FILENAME_PREFIX,
+)
+from archledger.record_types import (
+    RECORD_TYPE_TO_TEMPLATE as _RECORD_TYPE_TO_TEMPLATE,
+)
+from archledger.record_types import RECORD_TYPES as _RECORD_TYPES
+from archledger.record_types import (
+    VALID_RECORD_TYPES as _VALID_RECORD_TYPES,
+)
+
 VALID_SOURCE_FORMATS = frozenset({"markdown", "asciidoc"})
 VALID_BODY_FORMATS = VALID_SOURCE_FORMATS
 SOURCE_FORMAT_EXTENSIONS = {
@@ -55,6 +75,14 @@ EMPTY_SECTION_PLACEHOLDERS = {
     "asciidoc": "// archledger: no accepted records for this section yet",
 }
 
+RECORD_TYPES = _RECORD_TYPES
+CLI_KIND_ALIASES = _CLI_KIND_ALIASES
+RECORD_TYPE_TO_DEFAULT_SECTION = _RECORD_TYPE_TO_DEFAULT_SECTION
+RECORD_TYPE_TO_DIR = _RECORD_TYPE_TO_DIR
+RECORD_TYPE_TO_FILENAME_PREFIX = _RECORD_TYPE_TO_FILENAME_PREFIX
+RECORD_TYPE_TO_TEMPLATE = _RECORD_TYPE_TO_TEMPLATE
+VALID_RECORD_TYPES = _VALID_RECORD_TYPES
+
 SECTION_ORDER = {
     "introduction_and_goals": 10,
     "requirements_overview": 20,
@@ -69,116 +97,6 @@ SECTION_ORDER = {
     "quality_requirements": 110,
     "risks_and_technical_debt": 120,
     "glossary": 130,
-}
-
-RECORD_TYPE_TO_DIR = {
-    "requirement": "requirements",
-    "stakeholder": "stakeholders",
-    "quality_goal": "quality_goals",
-    "constraint": "constraints",
-    "context_interface": "contexts",
-    "strategy_item": "strategy",
-    "white_box": "building_blocks",
-    "black_box": "building_blocks",
-    "interface": "building_blocks",
-    "runtime_scenario": "runtime",
-    "infrastructure": "deployment",
-    "concept": "concepts",
-    "adr": "decisions",
-    "quality_requirement": "quality_requirements",
-    "quality_scenario": "quality_scenarios",
-    "risk": "risks",
-    "glossary_term": "glossary",
-}
-
-RECORD_TYPE_TO_FILENAME_PREFIX = {
-    "requirement": "requirement",
-    "stakeholder": "stakeholder",
-    "quality_goal": "quality_goal",
-    "constraint": "constraint",
-    "context_interface": "context_interface",
-    "strategy_item": "strategy_item",
-    "white_box": "white_box",
-    "black_box": "black_box",
-    "interface": "interface",
-    "runtime_scenario": "runtime",
-    "infrastructure": "infrastructure",
-    "concept": "concept",
-    "adr": "adr",
-    "quality_requirement": "quality_requirement",
-    "quality_scenario": "quality_scenario",
-    "risk": "risk",
-    "glossary_term": "glossary",
-}
-
-RECORD_TYPE_TO_DEFAULT_SECTION = {
-    "requirement": "introduction_and_goals",
-    "stakeholder": "introduction_and_goals",
-    "quality_goal": "introduction_and_goals",
-    "constraint": "architecture_constraints",
-    "context_interface": "context_and_scope",
-    "strategy_item": "solution_strategy",
-    "white_box": "building_block_view",
-    "black_box": "building_block_view",
-    "interface": "building_block_view",
-    "runtime_scenario": "runtime_view",
-    "infrastructure": "deployment_view",
-    "concept": "cross_cutting_concepts",
-    "adr": "architecture_decisions",
-    "quality_requirement": "quality_requirements",
-    "quality_scenario": "quality_requirements",
-    "risk": "risks_and_technical_debt",
-    "glossary_term": "glossary",
-}
-
-VALID_RECORD_TYPES = frozenset(RECORD_TYPE_TO_DIR)
-RECORD_TYPE_TO_TEMPLATE = {
-    "requirement": "requirement.md.j2",
-    "stakeholder": "stakeholder.md.j2",
-    "quality_goal": "quality_goal.md.j2",
-    "constraint": "constraint.md.j2",
-    "context_interface": "context_interface.md.j2",
-    "strategy_item": "strategy_item.md.j2",
-    "white_box": "white_box.md.j2",
-    "black_box": "black_box.md.j2",
-    "interface": "interface.md.j2",
-    "runtime_scenario": "runtime_scenario.md.j2",
-    "infrastructure": "infrastructure.md.j2",
-    "concept": "concept.md.j2",
-    "adr": "adr.md.j2",
-    "quality_requirement": "quality_requirement.md.j2",
-    "quality_scenario": "quality_scenario.md.j2",
-    "risk": "risk.md.j2",
-    "glossary_term": "glossary_term.md.j2",
-}
-
-CLI_KIND_ALIASES = {
-    "requirement": "requirement",
-    "stakeholder": "stakeholder",
-    "quality-goal": "quality_goal",
-    "quality_goal": "quality_goal",
-    "constraint": "constraint",
-    "context-interface": "context_interface",
-    "context_interface": "context_interface",
-    "strategy-item": "strategy_item",
-    "strategy_item": "strategy_item",
-    "white-box": "white_box",
-    "white_box": "white_box",
-    "black-box": "black_box",
-    "black_box": "black_box",
-    "interface": "interface",
-    "runtime": "runtime_scenario",
-    "runtime_scenario": "runtime_scenario",
-    "infrastructure": "infrastructure",
-    "concept": "concept",
-    "adr": "adr",
-    "quality-requirement": "quality_requirement",
-    "quality_requirement": "quality_requirement",
-    "quality-scenario": "quality_scenario",
-    "quality_scenario": "quality_scenario",
-    "risk": "risk",
-    "glossary-term": "glossary_term",
-    "glossary_term": "glossary_term",
 }
 
 

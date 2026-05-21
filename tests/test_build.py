@@ -262,6 +262,66 @@ def test_build_output_path_can_be_overridden(tmp_path: Path) -> None:
     assert (tmp_path / "docs" / "architecture.adoc").is_file()
 
 
+def test_build_respects_default_output_dir(tmp_path: Path) -> None:
+    init_project(tmp_path)
+    config_path = tmp_path / "archledger.toml"
+    config_path.write_text(
+        config_path.read_text(encoding="utf-8").replace(
+            'default_output_dir = "build"',
+            'default_output_dir = "site-build"',
+        ),
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(app, ["--root", str(tmp_path), "build"])
+
+    assert result.exit_code == 0
+    assert (tmp_path / ".archledger" / "site-build" / "architecture.adoc").is_file()
+
+
+def test_build_respects_default_output_filename(tmp_path: Path) -> None:
+    init_project(tmp_path)
+    config_path = tmp_path / "archledger.toml"
+    config_path.write_text(
+        config_path.read_text(encoding="utf-8").replace(
+            'default_output = "architecture.adoc"',
+            'default_output = "custom-architecture.adoc"',
+        ),
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(app, ["--root", str(tmp_path), "build"])
+
+    assert result.exit_code == 0
+    assert (
+        tmp_path / ".archledger" / "build" / "custom-architecture.adoc"
+    ).is_file()
+    assert not (tmp_path / ".archledger" / "build" / "architecture.adoc").exists()
+
+
+def test_explicit_output_overrides_configured_default_output(tmp_path: Path) -> None:
+    init_project(tmp_path)
+    config_path = tmp_path / "archledger.toml"
+    config_path.write_text(
+        config_path.read_text(encoding="utf-8").replace(
+            'default_output = "architecture.adoc"',
+            'default_output = "custom-architecture.adoc"',
+        ),
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(
+        app,
+        ["--root", str(tmp_path), "build", "--output", "docs/architecture.adoc"],
+    )
+
+    assert result.exit_code == 0
+    assert (tmp_path / "docs" / "architecture.adoc").is_file()
+    assert not (
+        tmp_path / ".archledger" / "build" / "custom-architecture.adoc"
+    ).exists()
+
+
 def test_build_strict_fails_on_check_warning(tmp_path: Path) -> None:
     init_project(tmp_path)
 

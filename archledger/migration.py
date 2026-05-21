@@ -10,7 +10,7 @@ from archledger.model import (
     default_document_filename_for_output_format,
     native_output_format_for_source_format,
 )
-from archledger.storage.common import write_text
+from archledger.storage.common import write_text_atomic
 from archledger.storage.frontmatter import (
     iter_source_files,
     read_front_matter_document,
@@ -102,7 +102,10 @@ def convert_sources(
             source_path.unlink()
 
     if write:
-        write_text(paths.config_path, render_project_config(_migrated_config(config)))
+        write_text_atomic(
+            paths.config_path,
+            render_project_config(_migrated_config(config)),
+        )
 
     return MigrationResult(
         target_format=normalized_target,

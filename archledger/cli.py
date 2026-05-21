@@ -104,7 +104,7 @@ from archledger.source_tracking import (
     resolve_impacts,
     scan_workspace,
 )
-from archledger.storage.common import write_text
+from archledger.storage.common import write_text_atomic
 from archledger.storage.paths import (
     CANONICAL_PROJECT_CONFIG_FILENAME,
     DEFAULT_ARCHLEDGER_DIR_NAME,
@@ -214,7 +214,7 @@ def init(
             source_format=source_format,
             project_name=project_name,
         )
-        write_text(config_path, config_text)
+        write_text_atomic(config_path, config_text)
         paths, config, warnings = resolve_project_paths(workspace_root)
         repo = ArchitectureRepository(paths, config)
         result = repo.init()

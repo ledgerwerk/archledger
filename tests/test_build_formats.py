@@ -218,6 +218,115 @@ def test_json_build_reports_multiple_outputs(
     assert outputs[1]["output_path"].endswith("architecture.md")
 
 
+def test_default_build_includes_enabled_outputs(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    init_project(tmp_path)
+    config_path = tmp_path / "archledger.toml"
+    config_path.write_text(
+        config_path.read_text(encoding="utf-8")
+        + "\n[build.outputs.html]\nenabled = true\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr("archledger.converters.shutil.which", _fake_which)
+
+    def fake_run(
+        command: list[str],
+        *,
+        check: bool,
+        capture_output: bool,
+        text: bool,
+    ) -> subprocess.CompletedProcess[str]:
+        del check, capture_output, text
+        output_index = command.index("-o") + 1
+        output_path = Path(command[output_index])
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text("converted", encoding="utf-8")
+        return subprocess.CompletedProcess(command, 0, "", "")
+
+    monkeypatch.setattr("archledger.converters.subprocess.run", fake_run)
+
+    result = runner.invoke(app, ["--root", str(tmp_path), "--json", "build"])
+
+    assert result.exit_code == 0
+    outputs = json.loads(result.stdout)["result"]["outputs"]
+    assert [item["format"] for item in outputs] == ["asciidoc", "html"]
+    assert outputs[0]["output_path"].endswith("architecture.adoc")
+    assert outputs[1]["output_path"].endswith("architecture.html")
+
+
+def test_build_all_honors_disabled_outputs(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    init_project(tmp_path)
+    config_path = tmp_path / "archledger.toml"
+    config_path.write_text(
+        config_path.read_text(encoding="utf-8")
+        + "\n[build.outputs.html]\nenabled = false\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr("archledger.converters.shutil.which", _fake_which)
+
+    def fake_run(
+        command: list[str],
+        *,
+        check: bool,
+        capture_output: bool,
+        text: bool,
+    ) -> subprocess.CompletedProcess[str]:
+        del check, capture_output, text
+        output_index = command.index("-o") + 1
+        output_path = Path(command[output_index])
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text("converted", encoding="utf-8")
+        return subprocess.CompletedProcess(command, 0, "", "")
+
+    monkeypatch.setattr("archledger.converters.subprocess.run", fake_run)
+
+    result = runner.invoke(app, ["--root", str(tmp_path), "--json", "build", "--all"])
+
+    assert result.exit_code == 0
+    outputs = json.loads(result.stdout)["result"]["outputs"]
+    assert "html" not in [item["format"] for item in outputs]
+
+
+def test_explicit_format_overrides_disabled_output(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    init_project(tmp_path)
+    config_path = tmp_path / "archledger.toml"
+    config_path.write_text(
+        config_path.read_text(encoding="utf-8")
+        + "\n[build.outputs.html]\nenabled = false\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr("archledger.converters.shutil.which", _fake_which)
+
+    def fake_run(
+        command: list[str],
+        *,
+        check: bool,
+        capture_output: bool,
+        text: bool,
+    ) -> subprocess.CompletedProcess[str]:
+        del check, capture_output, text
+        output_index = command.index("-o") + 1
+        output_path = Path(command[output_index])
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text("converted", encoding="utf-8")
+        return subprocess.CompletedProcess(command, 0, "", "")
+
+    monkeypatch.setattr("archledger.converters.subprocess.run", fake_run)
+
+    result = runner.invoke(app, ["--root", str(tmp_path), "build", "--format", "html"])
+
+    assert result.exit_code == 0
+    assert (tmp_path / ".archledger" / "build" / "architecture.html").is_file()
+
+
 def init_project(tmp_path: Path) -> None:
     init_project_with_format(tmp_path)
 

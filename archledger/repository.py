@@ -15,6 +15,7 @@ from archledger.model import (
     RECORD_TYPE_TO_DEFAULT_SECTION,
     RECORD_TYPE_TO_DIR,
     RECORD_TYPE_TO_FILENAME_PREFIX,
+    RECORD_TYPES,
     REQUIRED_RECORD_FIELDS,
     VALID_BODY_FORMATS,
     ArchitectureRecord,
@@ -28,8 +29,9 @@ from archledger.model import (
     section_filename_for,
     validate_record,
 )
+from archledger.record_types import RecordContextInput
 from archledger.source_refs import normalize_source_refs
-from archledger.storage.common import ensure_dir, utc_now_iso, write_text
+from archledger.storage.common import ensure_dir, utc_now_iso, write_text_atomic
 from archledger.storage.frontmatter import (
     FrontMatterError,
     iter_source_files,
@@ -122,7 +124,7 @@ class ArchitectureRepository:
                 self.config.section_extension,
             )
             if not section_path.exists() or overwrite:
-                write_text(
+                write_text_atomic(
                     section_path,
                     _section_document(
                         section_spec,
@@ -212,7 +214,7 @@ class ArchitectureRepository:
         text = self._template_env.get_template(f"records/{template_name}").render(
             **context
         )
-        write_text(target_path, text)
+        write_text_atomic(target_path, text)
         self._write_recomputed_counters()
         return self._load_record_from_path(target_path)
 
@@ -373,7 +375,8 @@ class ArchitectureRepository:
         target_path: Path,
         **kwargs: object,
     ) -> dict[str, object]:
-        status = kwargs.get("status", "draft")
+        spec = RECORD_TYPES[kind]
+        status = kwargs.get("status", spec.default_status)
         section = kwargs.get("section") or RECORD_TYPE_TO_DEFAULT_SECTION[kind]
         parent = kwargs.get("parent")
         context: dict[str, object] = {
@@ -389,81 +392,19 @@ class ArchitectureRepository:
             "date": created_at[:10],
             "body_format": self.config.source_format,
             "parent": "null" if parent in (None, "") else parent,
-            "level": kwargs.get("level", 1),
+            "level": kwargs.get("level", spec.default_level),
         }
-        if kind == "requirement":
-            context["source"] = ""
-            context["priority"] = "must"
-            context["stakeholders"] = []
-            context["quality_goals"] = []
-        elif kind == "stakeholder":
-            context["contact"] = ""
-            context["expectations"] = []
-        elif kind == "quality_goal":
-            context["priority"] = 1
-            context["scenario"] = ""
-        elif kind == "constraint":
-            context["category"] = "technical"
-            context["impact"] = ""
-        elif kind == "context_interface":
-            context["context_kind"] = kwargs.get("context_kind", "technical")
-            context["partner"] = kwargs.get("partner", "")
-            context["inputs"] = []
-            context["outputs"] = []
-            context["channels"] = []
-        elif kind == "strategy_item":
-            context["drivers"] = []
-            context["constraints"] = []
-            context["related_adrs"] = []
-        elif kind == "white_box":
-            context["diagram"] = None
-            context["quality_characteristics"] = []
-            context["tags"] = []
-        elif kind == "black_box":
-            context["interfaces"] = []
-            context["location"] = []
-            context["fulfilled_requirements"] = []
-            context["risks"] = []
-            context["tags"] = []
-        elif kind == "interface":
-            context["providers"] = []
-            context["consumers"] = []
-            context["protocol"] = ""
-        elif kind == "runtime_scenario":
-            context["participants"] = []
-            context["trigger"] = ""
-            context["result"] = ""
-        elif kind == "infrastructure":
-            context["environment"] = kwargs.get("environment", "development")
-            context["maps_building_blocks"] = []
-        elif kind == "concept":
-            context["applies_to"] = []
-        elif kind == "adr":
-            context["status"] = kwargs.get("status", "proposed")
-            context["deciders"] = []
-            context["supersedes"] = []
-            context["related"] = []
-            context["tags"] = []
-        elif kind == "quality_requirement":
-            context["category"] = "reliability"
-            context["source"] = ""
-            context["measure"] = ""
-            context["scenarios"] = []
-        elif kind == "quality_scenario":
-            context["quality"] = kwargs.get("quality", "")
-            context["source"] = ""
-            context["stimulus"] = ""
-            context["environment"] = kwargs.get("environment", "normal_development")
-            context["artifact"] = ""
-            context["response"] = ""
-            context["response_measure"] = ""
-        elif kind == "risk":
-            context["severity"] = "medium"
-            context["probability"] = "medium"
-            context["mitigation"] = ""
-        elif kind == "glossary_term":
-            context["term"] = title
-            context["definition"] = ""
+        context.update(
+            spec.context_factory(
+                RecordContextInput(
+                    title=title,
+                    status=str(status),
+                    section=str(section),
+                    parent=None if parent in (None, "") else str(parent),
+                    kwargs=kwargs,
+                )
+            )
+        )
         return context
 
     def _next_order(self, kind: str) -> int:

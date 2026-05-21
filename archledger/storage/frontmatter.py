@@ -5,7 +5,7 @@ from pathlib import Path
 import yaml
 
 from archledger.errors import FrontMatterError
-from archledger.storage.common import normalize_newlines, read_text, write_text
+from archledger.storage.common import normalize_newlines, read_text, write_text_atomic
 
 
 def normalize_front_matter_newlines(text: str) -> str:
@@ -51,7 +51,7 @@ def write_front_matter_document(
     normalized_body = normalize_front_matter_newlines(body)
     if normalized_body:
         document = f"{document}{normalized_body.rstrip()}\n"
-    write_text(path, document)
+    write_text_atomic(path, document)
 
 
 def iter_source_files(directory: Path, extensions: tuple[str, ...]) -> list[Path]:

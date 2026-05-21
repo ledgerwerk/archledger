@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -19,6 +21,24 @@ def ensure_dir(path: Path) -> None:
 def write_text(path: Path, text: str) -> None:
     ensure_dir(path.parent)
     path.write_text(normalize_newlines(text), encoding="utf-8", newline="\n")
+
+
+def write_text_atomic(path: Path, text: str) -> None:
+    ensure_dir(path.parent)
+    normalized = normalize_newlines(text)
+    fd, temp_name = tempfile.mkstemp(
+        prefix=f".{path.name}.",
+        suffix=".tmp",
+        dir=path.parent,
+        text=True,
+    )
+    temp_path = Path(temp_name)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as handle:
+            handle.write(normalized)
+        temp_path.replace(path)
+    finally:
+        temp_path.unlink(missing_ok=True)
 
 
 def utc_now_iso() -> str:
