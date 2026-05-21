@@ -23,7 +23,7 @@ def test_skill_file_mentions_markdown_and_asciidoc() -> None:
 def test_skill_file_instructs_read_without_export() -> None:
     text = Path("skills/archledger/SKILL.md").read_text(encoding="utf-8").lower()
     assert "archledger --json read --include-body" in text
-    assert ".archledger/build" in text
+    assert "configured build output directory" in text
     assert "source of truth" in text
 
 

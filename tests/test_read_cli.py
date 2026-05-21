@@ -104,7 +104,7 @@ def test_read_json_filters_by_kind(tmp_path: Path) -> None:
 
 def test_read_command_does_not_create_build_output(tmp_path: Path) -> None:
     init_project(tmp_path, source_format="markdown")
-    build_dir = tmp_path / ".archledger" / "build"
+    build_dir = tmp_path / "build"
     assert list(build_dir.iterdir()) == []
 
     result = runner.invoke(app, ["--root", str(tmp_path), "--json", "read"])

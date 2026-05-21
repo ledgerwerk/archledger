@@ -16,7 +16,7 @@ def test_build_generates_all_arc42_major_sections(tmp_path: Path) -> None:
     result = runner.invoke(app, ["--root", str(tmp_path), "build"])
 
     assert result.exit_code == 0
-    output = (tmp_path / ".archledger" / "build" / "architecture.adoc").read_text(
+    output = (tmp_path / "build" / "architecture.adoc").read_text(
         encoding="utf-8"
     )
     assert "== Introduction and Goals" in output
@@ -156,7 +156,7 @@ def test_build_includes_structured_arc42_sections(tmp_path: Path) -> None:
     result = runner.invoke(app, ["--root", str(tmp_path), "build"])
 
     assert result.exit_code == 0
-    output = (tmp_path / ".archledger" / "build" / "architecture.adoc").read_text(
+    output = (tmp_path / "build" / "architecture.adoc").read_text(
         encoding="utf-8"
     )
     assert "=== Whitebox Overall System" in output
@@ -187,7 +187,7 @@ def test_build_includes_adr_under_architecture_decisions(tmp_path: Path) -> None
     result = runner.invoke(app, ["--root", str(tmp_path), "build"])
 
     assert result.exit_code == 0
-    output = (tmp_path / ".archledger" / "build" / "architecture.adoc").read_text(
+    output = (tmp_path / "build" / "architecture.adoc").read_text(
         encoding="utf-8"
     )
     assert "== Architecture Decisions" in output
@@ -215,7 +215,7 @@ def test_build_renders_structured_risk_overview(tmp_path: Path) -> None:
     result = runner.invoke(app, ["--root", str(tmp_path), "build"])
 
     assert result.exit_code == 0
-    output = (tmp_path / ".archledger" / "build" / "architecture.adoc").read_text(
+    output = (tmp_path / "build" / "architecture.adoc").read_text(
         encoding="utf-8"
     )
     assert "== Risks and Technical Debt" in output
@@ -240,7 +240,7 @@ def test_build_is_deterministic(tmp_path: Path) -> None:
     )
 
     first = runner.invoke(app, ["--root", str(tmp_path), "build"])
-    output_path = tmp_path / ".archledger" / "build" / "architecture.adoc"
+    output_path = tmp_path / "build" / "architecture.adoc"
     first_output = output_path.read_text(encoding="utf-8")
     second = runner.invoke(app, ["--root", str(tmp_path), "build"])
     second_output = output_path.read_text(encoding="utf-8")
@@ -276,7 +276,55 @@ def test_build_respects_default_output_dir(tmp_path: Path) -> None:
     result = runner.invoke(app, ["--root", str(tmp_path), "build"])
 
     assert result.exit_code == 0
-    assert (tmp_path / ".archledger" / "site-build" / "architecture.adoc").is_file()
+    assert (tmp_path / "site-build" / "architecture.adoc").is_file()
+    assert not (tmp_path / ".archledger" / "site-build" / "architecture.adoc").exists()
+
+
+def test_hidden_config_default_output_dir_dot_writes_to_config_dir(
+    tmp_path: Path,
+) -> None:
+    result = runner.invoke(
+        app,
+        ["--root", str(tmp_path), "init", "--source-format", "markdown"],
+    )
+    assert result.exit_code == 0, result.stdout
+
+    config_path = tmp_path / "archledger.toml"
+    hidden_config_path = tmp_path / ".archledger.toml"
+
+    config_text = config_path.read_text(encoding="utf-8")
+    config_text = config_text.replace(
+        'default_output = "architecture.md"',
+        'default_output = "ARCHITECTURE.md"',
+    )
+    config_text = config_text.replace(
+        'default_output_dir = "build"',
+        'default_output_dir = "."',
+    )
+
+    hidden_config_path.write_text(config_text, encoding="utf-8")
+    config_path.unlink()
+
+    result = runner.invoke(
+        app,
+        [
+            "--root",
+            str(tmp_path),
+            "new",
+            "requirement",
+            "--title",
+            "Export root architecture document",
+            "--status",
+            "accepted",
+        ],
+    )
+    assert result.exit_code == 0, result.stdout
+
+    result = runner.invoke(app, ["--root", str(tmp_path), "build"])
+    assert result.exit_code == 0, result.stdout
+
+    assert (tmp_path / "ARCHITECTURE.md").is_file()
+    assert not (tmp_path / ".archledger" / "ARCHITECTURE.md").exists()
 
 
 def test_build_respects_default_output_filename(tmp_path: Path) -> None:
@@ -293,10 +341,8 @@ def test_build_respects_default_output_filename(tmp_path: Path) -> None:
     result = runner.invoke(app, ["--root", str(tmp_path), "build"])
 
     assert result.exit_code == 0
-    assert (
-        tmp_path / ".archledger" / "build" / "custom-architecture.adoc"
-    ).is_file()
-    assert not (tmp_path / ".archledger" / "build" / "architecture.adoc").exists()
+    assert (tmp_path / "build" / "custom-architecture.adoc").is_file()
+    assert not (tmp_path / "build" / "architecture.adoc").exists()
 
 
 def test_explicit_output_overrides_configured_default_output(tmp_path: Path) -> None:
@@ -317,9 +363,7 @@ def test_explicit_output_overrides_configured_default_output(tmp_path: Path) -> 
 
     assert result.exit_code == 0
     assert (tmp_path / "docs" / "architecture.adoc").is_file()
-    assert not (
-        tmp_path / ".archledger" / "build" / "custom-architecture.adoc"
-    ).exists()
+    assert not (tmp_path / "build" / "custom-architecture.adoc").exists()
 
 
 def test_build_strict_fails_on_check_warning(tmp_path: Path) -> None:
@@ -384,7 +428,7 @@ def test_legacy_markdown_project_still_builds_markdown(tmp_path: Path) -> None:
     result = runner.invoke(app, ["--root", str(tmp_path), "build"])
 
     assert result.exit_code == 0
-    output = (tmp_path / ".archledger" / "build" / "architecture.md").read_text(
+    output = (tmp_path / "build" / "architecture.md").read_text(
         encoding="utf-8"
     )
     assert "# Introduction and Goals" in output

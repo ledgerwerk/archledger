@@ -37,6 +37,12 @@ Example
    state_file = "source-state.json"
    scanner = "auto"
 
+``[build].default_output_dir`` is relative to the directory containing
+``archledger.toml`` or ``.archledger.toml``.
+
+``source-state.json`` stores SHA-256 content hashes only for files. It does not
+persist mtimes or file sizes. Directory hashes are derived from file hashes.
+
 Per-output overrides
 --------------------
 

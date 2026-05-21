@@ -46,7 +46,9 @@ def test_snapshot_writes_source_state_json(tmp_path: Path) -> None:
     paths, _, _ = resolve_project_paths(tmp_path)
     state = read_source_state(paths.source_state_path)
     assert state is not None
+    assert state.schema == "archledger.source-state.v2"
     assert "src/module.py" in state.files
+    assert "." in state.directories
 
 
 def test_snapshot_respects_tracking_disabled(tmp_path: Path) -> None:
@@ -147,6 +149,10 @@ def test_changed_json_reports_modified_file_and_impacted_record(tmp_path: Path) 
     payload = json.loads(result.stdout)["result"]
     assert payload["baseline"]["exists"] is True
     assert payload["changes"]["modified"][0]["path"] == "src/module.py"
+    assert payload["changes"]["modified"][0]["change"] == "modified"
+    assert "old_sha256" in payload["changes"]["modified"][0]
+    assert "new_sha256" in payload["changes"]["modified"][0]
+    assert "size" not in payload["changes"]["modified"][0]
     assert payload["impact"]["records"][0]["id"] == "white_box_0001"
     assert payload["impact"]["records"][0]["matched_refs"] == ["src/module.py"]
     assert "building_block_view" in payload["impact"]["sections"]

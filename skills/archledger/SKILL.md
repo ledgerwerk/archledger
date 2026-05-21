@@ -18,7 +18,7 @@ Use this skill when a coding agent needs to create, inspect, enrich, repair, or 
 
 - Markdown and AsciiDoc are both first-class source formats.
 - The source fragments under the configured `archledger_dir` are the source of truth.
-- `.archledger/build/*` is derived output only.
+- Generated build output under the configured build output directory is derived only.
 - Native same-format builds require no external converters.
 
 ## Never do these things
@@ -53,7 +53,7 @@ Then:
 2. Treat `changed` output as the default scope filter for which source files and architecture fragments to inspect.
 3. Use generated exports only as disposable deliverables.
 4. Use `archledger build --format markdown` or `archledger build --format asciidoc` for native validation.
-5. Do not read `.archledger/build/*` as source of truth.
+5. Do not read generated build output from the configured build output directory as source of truth.
 
 If storage is missing and the user asked to create architecture docs in this repository:
 
@@ -125,7 +125,7 @@ Rules:
 - Prefer `archledger --json read --include-body` over `archledger build` when you need the current architecture state.
 - Read the repository evidence before writing documentation: README, tests, package metadata, CI, deployment files, and design notes.
 - Update section files and record files directly; never patch generated complete documents as the source of truth.
-- Never edit `.archledger/build/*`; it is generated build output only.
+- Never edit generated build output in the configured build output directory; it is derived output only.
 - Use `source_refs` when a record or section describes concrete files, symbols, or directories.
 - Prefer `proposed` for newly inferred records unless the user explicitly says the content is accepted.
 - Run `archledger check` after record edits.

@@ -10,6 +10,10 @@ Snapshots
 
    archledger --json snapshot --reason after-archledger-update
 
+``source-state.json`` stores SHA-256 content hashes only for files. It does not
+persist mtimes or file sizes. Directory hashes are derived from file hashes
+after scanning.
+
 Changes
 -------
 

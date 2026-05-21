@@ -242,13 +242,14 @@ def changed_payload(paths: ProjectPaths, changes: ChangeSet) -> dict[str, object
 
 
 def changed_file_payload(item: ChangedFile) -> dict[str, object]:
-    payload: dict[str, object] = {"path": item.path}
+    payload: dict[str, object] = {
+        "path": item.path,
+        "change": item.change,
+    }
     if item.old_sha256 is not None:
         payload["old_sha256"] = item.old_sha256
     if item.new_sha256 is not None:
         payload["new_sha256"] = item.new_sha256
-    if item.size is not None:
-        payload["size"] = item.size
     return payload
 
 

@@ -14,7 +14,9 @@ section_extension = ".md"
 record_extension = ".md"
 
 [build]
+default_output = "ARCHITECTURE.md"
 default_format = "markdown"
+default_output_dir = "."
 include_draft = false
 include_superseded = false
 strict = false

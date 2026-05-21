@@ -156,6 +156,7 @@ def test_v4_config_supports_source_schema_version(tmp_path: Path) -> None:
     assert config.build_default_format == "markdown"
     assert config.build_default_output == "architecture.md"
     assert config.build_output_dir == "build"
+    assert paths.build_dir == workspace_root / "build"
     assert config.build_converter == "auto"
     assert config.build_pdf_engine == "tectonic"
     assert config.tracking_enabled is True
@@ -289,7 +290,35 @@ def test_tracking_state_file_must_stay_inside_archledger_dir(tmp_path: Path) -> 
     assert str(excinfo.value) == "tracking.state_file must stay inside archledger_dir."
 
 
-def test_build_output_dir_must_stay_inside_archledger_dir(tmp_path: Path) -> None:
+def test_build_output_dir_is_relative_to_workspace_root(tmp_path: Path) -> None:
+    workspace_root = tmp_path / "workspace-build-output-dir"
+    workspace_root.mkdir()
+    (workspace_root / "archledger.toml").write_text(
+        "\n".join(
+            [
+                "config_version = 5",
+                'archledger_dir = ".archledger"',
+                'project_uuid = "12345678-1234-1234-1234-123456789abc"',
+                'project_name = "demo"',
+                "",
+                "[source]",
+                'format = "markdown"',
+                "",
+                "[build]",
+                'default_output_dir = "site-build"',
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    paths, _, warnings = resolve_project_paths(workspace_root)
+
+    assert warnings == []
+    assert paths.build_dir == workspace_root / "site-build"
+
+
+def test_build_output_dir_must_stay_inside_workspace_root(tmp_path: Path) -> None:
     workspace_root = tmp_path / "workspace-build-output-dir-escape"
     workspace_root.mkdir()
     (workspace_root / "archledger.toml").write_text(
@@ -315,7 +344,7 @@ def test_build_output_dir_must_stay_inside_archledger_dir(tmp_path: Path) -> Non
         resolve_project_paths(workspace_root)
     assert (
         str(excinfo.value)
-        == "build.default_output_dir must stay inside archledger_dir."
+        == "build.default_output_dir must stay inside workspace_root."
     )
 
 

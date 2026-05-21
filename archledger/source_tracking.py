@@ -8,20 +8,30 @@ from fnmatch import fnmatch
 from pathlib import Path, PurePosixPath
 
 from archledger.errors import StorageError
-from archledger.model import ArchitectureRecord, is_visible_status
+from archledger.model import (
+    VALID_OUTPUT_FORMATS,
+    ArchitectureRecord,
+    default_document_filename_for_output_format,
+    is_visible_status,
+)
 from archledger.storage.common import utc_now_iso
 from archledger.storage.paths import ProjectPaths
 from archledger.storage.project_config import ProjectConfig
 
-SOURCE_STATE_SCHEMA = "archledger.source-state.v1"
+SOURCE_STATE_SCHEMA = "archledger.source-state.v2"
 
 
 @dataclass(frozen=True, slots=True)
 class TrackedFile:
     path: str
     sha256: str
-    size: int
-    mtime_ns: int
+
+
+@dataclass(frozen=True, slots=True)
+class DirectoryState:
+    path: str
+    sha256: str
+    file_count: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -34,6 +44,7 @@ class SourceState:
     reason: str
     scanner: dict[str, object]
     files: dict[str, TrackedFile]
+    directories: dict[str, DirectoryState]
 
 
 @dataclass(frozen=True, slots=True)
@@ -42,7 +53,6 @@ class ChangedFile:
     change: str
     old_sha256: str | None = None
     new_sha256: str | None = None
-    size: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -92,7 +102,7 @@ def scan_workspace(
     for file_path in candidates:
         if not file_path.is_file():
             continue
-        if _should_skip_path(file_path, paths):
+        if _should_skip_path(file_path, paths, config):
             continue
         relative_path = _relative_posix_path(paths.workspace_root, file_path)
         if not _matches_any_pattern(relative_path, config.tracking_include):
@@ -105,9 +115,8 @@ def scan_workspace(
         files[relative_path] = TrackedFile(
             path=relative_path,
             sha256=_sha256_for_path(file_path),
-            size=size,
-            mtime_ns=file_path.stat().st_mtime_ns,
         )
+    sorted_files = dict(sorted(files.items()))
     return SourceState(
         schema=SOURCE_STATE_SCHEMA,
         project_uuid=config.project_uuid,
@@ -121,9 +130,11 @@ def scan_workspace(
             "include": list(config.tracking_include),
             "exclude": list(config.tracking_exclude),
             "max_file_bytes": config.tracking_max_file_bytes,
-            "hash_algorithm": config.tracking_hash_algorithm,
+            "hash_algorithm": "sha256",
+            "hash_content": "utf8-surrogateescape-lf-normalized",
         },
-        files=dict(sorted(files.items())),
+        files=sorted_files,
+        directories=_build_directory_tree(sorted_files),
     )
 
 
@@ -161,7 +172,6 @@ def diff_source_states(
                 path=path,
                 change="added",
                 new_sha256=tracked.sha256,
-                size=tracked.size,
             )
         )
     for path in common_paths:
@@ -175,7 +185,6 @@ def diff_source_states(
                 change="modified",
                 old_sha256=old_tracked.sha256,
                 new_sha256=new_tracked.sha256,
-                size=new_tracked.size,
             )
         )
     for path in deleted_paths:
@@ -185,7 +194,6 @@ def diff_source_states(
                 path=path,
                 change="deleted",
                 old_sha256=tracked.sha256,
-                size=tracked.size,
             )
         )
 
@@ -349,10 +357,21 @@ def _scan_filesystem_paths(workspace_root: Path) -> list[Path]:
     )
 
 
-def _should_skip_path(path: Path, paths: ProjectPaths) -> bool:
-    return _is_relative_to(path, paths.archledger_dir) or _is_relative_to(
-        path, paths.build_dir
-    )
+def _should_skip_path(
+    path: Path,
+    paths: ProjectPaths,
+    config: ProjectConfig,
+) -> bool:
+    resolved = path.resolve()
+    if _is_relative_to(resolved, paths.archledger_dir):
+        return True
+    if paths.build_dir != paths.workspace_root and _is_relative_to(
+        resolved, paths.build_dir
+    ):
+        return True
+    if resolved in _generated_output_paths(paths, config):
+        return True
+    return False
 
 
 def _relative_posix_path(workspace_root: Path, path: Path) -> str:
@@ -360,11 +379,12 @@ def _relative_posix_path(workspace_root: Path, path: Path) -> str:
 
 
 def _sha256_for_path(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
+    data = path.read_bytes()
+    text = data.decode("utf-8", errors="surrogateescape")
+    normalized = text.replace("\r\n", "\n").replace("\r", "\n")
+    return hashlib.sha256(
+        normalized.encode("utf-8", errors="surrogateescape")
+    ).hexdigest()
 
 
 def _matches_any_pattern(path: str, patterns: tuple[str, ...]) -> bool:
@@ -402,3 +422,61 @@ def _source_ref_matches_path(source_ref_path: str, changed_path: str) -> bool:
     if source_ref_path.endswith("/"):
         return changed_path.startswith(source_ref_path)
     return source_ref_path == changed_path
+
+
+def _generated_output_paths(paths: ProjectPaths, config: ProjectConfig) -> set[Path]:
+    output_paths = {
+        (paths.build_dir / config.build_default_output).resolve(),
+    }
+    for output_format in VALID_OUTPUT_FORMATS:
+        output_paths.add(
+            (
+                paths.build_dir
+                / default_document_filename_for_output_format(output_format)
+            ).resolve()
+        )
+    return output_paths
+
+
+def _build_directory_tree(files: dict[str, TrackedFile]) -> dict[str, DirectoryState]:
+    children: dict[str, set[tuple[str, str, str]]] = {".": set()}
+    file_counts: dict[str, int] = {".": 0}
+    directories: set[str] = {"."}
+    for file_path, tracked in sorted(files.items()):
+        parts = PurePosixPath(file_path).parts
+        if not parts:
+            continue
+        parent = "."
+        ancestors = ["."]
+        for part in parts[:-1]:
+            child_path = part if parent == "." else f"{parent}/{part}"
+            children.setdefault(parent, set()).add(("D", part, child_path))
+            children.setdefault(child_path, set())
+            directories.add(child_path)
+            parent = child_path
+            ancestors.append(parent)
+        children.setdefault(parent, set()).add(("F", parts[-1], tracked.sha256))
+        for directory in ancestors:
+            file_counts[directory] = file_counts.get(directory, 0) + 1
+
+    hashes: dict[str, str] = {}
+    for directory in sorted(
+        directories,
+        key=lambda value: 0 if value == "." else len(PurePosixPath(value).parts),
+        reverse=True,
+    ):
+        digest = hashlib.sha256()
+        for kind, name, value in sorted(children.get(directory, set())):
+            if kind == "D":
+                value = hashes[value]
+            digest.update(f"{kind}\0{name}\0{value}\n".encode())
+        hashes[directory] = digest.hexdigest()
+
+    return {
+        path: DirectoryState(
+            path=path,
+            sha256=hashes[path],
+            file_count=file_counts.get(path, 0),
+        )
+        for path in sorted(directories)
+    }

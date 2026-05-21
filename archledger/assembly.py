@@ -169,9 +169,12 @@ def _resolve_output_path(
 ) -> Path:
     if output is None:
         native_output_format = native_output_format_for_source_format(source_format)
-        return repo.paths.build_dir / default_document_filename_for_output_format(
-            native_output_format
+        default_output = (
+            repo.config.build_default_output
+            if repo.config.build_default_format == native_output_format
+            else default_document_filename_for_output_format(native_output_format)
         )
+        return repo.paths.build_dir / default_output
     if output.is_absolute():
         return output
     return repo.paths.workspace_root / output

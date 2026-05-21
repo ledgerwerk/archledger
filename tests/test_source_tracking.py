@@ -35,7 +35,30 @@ def test_source_state_round_trip_uses_relative_paths(tmp_path: Path) -> None:
 
     assert loaded is not None
     assert "src/module.py" in loaded.files
+    assert "." in loaded.directories
+    assert "src" in loaded.directories
     assert all(not file_path.startswith("/") for file_path in loaded.files)
+
+
+def test_source_state_json_uses_sha256_only_and_directory_hashes(
+    tmp_path: Path,
+) -> None:
+    init_project(tmp_path)
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "module.py").write_text("print('hello')\n", encoding="utf-8")
+
+    paths, config, _ = resolve_project_paths(tmp_path)
+    state = scan_workspace(paths, config, reason="snapshot-test")
+    write_source_state(paths.source_state_path, state)
+
+    data = json.loads(paths.source_state_path.read_text(encoding="utf-8"))
+
+    assert data["schema"] == "archledger.source-state.v2"
+    assert set(data["files"]["src/module.py"]) == {"sha256"}
+    assert "directories" in data
+    assert "." in data["directories"]
+    assert "src" in data["directories"]
+    assert set(data["directories"]["src"]) == {"sha256", "file_count"}
 
 
 def test_diff_source_states_detects_modified_added_deleted_and_possible_renames(
@@ -95,7 +118,8 @@ def test_scan_workspace_excludes_archledger_state_build_and_large_files(
     (tmp_path / "src" / "module.py").write_text("print('hello')\n", encoding="utf-8")
     (tmp_path / ".pytest_cache").mkdir()
     (tmp_path / ".pytest_cache" / "state.json").write_text("{}", encoding="utf-8")
-    (tmp_path / ".archledger" / "build" / "architecture.md").write_text(
+    (tmp_path / "build").mkdir(exist_ok=True)
+    (tmp_path / "build" / "architecture.md").write_text(
         "# generated\n",
         encoding="utf-8",
     )
@@ -109,8 +133,35 @@ def test_scan_workspace_excludes_archledger_state_build_and_large_files(
     assert "src/module.py" in state.files
     assert "notes.md" in state.files
     assert ".pytest_cache/state.json" not in state.files
-    assert ".archledger/build/architecture.md" not in state.files
+    assert "build/architecture.md" not in state.files
     assert "large.json" not in state.files
+
+
+def test_snapshot_with_root_build_dir_does_not_skip_workspace(tmp_path: Path) -> None:
+    init_project(tmp_path)
+    config_path = tmp_path / "archledger.toml"
+    config_path.write_text(
+        config_path.read_text(encoding="utf-8")
+        .replace(
+            'default_output = "architecture.md"',
+            'default_output = "ARCHITECTURE.md"',
+        )
+        .replace(
+            'default_output_dir = "build"',
+            'default_output_dir = "."',
+        ),
+        encoding="utf-8",
+    )
+
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "module.py").write_text("print('hello')\n", encoding="utf-8")
+    (tmp_path / "ARCHITECTURE.md").write_text("# generated\n", encoding="utf-8")
+
+    paths, config, _ = resolve_project_paths(tmp_path)
+    state = scan_workspace(paths, config, reason="snapshot-test")
+
+    assert "src/module.py" in state.files
+    assert "ARCHITECTURE.md" not in state.files
 
 
 def test_resolve_impacts_reports_linked_records_and_unlinked_files(
@@ -161,7 +212,18 @@ def test_resolve_impacts_reports_linked_records_and_unlinked_files(
     assert resolved.unlinked_changed_files == ("src/unlinked.py",)
 
 
-def test_source_state_rejects_backslash_paths(tmp_path: Path) -> None:
+def test_source_hash_normalizes_line_endings(tmp_path: Path) -> None:
+    init_project(tmp_path)
+    (tmp_path / "lf.py").write_bytes(b"print('hello')\n")
+    (tmp_path / "crlf.py").write_bytes(b"print('hello')\r\n")
+
+    paths, config, _ = resolve_project_paths(tmp_path)
+    state = scan_workspace(paths, config, reason="snapshot-test")
+
+    assert state.files["lf.py"].sha256 == state.files["crlf.py"].sha256
+
+
+def test_source_state_v1_is_rejected(tmp_path: Path) -> None:
     source_state_path = tmp_path / "source-state.json"
     source_state_path.write_text(
         json.dumps(
@@ -174,12 +236,44 @@ def test_source_state_rejects_backslash_paths(tmp_path: Path) -> None:
                 "reason": "test",
                 "scanner": {"used": "filesystem"},
                 "files": {
-                    "src\\module.py": {
+                    "src/module.py": {
                         "sha256": "abc",
                         "size": 1,
                         "mtime_ns": 1,
                     }
                 },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(StorageError, match="Unsupported source-state schema"):
+        read_source_state(source_state_path)
+
+
+def test_source_state_rejects_backslash_paths(tmp_path: Path) -> None:
+    source_state_path = tmp_path / "source-state.json"
+    source_state_path.write_text(
+        json.dumps(
+            {
+                "schema": "archledger.source-state.v2",
+                "project_uuid": "12345678-1234-1234-1234-123456789abc",
+                "project_name": "demo",
+                "created_at": "2026-05-20T00:00:00Z",
+                "updated_at": "2026-05-20T00:00:00Z",
+                "reason": "test",
+                "scanner": {"used": "filesystem"},
+                "files": {
+                    "src\\module.py": {
+                        "sha256": "abc",
+                    }
+                },
+                "directories": {
+                    ".": {
+                        "sha256": "def",
+                        "file_count": 1,
+                    }
+                }
             }
         ),
         encoding="utf-8",

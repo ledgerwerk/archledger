@@ -7,7 +7,10 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
+from archledger.assembly import assemble_document
 from archledger.cli import app
+from archledger.repository import ArchitectureRepository
+from archledger.storage.paths import resolve_project_paths
 
 runner = CliRunner()
 
@@ -52,8 +55,8 @@ def test_build_format_inferred_from_output_extension(
         "-b",
         "docbook5",
         "-o",
-        str(tmp_path / ".archledger" / "build" / "architecture.docbook.xml"),
-        str(tmp_path / ".archledger" / "build" / "architecture.adoc"),
+        str(tmp_path / "build" / "architecture.docbook.xml"),
+        str(tmp_path / "build" / "architecture.adoc"),
     ]
     assert captured[1][:5] == [
         "/usr/bin/pandoc",
@@ -324,7 +327,7 @@ def test_explicit_format_overrides_disabled_output(
     result = runner.invoke(app, ["--root", str(tmp_path), "build", "--format", "html"])
 
     assert result.exit_code == 0
-    assert (tmp_path / ".archledger" / "build" / "architecture.html").is_file()
+    assert (tmp_path / "build" / "architecture.html").is_file()
 
 
 def init_project(tmp_path: Path) -> None:
@@ -362,7 +365,7 @@ def test_markdown_source_markdown_build_requires_no_tools(
     )
 
     assert result.exit_code == 0
-    assert (tmp_path / ".archledger" / "build" / "architecture.md").is_file()
+    assert (tmp_path / "build" / "architecture.md").is_file()
 
 
 def test_asciidoc_source_asciidoc_build_requires_no_tools(
@@ -382,7 +385,29 @@ def test_asciidoc_source_asciidoc_build_requires_no_tools(
     )
 
     assert result.exit_code == 0
-    assert (tmp_path / ".archledger" / "build" / "architecture.adoc").is_file()
+    assert (tmp_path / "build" / "architecture.adoc").is_file()
+
+
+def test_assemble_document_uses_configured_default_output_for_native_format(
+    tmp_path: Path,
+) -> None:
+    init_project_with_format(tmp_path, "markdown")
+    config_path = tmp_path / "archledger.toml"
+    config_path.write_text(
+        config_path.read_text(encoding="utf-8").replace(
+            'default_output = "architecture.md"',
+            'default_output = "ARCHITECTURE.md"',
+        ),
+        encoding="utf-8",
+    )
+
+    paths, config, _ = resolve_project_paths(tmp_path)
+    repo = ArchitectureRepository(paths, config)
+
+    result = assemble_document(repo, source_format="markdown")
+
+    assert result.output_path == tmp_path / "build" / "ARCHITECTURE.md"
+    assert result.output_path.is_file()
 
 
 @pytest.mark.parametrize(
@@ -461,4 +486,4 @@ def test_markdown_source_pdf_uses_pandoc(
 
     assert result.exit_code == 0
     assert captured[0][0:3] == ["/usr/bin/pandoc", "-f", "gfm"]
-    assert str(tmp_path / ".archledger" / "build" / "architecture.md") in captured[0]
+    assert str(tmp_path / "build" / "architecture.md") in captured[0]

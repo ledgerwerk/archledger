@@ -19,7 +19,7 @@ def test_markdown_source_builds_html_with_real_pandoc(tmp_path: Path) -> None:
     result = runner.invoke(app, ["--root", str(tmp_path), "build", "--format", "html"])
 
     assert result.exit_code == 0
-    assert (tmp_path / ".archledger" / "build" / "architecture.html").is_file()
+    assert (tmp_path / "build" / "architecture.html").is_file()
 
 
 @pytest.mark.integration
@@ -32,7 +32,7 @@ def test_asciidoc_source_builds_html_with_real_asciidoctor(tmp_path: Path) -> No
     result = runner.invoke(app, ["--root", str(tmp_path), "build", "--format", "html"])
 
     assert result.exit_code == 0
-    assert (tmp_path / ".archledger" / "build" / "architecture.html").is_file()
+    assert (tmp_path / "build" / "architecture.html").is_file()
 
 
 def _init_project(tmp_path: Path, *, source_format: str) -> None:

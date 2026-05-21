@@ -20,5 +20,6 @@ Directory refs must end with ``/`` and must exist in the workspace.
 Generated output
 ----------------
 
-Files under ``.archledger/build/`` are derived artifacts and should not be edited
-as source.
+Generated build outputs are derived artifacts and should not be edited as
+source. The default location is ``.archledger/build/``, but
+``[build].default_output_dir`` may place them elsewhere under the project root.

@@ -58,10 +58,10 @@ def resolve_project_paths(start: Path) -> tuple[ProjectPaths, ProjectConfig, lis
     workspace_root = config_path.parent.resolve()
     archledger_dir = _resolve_archledger_dir(workspace_root, config.archledger_dir)
     build_dir = _resolve_relative_child(
-        archledger_dir,
+        workspace_root,
         config.build_output_dir,
         "build.default_output_dir",
-        parent_label="archledger_dir",
+        parent_label="workspace_root",
     )
     source_state_path = _resolve_archledger_child(
         archledger_dir,

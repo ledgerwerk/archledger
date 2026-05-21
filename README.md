@@ -1,6 +1,6 @@
 # archledger
 
-`archledger` is an arc42-oriented architecture documentation ledger. It stores architecture knowledge as small, reviewable source fragments with YAML front matter and Markdown or AsciiDoc bodies. The fragments are the source of truth; complete documents under `.archledger/build/` are generated artifacts.
+`archledger` is an arc42-oriented architecture documentation ledger. It stores architecture knowledge as small, reviewable source fragments with YAML front matter and Markdown or AsciiDoc bodies. The fragments are the source of truth; complete documents are generated artifacts written to the configured build output directory (by default `.archledger/build/`).
 
 ## Release status
 
@@ -77,7 +77,7 @@ archledger build --format asciidoc
 
 ### Workspace config
 
-By default, `archledger init` writes `archledger.toml` at the workspace root and stores state under `.archledger/`. Relative `archledger_dir` values are resolved from the config file location.
+By default, `archledger init` writes `archledger.toml` at the workspace root and stores state under `.archledger/`. Relative `archledger_dir` values are resolved from the config file location, and `[build].default_output_dir` is resolved relative to that same config directory / workspace root.
 
 ### Source fragments
 
@@ -107,7 +107,7 @@ Sections are the arc42 chapter skeleton. Records hold individual requirements, d
 
 ### Generated outputs
 
-Files under `.archledger/build/` are generated output. Do not edit them as canonical source.
+Generated output files are not canonical source. By default they live under `.archledger/build/`, but `[build].default_output_dir` can move them elsewhere under the project root.
 
 ### What to commit
 
@@ -119,7 +119,7 @@ For a project that uses `archledger`, commit the canonical source and config:
 - optionally `.archledger/storage.yaml` if you want deterministic id allocation across machines
 - optionally `.archledger/source-state.json` if your team wants a shared drift baseline
 
-Do **not** treat `.archledger/build/**` as canonical source. Generated build output and converter intermediates are disposable unless you are intentionally debugging an export issue.
+Do **not** treat generated build output as canonical source. The default location is `.archledger/build/**`, but the configured build output directory may be elsewhere under the project root. Generated build output and converter intermediates are disposable unless you are intentionally debugging an export issue.
 
 ## Record types
 
@@ -158,7 +158,7 @@ archledger --json read --kind adr --include-body
 
 `--json` is a global option. Use `archledger --json read ...`, not `archledger read --json`.
 
-`read` does not call the build pipeline and does not create `.archledger/build` outputs.
+`read` does not call the build pipeline and does not create generated output files.
 
 ## Tracking implementation drift
 
@@ -168,7 +168,7 @@ archledger --json read --kind adr --include-body
 archledger --json snapshot --reason after-archledger-update
 ```
 
-`snapshot` writes `.archledger/source-state.json` by default. If `[tracking].enabled = false`, `snapshot` and `changed` fail explicitly instead of silently creating misleading tracking state.
+`snapshot` writes `.archledger/source-state.json` by default. Source-state payloads store SHA-256 content hashes only for files, do not persist mtimes or file sizes, and include a derived directory hash map. If `[tracking].enabled = false`, `snapshot` and `changed` fail explicitly instead of silently creating misleading tracking state.
 
 ### Changed files
 
@@ -302,6 +302,10 @@ enabled = true
 state_file = "source-state.json"
 scanner = "auto"          # auto | git | filesystem
 ```
+
+`[build].default_output_dir` is relative to the directory containing `archledger.toml` or `.archledger.toml`.
+
+`source-state.json` stores SHA-256 content hashes only for files. It does not persist mtimes or file sizes. Directory hashes are derived from file hashes.
 
 ## CLI reference for agents
 

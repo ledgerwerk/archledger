@@ -9,6 +9,10 @@ Native builds
    archledger build --format markdown
    archledger build --format asciidoc
 
+``[build].default_output_dir`` is relative to the directory containing
+``archledger.toml`` or ``.archledger.toml``. The default generated output
+location remains ``.archledger/build/``.
+
 Converter-backed exports
 ------------------------
 
