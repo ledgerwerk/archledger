@@ -177,7 +177,7 @@ def test_resolve_impacts_reports_linked_records_and_unlinked_files(
         ["--root", str(tmp_path), "new", "white-box", "Tracking layer"],
     )
     record_path = (
-        tmp_path / ".archledger" / "records" / "building_blocks" / "white_box_0001.md"
+        tmp_path / ".archledger" / "records" / "building_blocks" / "al_0013.md"
     )
     record_path.write_text(
         record_path.read_text(encoding="utf-8").replace(
@@ -205,7 +205,7 @@ def test_resolve_impacts_reports_linked_records_and_unlinked_files(
 
     assert len(resolved.impacted_records) == 1
     impacted = resolved.impacted_records[0]
-    assert impacted.id == "white_box_0001"
+    assert impacted.id == "al_0013"
     assert impacted.section == "building_block_view"
     assert impacted.matched_refs == ("src/module.py",)
     assert "building_block_view" in resolved.impacted_sections

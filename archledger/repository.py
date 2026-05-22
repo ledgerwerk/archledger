@@ -14,7 +14,6 @@ from archledger.model import (
     MAJOR_SECTION_SPECS,
     RECORD_TYPE_TO_DEFAULT_SECTION,
     RECORD_TYPE_TO_DIR,
-    RECORD_TYPE_TO_FILENAME_PREFIX,
     RECORD_TYPES,
     REQUIRED_RECORD_FIELDS,
     VALID_BODY_FORMATS,
@@ -30,6 +29,7 @@ from archledger.model import (
     validate_record,
 )
 from archledger.record_types import RecordContextInput
+from archledger.ids import format_ledger_id
 from archledger.source_refs import normalize_source_refs
 from archledger.storage.common import ensure_dir, utc_now_iso, write_text_atomic
 from archledger.storage.frontmatter import (
@@ -41,7 +41,7 @@ from archledger.storage.meta import (
     StorageMeta,
     default_storage_meta,
     read_storage_meta,
-    recompute_next_numbers,
+    recompute_next_number,
     write_storage_meta,
 )
 from archledger.storage.paths import ProjectPaths
@@ -137,6 +137,19 @@ class ArchitectureRepository:
 
         if not self.paths.storage_meta_path.exists() or overwrite:
             meta = default_storage_meta(self.config.project_uuid, __version__)
+            meta = StorageMeta(
+                storage_version=meta.storage_version,
+                created_with_archledger=meta.created_with_archledger,
+                project_uuid=meta.project_uuid,
+                created_at=meta.created_at,
+                next_number=recompute_next_number(
+                    self.paths.archledger_dir,
+                    source_extensions=(
+                        self.config.section_extension,
+                        self.config.record_extension,
+                    ),
+                ),
+            )
             write_storage_meta(self.paths.storage_meta_path, meta)
             created_paths.append(self.paths.storage_meta_path)
 
@@ -176,26 +189,19 @@ class ArchitectureRepository:
     ) -> ArchitectureRecord:
         normalized_kind = normalize_kind(kind)
         self._ensure_storage_ready()
-        next_numbers = recompute_next_numbers(
-            self.paths.records_dir,
-            record_extensions=(self.config.record_extension,),
+        number = recompute_next_number(
+            self.paths.archledger_dir,
+            source_extensions=(
+                self.config.section_extension,
+                self.config.record_extension,
+            ),
         )
-        prefix = RECORD_TYPE_TO_FILENAME_PREFIX[normalized_kind]
-        number = next_numbers[prefix]
-        filename = filename_for(
-            normalized_kind,
-            number,
-            extension=self.config.record_extension,
-        )
+        filename = filename_for(number, extension=self.config.record_extension)
         target_dir = self.paths.records_dir / RECORD_TYPE_TO_DIR[normalized_kind]
         target_path = target_dir / filename
         while target_path.exists():
             number += 1
-            filename = filename_for(
-                normalized_kind,
-                number,
-                extension=self.config.record_extension,
-            )
+            filename = filename_for(number, extension=self.config.record_extension)
             target_path = target_dir / filename
         order = self._next_order(normalized_kind)
         created_at = utc_now_iso()
@@ -215,7 +221,7 @@ class ArchitectureRepository:
             **context
         )
         write_text_atomic(target_path, text)
-        self._write_recomputed_counters()
+        self._write_recomputed_counter()
         return self._load_record_from_path(target_path)
 
     def list_records(
@@ -356,7 +362,7 @@ class ArchitectureRepository:
 
         repaired_counters = False
         if repair_counters:
-            self._write_recomputed_counters()
+            self._write_recomputed_counter()
             repaired_counters = True
 
         return CheckResult(
@@ -487,16 +493,19 @@ class ArchitectureRepository:
                 "archledger storage layout is incomplete. Run: archledger init"
             )
 
-    def _write_recomputed_counters(self) -> None:
+    def _write_recomputed_counter(self) -> None:
         current_meta = read_storage_meta(self.paths.storage_meta_path)
         refreshed_meta = StorageMeta(
             storage_version=current_meta.storage_version,
             created_with_archledger=current_meta.created_with_archledger,
             project_uuid=current_meta.project_uuid,
             created_at=current_meta.created_at,
-            next_numbers=recompute_next_numbers(
-                self.paths.records_dir,
-                record_extensions=(self.config.record_extension,),
+            next_number=recompute_next_number(
+                self.paths.archledger_dir,
+                source_extensions=(
+                    self.config.section_extension,
+                    self.config.record_extension,
+                ),
             ),
         )
         write_storage_meta(self.paths.storage_meta_path, refreshed_meta)
@@ -578,7 +587,7 @@ def _section_document(
     lines = [
         "---",
         f"schema_version: {source_schema_version}",
-        f"id: section_{section_spec.key}",
+        f"id: {format_ledger_id(section_spec.number)}",
         "type: section",
         f"section: {section_spec.key}",
         f"title: {section_spec.title}",

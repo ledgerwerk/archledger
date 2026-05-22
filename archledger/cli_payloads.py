@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from archledger.converters import BuildResult
+from archledger.ids import format_ledger_id
 from archledger.migration import MigrationResult
 from archledger.model import (
     MAJOR_SECTION_SPECS,
@@ -91,10 +92,15 @@ def schema_payload(
                 "aliases": list(spec.aliases),
                 "default_section": spec.default_section,
                 "directory": spec.directory,
-                "filename_prefix": spec.filename_prefix,
             }
             for spec in RECORD_TYPE_SPECS
         ],
+        "id_strategy": "ledger-wide",
+        "id_pattern": r"^al_[0-9]{4,}$",
+        "reserved_section_ids": {
+            section.key: format_ledger_id(section.number)
+            for section in MAJOR_SECTION_SPECS
+        },
         "statuses": sorted(VALID_STATUSES),
         "sections": [
             {

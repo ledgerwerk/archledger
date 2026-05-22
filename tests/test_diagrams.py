@@ -33,7 +33,7 @@ def test_check_warns_for_diagram_without_markdown_mermaid_block(tmp_path: Path) 
             "mermaid",
         ],
     )
-    diagram_path = tmp_path / ".archledger" / "records" / "diagrams" / "diagram_0001.md"
+    diagram_path = tmp_path / ".archledger" / "records" / "diagrams" / "al_0013.md"
     diagram_path.write_text(
         diagram_path.read_text(encoding="utf-8").replace(
             "```mermaid\n"
@@ -50,7 +50,7 @@ def test_check_warns_for_diagram_without_markdown_mermaid_block(tmp_path: Path) 
     warnings = json.loads(result.stdout)["result"]["warnings"]
     messages = [item["message"] for item in warnings]
     assert (
-        "Diagram diagram_0001 markdown body is missing a fenced mermaid block."
+        "Diagram al_0013 markdown body is missing a fenced mermaid block."
         in messages
     )
 
@@ -72,7 +72,7 @@ def test_check_warns_for_diagram_without_asciidoc_mermaid_block(tmp_path: Path) 
         ],
     )
     diagram_path = (
-        tmp_path / ".archledger" / "records" / "diagrams" / "diagram_0001.adoc"
+        tmp_path / ".archledger" / "records" / "diagrams" / "al_0013.adoc"
     )
     diagram_path.write_text(
         diagram_path.read_text(encoding="utf-8").replace(
@@ -90,7 +90,7 @@ def test_check_warns_for_diagram_without_asciidoc_mermaid_block(tmp_path: Path) 
     warnings = json.loads(result.stdout)["result"]["warnings"]
     messages = [item["message"] for item in warnings]
     assert (
-        "Diagram diagram_0001 asciidoc body is missing a [mermaid] block." in messages
+        "Diagram al_0013 asciidoc body is missing a [mermaid] block." in messages
     )
 
 
@@ -110,7 +110,7 @@ def test_check_warns_for_empty_markdown_mermaid_block(tmp_path: Path) -> None:
             "mermaid",
         ],
     )
-    diagram_path = tmp_path / ".archledger" / "records" / "diagrams" / "diagram_0001.md"
+    diagram_path = tmp_path / ".archledger" / "records" / "diagrams" / "al_0013.md"
     diagram_path.write_text(
         diagram_path.read_text(encoding="utf-8").replace(
             "```mermaid\n"
@@ -126,7 +126,7 @@ def test_check_warns_for_empty_markdown_mermaid_block(tmp_path: Path) -> None:
     assert result.exit_code == 0
     warnings = json.loads(result.stdout)["result"]["warnings"]
     messages = [item["message"] for item in warnings]
-    assert "Diagram diagram_0001 mermaid block is empty." in messages
+    assert "Diagram al_0013 mermaid block is empty." in messages
 
 
 def init_project(tmp_path: Path, source_format: str) -> None:
@@ -290,7 +290,7 @@ def test_new_diagram_defaults_to_text_type(tmp_path: Path) -> None:
         app,
         ["--root", str(tmp_path), "new", "diagram", "Architecture overview"],
     )
-    diagram_path = tmp_path / ".archledger" / "records" / "diagrams" / "diagram_0001.md"
+    diagram_path = tmp_path / ".archledger" / "records" / "diagrams" / "al_0013.md"
     content = diagram_path.read_text(encoding="utf-8")
     assert 'diagram_type: "text"' in content
     assert "```textdiagram" in content
@@ -309,7 +309,7 @@ def test_new_diagram_uses_configured_default_type(tmp_path: Path) -> None:
         app,
         ["--root", str(tmp_path), "new", "diagram", "Unicode diagram"],
     )
-    diagram_path = tmp_path / ".archledger" / "records" / "diagrams" / "diagram_0001.md"
+    diagram_path = tmp_path / ".archledger" / "records" / "diagrams" / "al_0013.md"
     content = diagram_path.read_text(encoding="utf-8")
     assert 'diagram_type: "unicode"' in content
     assert "```textdiagram" in content
@@ -327,7 +327,7 @@ def test_check_accepts_markdown_textdiagram_block(tmp_path: Path) -> None:
     assert result.exit_code == 0
     warnings = json.loads(result.stdout)["result"]["warnings"]
     messages = [item["message"] for item in warnings]
-    assert not any("missing a fenced" in m and "diagram_0001" in m for m in messages)
+    assert not any("missing a fenced" in m and "al_0013" in m for m in messages)
 
 
 def test_check_accepts_markdown_unicode_textdiagram_block(tmp_path: Path) -> None:
@@ -350,7 +350,7 @@ def test_check_accepts_markdown_unicode_textdiagram_block(tmp_path: Path) -> Non
     assert result.exit_code == 0
     warnings = json.loads(result.stdout)["result"]["warnings"]
     messages = [item["message"] for item in warnings]
-    assert not any("missing a fenced" in m and "diagram_0001" in m for m in messages)
+    assert not any("missing a fenced" in m and "al_0013" in m for m in messages)
 
 
 def test_check_accepts_asciidoc_source_text_block(tmp_path: Path) -> None:
@@ -365,7 +365,7 @@ def test_check_accepts_asciidoc_source_text_block(tmp_path: Path) -> None:
     assert result.exit_code == 0
     warnings = json.loads(result.stdout)["result"]["warnings"]
     messages = [item["message"] for item in warnings]
-    assert not any("missing" in m and "diagram_0001" in m for m in messages)
+    assert not any("missing" in m and "al_0013" in m for m in messages)
 
 
 def test_check_warns_for_empty_textdiagram_block(tmp_path: Path) -> None:
@@ -374,7 +374,7 @@ def test_check_warns_for_empty_textdiagram_block(tmp_path: Path) -> None:
         app,
         ["--root", str(tmp_path), "new", "diagram", "Empty text diagram"],
     )
-    diagram_path = tmp_path / ".archledger" / "records" / "diagrams" / "diagram_0001.md"
+    diagram_path = tmp_path / ".archledger" / "records" / "diagrams" / "al_0013.md"
     diagram_path.write_text(
         diagram_path.read_text(encoding="utf-8").replace(
             "```textdiagram\n"
@@ -392,7 +392,7 @@ def test_check_warns_for_empty_textdiagram_block(tmp_path: Path) -> None:
     assert result.exit_code == 0
     warnings = json.loads(result.stdout)["result"]["warnings"]
     messages = [item["message"] for item in warnings]
-    assert "Diagram diagram_0001 text block is empty." in messages
+    assert "Diagram al_0013 text block is empty." in messages
 
 
 def test_check_warns_for_overwide_textdiagram_line(tmp_path: Path) -> None:
@@ -401,7 +401,7 @@ def test_check_warns_for_overwide_textdiagram_line(tmp_path: Path) -> None:
         app,
         ["--root", str(tmp_path), "new", "diagram", "Wide text diagram"],
     )
-    diagram_path = tmp_path / ".archledger" / "records" / "diagrams" / "diagram_0001.md"
+    diagram_path = tmp_path / ".archledger" / "records" / "diagrams" / "al_0013.md"
     wide_line = "─" * 130
     diagram_path.write_text(
         diagram_path.read_text(encoding="utf-8").replace(
@@ -421,7 +421,7 @@ def test_check_warns_for_overwide_textdiagram_line(tmp_path: Path) -> None:
     warnings = json.loads(result.stdout)["result"]["warnings"]
     messages = [item["message"] for item in warnings]
     assert any(
-        "exceeding 120 characters" in m and "diagram_0001" in m for m in messages
+        "exceeding 120 characters" in m and "al_0013" in m for m in messages
     )
 
 
@@ -439,7 +439,7 @@ def test_mermaid_still_supported_when_requested(tmp_path: Path) -> None:
             "mermaid",
         ],
     )
-    diagram_path = tmp_path / ".archledger" / "records" / "diagrams" / "diagram_0001.md"
+    diagram_path = tmp_path / ".archledger" / "records" / "diagrams" / "al_0013.md"
     content = diagram_path.read_text(encoding="utf-8")
     assert 'diagram_type: "mermaid"' in content
     assert "```mermaid" in content

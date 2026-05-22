@@ -132,7 +132,7 @@ def test_changed_json_reports_modified_file_and_impacted_record(tmp_path: Path) 
         ],
     )
     record_path = (
-        tmp_path / ".archledger" / "records" / "building_blocks" / "white_box_0001.adoc"
+        tmp_path / ".archledger" / "records" / "building_blocks" / "al_0013.adoc"
     )
     record_path.write_text(
         record_path.read_text(encoding="utf-8").replace(
@@ -170,7 +170,7 @@ def test_changed_json_reports_modified_file_and_impacted_record(tmp_path: Path) 
     assert "old_sha256" in payload["changes"]["modified"][0]
     assert "new_sha256" in payload["changes"]["modified"][0]
     assert "size" not in payload["changes"]["modified"][0]
-    assert payload["impact"]["records"][0]["id"] == "white_box_0001"
+    assert payload["impact"]["records"][0]["id"] == "al_0013"
     assert payload["impact"]["records"][0]["matched_refs"] == ["src/module.py"]
     assert "building_block_view" in payload["impact"]["sections"]
 
@@ -185,7 +185,7 @@ def test_new_black_box_creates_black_box_0001(tmp_path: Path) -> None:
 
     assert result.exit_code == 0
     assert (
-        tmp_path / ".archledger" / "records" / "building_blocks" / "black_box_0001.adoc"
+        tmp_path / ".archledger" / "records" / "building_blocks" / "al_0013.adoc"
     ).is_file()
 
 
@@ -199,10 +199,10 @@ def test_new_requirement_creates_requirement_0001(tmp_path: Path) -> None:
 
     assert result.exit_code == 0
     assert (
-        tmp_path / ".archledger" / "records" / "requirements" / "requirement_0001.adoc"
+        tmp_path / ".archledger" / "records" / "requirements" / "al_0013.adoc"
     ).is_file()
     created = (
-        tmp_path / ".archledger" / "records" / "requirements" / "requirement_0001.adoc"
+        tmp_path / ".archledger" / "records" / "requirements" / "al_0013.adoc"
     ).read_text(encoding="utf-8")
     assert "body_format: asciidoc" in created
     assert "[discrete]\n=== Requirement" in created
@@ -242,14 +242,14 @@ def test_new_requirement_increments_with_custom_record_extension(
 
     record_dir = tmp_path / ".archledger" / "records" / "requirements"
     assert sorted(path.name for path in record_dir.iterdir()) == [
-        "requirement_0001.mk",
-        "requirement_0002.mk",
-        "requirement_0003.mk",
+        "al_0013.mk",
+        "al_0014.mk",
+        "al_0015.mk",
     ]
-    assert 'title: "C"' in (record_dir / "requirement_0003.mk").read_text(
+    assert 'title: "C"' in (record_dir / "al_0015.mk").read_text(
         encoding="utf-8"
     )
-    assert "requirement: 4" in (tmp_path / ".archledger" / "storage.yaml").read_text(
+    assert "next_number: 16" in (tmp_path / ".archledger" / "storage.yaml").read_text(
         encoding="utf-8"
     )
 
@@ -270,7 +270,7 @@ def test_new_strategy_item_creates_strategy_item_0001(tmp_path: Path) -> None:
 
     assert result.exit_code == 0
     assert (
-        tmp_path / ".archledger" / "records" / "strategy" / "strategy_item_0001.adoc"
+        tmp_path / ".archledger" / "records" / "strategy" / "al_0013.adoc"
     ).is_file()
 
 
@@ -296,7 +296,7 @@ def test_new_quality_requirement_creates_quality_requirement_0001(
         / ".archledger"
         / "records"
         / "quality_requirements"
-        / "quality_requirement_0001.adoc"
+        / "al_0013.adoc"
     ).is_file()
 
 
@@ -324,7 +324,7 @@ def test_new_context_interface_accepts_context_kind_and_partner(tmp_path: Path) 
         / ".archledger"
         / "records"
         / "contexts"
-        / "context_interface_0001.adoc"
+        / "al_0013.adoc"
     ).read_text(encoding="utf-8")
     assert 'context_kind: "business"' in created
     assert 'partner: "GitHub"' in created
@@ -348,7 +348,7 @@ def test_new_infrastructure_accepts_environment(tmp_path: Path) -> None:
 
     assert result.exit_code == 0
     created = (
-        tmp_path / ".archledger" / "records" / "deployment" / "infrastructure_0001.adoc"
+        tmp_path / ".archledger" / "records" / "deployment" / "al_0013.adoc"
     ).read_text(encoding="utf-8")
     assert 'environment: "development"' in created
 
@@ -377,7 +377,7 @@ def test_new_quality_scenario_accepts_quality_and_environment(tmp_path: Path) ->
         / ".archledger"
         / "records"
         / "quality_scenarios"
-        / "quality_scenario_0001.adoc"
+        / "al_0013.adoc"
     ).read_text(encoding="utf-8")
     assert 'quality: "reproducibility"' in created
     assert 'environment: "ci"' in created
@@ -401,21 +401,21 @@ def test_new_diagram_accepts_diagram_options(tmp_path: Path) -> None:
             "--caption",
             "Runtime login flow",
             "--related",
-            "runtime_0001",
+            "al_0040",
             "--related",
-            "black_box_0004",
+            "al_0041",
         ],
     )
 
     assert result.exit_code == 0
     created = (
-        tmp_path / ".archledger" / "records" / "diagrams" / "diagram_0001.adoc"
+        tmp_path / ".archledger" / "records" / "diagrams" / "al_0013.adoc"
     ).read_text(encoding="utf-8")
     assert 'diagram_type: "mermaid"' in created
     assert 'caption: "Runtime login flow"' in created
     assert "related_records:" in created
-    assert '"runtime_0001"' in created
-    assert '"black_box_0004"' in created
+    assert '"al_0040"' in created
+    assert '"al_0041"' in created
     assert "[mermaid]" in created
 
 
@@ -426,20 +426,20 @@ def test_seed_arc42_minimal_creates_starter_records(tmp_path: Path) -> None:
 
     assert result.exit_code == 0
     assert (
-        tmp_path / ".archledger" / "records" / "building_blocks" / "white_box_0001.adoc"
+        tmp_path / ".archledger" / "records" / "building_blocks" / "al_0013.adoc"
     ).is_file()
     assert (
         tmp_path
         / ".archledger"
         / "records"
         / "quality_goals"
-        / "quality_goal_0003.adoc"
+        / "al_0016.adoc"
     ).is_file()
     assert (
-        tmp_path / ".archledger" / "records" / "decisions" / "adr0001.adoc"
+        tmp_path / ".archledger" / "records" / "decisions" / "al_0021.adoc"
     ).is_file()
     assert (
-        tmp_path / ".archledger" / "records" / "glossary" / "glossary_0001.adoc"
+        tmp_path / ".archledger" / "records" / "glossary" / "al_0023.adoc"
     ).is_file()
 
 
@@ -453,7 +453,7 @@ def test_new_white_box_creates_white_box_0001(tmp_path: Path) -> None:
 
     assert result.exit_code == 0
     assert (
-        tmp_path / ".archledger" / "records" / "building_blocks" / "white_box_0001.adoc"
+        tmp_path / ".archledger" / "records" / "building_blocks" / "al_0013.adoc"
     ).is_file()
 
 
@@ -467,7 +467,7 @@ def test_new_adr_creates_adr0001(tmp_path: Path) -> None:
 
     assert result.exit_code == 0
     assert (
-        tmp_path / ".archledger" / "records" / "decisions" / "adr0001.adoc"
+        tmp_path / ".archledger" / "records" / "decisions" / "al_0013.adoc"
     ).is_file()
 
 
@@ -478,9 +478,9 @@ def test_filename_id_must_match(tmp_path: Path) -> None:
         ["--root", str(tmp_path), "new", "black-box", "CLI"],
     )
     source = (
-        tmp_path / ".archledger" / "records" / "building_blocks" / "black_box_0001.adoc"
+        tmp_path / ".archledger" / "records" / "building_blocks" / "al_0013.adoc"
     )
-    renamed = source.with_name("black_box_9999.adoc")
+    renamed = source.with_name("al_9999.adoc")
     source.rename(renamed)
 
     result = runner.invoke(app, ["--root", str(tmp_path), "--json", "check"])
@@ -498,7 +498,7 @@ def test_duplicate_id_check_fails(tmp_path: Path) -> None:
         ["--root", str(tmp_path), "new", "black-box", "CLI"],
     )
     original = (
-        tmp_path / ".archledger" / "records" / "building_blocks" / "black_box_0001.adoc"
+        tmp_path / ".archledger" / "records" / "building_blocks" / "al_0013.adoc"
     )
     duplicate = tmp_path / ".archledger" / "records" / "concepts" / "concept_0001.adoc"
     duplicate.write_text(
@@ -514,7 +514,7 @@ def test_duplicate_id_check_fails(tmp_path: Path) -> None:
     assert result.exit_code == 1
     payload = json.loads(result.stdout)
     messages = [item["message"] for item in payload["error"]["details"]["errors"]]
-    assert "Duplicate record ID: black_box_0001" in messages
+    assert "Duplicate record ID: al_0013" in messages
 
 
 def test_missing_parent_check_fails(tmp_path: Path) -> None:
@@ -530,7 +530,7 @@ def test_missing_parent_check_fails(tmp_path: Path) -> None:
             "black-box",
             "CLI",
             "--parent",
-            "white_box_0009",
+            "al_0099",
         ],
     )
     assert result.exit_code == 0
@@ -577,15 +577,15 @@ def test_check_warns_for_incomplete_content_metadata(tmp_path: Path) -> None:
     assert result.exit_code == 0
     payload = json.loads(result.stdout)
     messages = [item["message"] for item in payload["result"]["warnings"]]
-    assert "Quality goal quality_goal_0001 has no scenario." in messages
-    assert "Stakeholder stakeholder_0001 has no expectations." in messages
-    assert "Context interface context_interface_0001 has no partner." in messages
+    assert "Quality goal al_0013 has no scenario." in messages
+    assert "Stakeholder al_0014 has no expectations." in messages
+    assert "Context interface al_0015 has no partner." in messages
     assert (
-        "Context interface context_interface_0001 has no inputs, outputs, or channels."
+        "Context interface al_0015 has no inputs, outputs, or channels."
         in messages
     )
-    assert "Runtime scenario runtime_0001 has no participants." in messages
-    assert "Runtime scenario runtime_0001 has no trigger." in messages
+    assert "Runtime scenario al_0016 has no participants." in messages
+    assert "Runtime scenario al_0016 has no trigger." in messages
 
 
 def test_check_warns_for_invalid_risk_levels_and_unmeasurable_quality_scenario(
@@ -614,7 +614,7 @@ def test_check_warns_for_invalid_risk_levels_and_unmeasurable_quality_scenario(
             "reproducibility",
         ],
     )
-    risk_path = tmp_path / ".archledger" / "records" / "risks" / "risk_0001.adoc"
+    risk_path = tmp_path / ".archledger" / "records" / "risks" / "al_0013.adoc"
     risk_path.write_text(
         risk_path.read_text(encoding="utf-8")
         .replace("severity: medium", "severity: critical")
@@ -626,7 +626,7 @@ def test_check_warns_for_invalid_risk_levels_and_unmeasurable_quality_scenario(
         / ".archledger"
         / "records"
         / "quality_scenarios"
-        / "quality_scenario_0001.adoc"
+        / "al_0014.adoc"
     )
     quality_path.write_text(
         quality_path.read_text(encoding="utf-8").replace(
@@ -641,10 +641,10 @@ def test_check_warns_for_invalid_risk_levels_and_unmeasurable_quality_scenario(
     assert result.exit_code == 0
     payload = json.loads(result.stdout)
     messages = [item["message"] for item in payload["result"]["warnings"]]
-    assert "Risk risk_0001 has unsupported severity: critical" in messages
-    assert "Risk risk_0001 has unsupported probability: certain" in messages
+    assert "Risk al_0013 has unsupported severity: critical" in messages
+    assert "Risk al_0013 has unsupported probability: certain" in messages
     assert (
-        "Quality scenario quality_scenario_0001 response_measure should be measurable."
+        "Quality scenario al_0014 response_measure should be measurable."
         in messages
     )
 
@@ -664,7 +664,7 @@ def test_check_strict_fails_on_new_content_warning(tmp_path: Path) -> None:
     assert result.exit_code == 1
     payload = json.loads(result.stdout)
     messages = [item["message"] for item in payload["error"]["details"]["warnings"]]
-    assert "Context interface context_interface_0001 has no partner." in messages
+    assert "Context interface al_0013 has no partner." in messages
 
 
 def test_check_warns_for_invalid_source_ref_path_traversal(tmp_path: Path) -> None:
@@ -674,7 +674,7 @@ def test_check_warns_for_invalid_source_ref_path_traversal(tmp_path: Path) -> No
         ["--root", str(tmp_path), "new", "white-box", "Tracking layer"],
     )
     record_path = (
-        tmp_path / ".archledger" / "records" / "building_blocks" / "white_box_0001.adoc"
+        tmp_path / ".archledger" / "records" / "building_blocks" / "al_0013.adoc"
     )
     record_path.write_text(
         record_path.read_text(encoding="utf-8").replace(
@@ -691,7 +691,7 @@ def test_check_warns_for_invalid_source_ref_path_traversal(tmp_path: Path) -> No
     payload = json.loads(result.stdout)
     messages = [item["message"] for item in payload["result"]["warnings"]]
     assert (
-        "Record white_box_0001 source_refs entry 1 path must not contain '..':"
+        "Record al_0013 source_refs entry 1 path must not contain '..':"
         " ../secret.py" in messages
     )
 
@@ -703,7 +703,7 @@ def test_check_warns_for_missing_directory_source_ref(tmp_path: Path) -> None:
         ["--root", str(tmp_path), "new", "white-box", "Tracking layer"],
     )
     record_path = (
-        tmp_path / ".archledger" / "records" / "building_blocks" / "white_box_0001.adoc"
+        tmp_path / ".archledger" / "records" / "building_blocks" / "al_0013.adoc"
     )
     record_path.write_text(
         record_path.read_text(encoding="utf-8").replace(
@@ -734,7 +734,7 @@ def test_check_warns_for_backslash_source_ref_path(tmp_path: Path) -> None:
         ["--root", str(tmp_path), "new", "white-box", "Tracking layer"],
     )
     record_path = (
-        tmp_path / ".archledger" / "records" / "building_blocks" / "white_box_0001.adoc"
+        tmp_path / ".archledger" / "records" / "building_blocks" / "al_0013.adoc"
     )
     record_path.write_text(
         record_path.read_text(encoding="utf-8").replace(
@@ -751,7 +751,7 @@ def test_check_warns_for_backslash_source_ref_path(tmp_path: Path) -> None:
     payload = json.loads(result.stdout)
     messages = [item["message"] for item in payload["result"]["warnings"]]
     assert (
-        "Record white_box_0001 source_refs entry 1 path must use POSIX separators:"
+        "Record al_0013 source_refs entry 1 path must use POSIX separators:"
         " src\\module.py" in messages
     )
 
@@ -779,7 +779,7 @@ def test_list_includes_draft_with_flag(tmp_path: Path) -> None:
     result = runner.invoke(app, ["--root", str(tmp_path), "list", "--include-drafts"])
 
     assert result.exit_code == 0
-    assert "black_box_0001" in result.stdout
+    assert "al_0013" in result.stdout
 
 
 def test_status_human_output(tmp_path: Path) -> None:
@@ -864,7 +864,7 @@ def test_new_json_output(tmp_path: Path) -> None:
     assert result.exit_code == 0
     payload = json.loads(result.stdout)
     assert payload["ok"] is True
-    assert payload["result"]["id"] == "black_box_0001"
+    assert payload["result"]["id"] == "al_0013"
 
 
 def test_new_diagram_json_output(tmp_path: Path) -> None:
@@ -885,8 +885,8 @@ def test_new_diagram_json_output(tmp_path: Path) -> None:
     assert result.exit_code == 0
     payload = json.loads(result.stdout)
     assert payload["ok"] is True
-    assert payload["result"]["id"] == "diagram_0001"
-    assert payload["result"]["path"].endswith("records/diagrams/diagram_0001.adoc")
+    assert payload["result"]["id"] == "al_0013"
+    assert payload["result"]["path"].endswith("records/diagrams/al_0013.adoc")
 
 
 def test_new_legacy_v2_project_keeps_markdown_template(tmp_path: Path) -> None:
@@ -917,7 +917,7 @@ def test_new_legacy_v2_project_keeps_markdown_template(tmp_path: Path) -> None:
 
     assert result.exit_code == 0
     created = (
-        tmp_path / ".archledger" / "records" / "requirements" / "requirement_0001.md"
+        tmp_path / ".archledger" / "records" / "requirements" / "al_0013.md"
     ).read_text(encoding="utf-8")
     assert "body_format: markdown" in created
     assert "schema_version: 2" in created

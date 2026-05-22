@@ -9,7 +9,6 @@ from archledger.model import (
     CLI_KIND_ALIASES,
     RECORD_TYPE_TO_DEFAULT_SECTION,
     RECORD_TYPE_TO_DIR,
-    RECORD_TYPE_TO_FILENAME_PREFIX,
     RECORD_TYPE_TO_TEMPLATE,
     RECORD_TYPES,
     VALID_SOURCE_FORMATS,
@@ -40,9 +39,6 @@ def test_record_type_registry_preserves_legacy_maps() -> None:
     assert {
         kind: spec.directory for kind, spec in RECORD_TYPES.items()
     } == RECORD_TYPE_TO_DIR
-    assert {
-        kind: spec.filename_prefix for kind, spec in RECORD_TYPES.items()
-    } == RECORD_TYPE_TO_FILENAME_PREFIX
     assert {
         kind: spec.default_section for kind, spec in RECORD_TYPES.items()
     } == RECORD_TYPE_TO_DEFAULT_SECTION
@@ -125,10 +121,10 @@ def test_section_templates_include_schema_version_date_body_format(
     )
 
     markdown_section = (
-        markdown_root / ".archledger" / "sections" / "01_introduction_and_goals.md"
+        markdown_root / ".archledger" / "sections" / "al_0001.md"
     ).read_text(encoding="utf-8")
     asciidoc_section = (
-        asciidoc_root / ".archledger" / "sections" / "01_introduction_and_goals.adoc"
+        asciidoc_root / ".archledger" / "sections" / "al_0001.adoc"
     ).read_text(encoding="utf-8")
 
     for text, body_format in (

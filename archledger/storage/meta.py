@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import cast
@@ -8,12 +7,8 @@ from typing import cast
 import yaml
 
 from archledger.errors import StorageError
-from archledger.model import (
-    RECORD_TYPE_TO_DIR,
-    RECORD_TYPE_TO_FILENAME_PREFIX,
-    SOURCE_FORMAT_EXTENSIONS,
-    VALID_RECORD_TYPES,
-)
+from archledger.ids import parse_ledger_id
+from archledger.model import SOURCE_FORMAT_EXTENSIONS
 from archledger.storage.common import read_text, utc_now_iso, write_text_atomic
 
 
@@ -23,16 +18,16 @@ class StorageMeta:
     created_with_archledger: str
     project_uuid: str
     created_at: str
-    next_numbers: dict[str, int]
+    next_number: int
 
 
 def default_storage_meta(project_uuid: str, archledger_version: str) -> StorageMeta:
     return StorageMeta(
-        storage_version=1,
+        storage_version=2,
         created_with_archledger=archledger_version,
         project_uuid=project_uuid,
         created_at=utc_now_iso(),
-        next_numbers={counter_key: 1 for counter_key in _counter_keys()},
+        next_number=1,
     )
 
 
@@ -46,25 +41,14 @@ def read_storage_meta(path: Path) -> StorageMeta:
     if not isinstance(raw_data, dict):
         raise StorageError("storage.yaml must contain a mapping.")
 
-    next_numbers = raw_data.get("next_numbers")
-    if not isinstance(next_numbers, dict):
-        raise StorageError("storage.yaml next_numbers must be a mapping.")
-
-    normalized_next_numbers: dict[str, int] = {}
-    for key in _counter_keys():
-        value = next_numbers.get(key, 1)
-        if isinstance(value, bool) or not isinstance(value, int) or value < 1:
-            raise StorageError(
-                f"storage.yaml next_numbers[{key!r}] must be a positive integer."
-            )
-        normalized_next_numbers[key] = value
-
     storage_version = raw_data.get("storage_version")
     created_with_archledger = raw_data.get("created_with_archledger")
     project_uuid = raw_data.get("project_uuid")
     created_at = raw_data.get("created_at")
-    if storage_version != 1:
-        raise StorageError("storage_version must be 1.")
+    next_number = raw_data.get("next_number")
+
+    if storage_version != 2:
+        raise StorageError("storage_version must be 2.")
     if not all(
         isinstance(value, str) and value
         for value in (created_with_archledger, project_uuid, created_at)
@@ -73,13 +57,15 @@ def read_storage_meta(path: Path) -> StorageMeta:
             "storage.yaml created_with_archledger, project_uuid, and created_at "
             "must be non-empty strings."
         )
+    if isinstance(next_number, bool) or not isinstance(next_number, int) or next_number < 1:
+        raise StorageError("storage.yaml next_number must be a positive integer.")
 
     return StorageMeta(
-        storage_version=1,
+        storage_version=2,
         created_with_archledger=cast(str, created_with_archledger),
         project_uuid=cast(str, project_uuid),
         created_at=cast(str, created_at),
-        next_numbers=normalized_next_numbers,
+        next_number=next_number,
     )
 
 
@@ -90,44 +76,32 @@ def write_storage_meta(path: Path, meta: StorageMeta) -> None:
             "created_with_archledger": meta.created_with_archledger,
             "project_uuid": meta.project_uuid,
             "created_at": meta.created_at,
-            "next_numbers": meta.next_numbers,
+            "next_number": meta.next_number,
         },
         sort_keys=False,
     )
     write_text_atomic(path, content)
 
 
-def recompute_next_numbers(
-    records_dir: Path,
+def recompute_next_number(
+    archledger_dir: Path,
     *,
-    record_extensions: tuple[str, ...] = (),
-) -> dict[str, int]:
-    next_numbers = {counter_key: 1 for counter_key in _counter_keys()}
+    source_extensions: tuple[str, ...] = (),
+) -> int:
     known_extensions = {
         *SOURCE_FORMAT_EXTENSIONS.values(),
-        *(extension.lower() for extension in record_extensions),
+        *(extension.lower() for extension in source_extensions),
     }
-    for record_type in VALID_RECORD_TYPES:
-        directory = records_dir / RECORD_TYPE_TO_DIR[record_type]
-        prefix = RECORD_TYPE_TO_FILENAME_PREFIX[record_type]
-        pattern = re.compile(
-            rf"^{re.escape(prefix)}_?(?P<number>\d{{4}})$"
-            if prefix == "adr"
-            else rf"^{re.escape(prefix)}_(?P<number>\d{{4}})$"
-        )
-        if not directory.is_dir():
+    highest = 0
+    for root in (archledger_dir / "sections", archledger_dir / "records"):
+        if not root.is_dir():
             continue
-        highest = 0
-        for path in directory.iterdir():
+        for path in root.rglob("*"):
             if not path.is_file() or path.suffix.lower() not in known_extensions:
                 continue
-            match = pattern.match(path.stem)
-            if match is None:
+            try:
+                number = parse_ledger_id(path.stem)
+            except ValueError:
                 continue
-            highest = max(highest, int(match.group("number")))
-        next_numbers[prefix] = highest + 1
-    return next_numbers
-
-
-def _counter_keys() -> tuple[str, ...]:
-    return tuple(dict.fromkeys(RECORD_TYPE_TO_FILENAME_PREFIX.values()))
+            highest = max(highest, number)
+    return highest + 1

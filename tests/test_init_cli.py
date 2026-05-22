@@ -24,14 +24,12 @@ def test_init_writes_archledger_toml_and_default_storage(tmp_path: Path) -> None
     assert (tmp_path / ".archledger" / "sections").is_dir()
     assert (tmp_path / ".archledger" / "records" / "building_blocks").is_dir()
     assert (
-        tmp_path / ".archledger" / "sections" / "01_introduction_and_goals.adoc"
+        tmp_path / ".archledger" / "sections" / "al_0001.adoc"
     ).is_file()
     storage_text = (tmp_path / ".archledger" / "storage.yaml").read_text(
         encoding="utf-8"
     )
-    assert "requirement: 1" in storage_text
-    assert "strategy_item: 1" in storage_text
-    assert "quality_requirement: 1" in storage_text
+    assert "next_number: 13" in storage_text
 
 
 def test_init_project_name_defaults_to_workspace_basename(tmp_path: Path) -> None:
@@ -71,7 +69,7 @@ def test_init_markdown_source_writes_markdown_config(tmp_path: Path) -> None:
     assert 'default_output = "architecture.md"' in config_text
     assert "schema_version = 2" in config_text
     assert (
-        tmp_path / ".archledger" / "sections" / "01_introduction_and_goals.md"
+        tmp_path / ".archledger" / "sections" / "al_0001.md"
     ).is_file()
 
 

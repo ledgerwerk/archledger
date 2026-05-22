@@ -22,14 +22,14 @@ def test_building_block_hierarchy_renders_fulfilled_reqs_and_risks_when_present(
     None
 ):
     record = _black_box_record(
-        fulfilled_requirements=["requirement_0001"],
-        risks=["risk_0001"],
+        fulfilled_requirements=["al_0101"],
+        risks=["al_0102"],
     )
 
     rendered = building_block_hierarchy([record], get_dialect("markdown"))
 
-    assert "**Fulfilled requirements:** requirement_0001" in rendered
-    assert "**Risks:** risk_0001" in rendered
+    assert "**Fulfilled requirements:** al_0101" in rendered
+    assert "**Risks:** al_0102" in rendered
 
 
 def _black_box_record(
@@ -38,16 +38,16 @@ def _black_box_record(
     risks: list[str],
 ) -> ArchitectureRecord:
     return ArchitectureRecord(
-        id="black_box_9999",
+        id="al_9999",
         type="black_box",
         title="Source Tracking Layer",
         status="accepted",
         section="building_block_view",
         order=9999,
-        path=Path(".archledger/records/building_blocks/black_box_9999.md"),
+        path=Path(".archledger/records/building_blocks/al_9999.md"),
         metadata={
             "level": 1,
-            "parent": "white_box_0001",
+            "parent": "al_0001",
             "interfaces": ["scan_workspace()"],
             "location": ["archledger/source_tracking.py"],
             "fulfilled_requirements": fulfilled_requirements,
@@ -59,13 +59,13 @@ def _black_box_record(
 
 def test_section_diagrams_renders_diagram_body_and_caption() -> None:
     record = ArchitectureRecord(
-        id="diagram_0001",
+        id="al_0201",
         type="diagram",
         title="Runtime login flow",
         status="accepted",
         section="runtime_view",
         order=10,
-        path=Path(".archledger/records/diagrams/diagram_0001.md"),
+        path=Path(".archledger/records/diagrams/al_0201.md"),
         metadata={"caption": "Runtime login flow"},
         body="```mermaid\nflowchart LR\n  A --> B\n```",
     )

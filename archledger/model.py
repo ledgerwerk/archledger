@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from archledger.ids import format_ledger_id, is_ledger_id
 from archledger.record_types import (
     CLI_KIND_ALIASES as _CLI_KIND_ALIASES,
 )
@@ -11,9 +12,6 @@ from archledger.record_types import (
 )
 from archledger.record_types import (
     RECORD_TYPE_TO_DIR as _RECORD_TYPE_TO_DIR,
-)
-from archledger.record_types import (
-    RECORD_TYPE_TO_FILENAME_PREFIX as _RECORD_TYPE_TO_FILENAME_PREFIX,
 )
 from archledger.record_types import (
     RECORD_TYPE_TO_TEMPLATE as _RECORD_TYPE_TO_TEMPLATE,
@@ -79,7 +77,6 @@ RECORD_TYPES = _RECORD_TYPES
 CLI_KIND_ALIASES = _CLI_KIND_ALIASES
 RECORD_TYPE_TO_DEFAULT_SECTION = _RECORD_TYPE_TO_DEFAULT_SECTION
 RECORD_TYPE_TO_DIR = _RECORD_TYPE_TO_DIR
-RECORD_TYPE_TO_FILENAME_PREFIX = _RECORD_TYPE_TO_FILENAME_PREFIX
 RECORD_TYPE_TO_TEMPLATE = _RECORD_TYPE_TO_TEMPLATE
 VALID_RECORD_TYPES = _VALID_RECORD_TYPES
 
@@ -105,7 +102,7 @@ class SectionSpec:
     key: str
     title: str
     order: int
-    filename: str
+    number: int
 
 
 MAJOR_SECTION_SPECS = (
@@ -113,73 +110,73 @@ MAJOR_SECTION_SPECS = (
         key="introduction_and_goals",
         title="Introduction and Goals",
         order=10,
-        filename="01_introduction_and_goals.md",
+        number=1,
     ),
     SectionSpec(
         key="architecture_constraints",
         title="Architecture Constraints",
         order=20,
-        filename="02_architecture_constraints.md",
+        number=2,
     ),
     SectionSpec(
         key="context_and_scope",
         title="Context and Scope",
         order=30,
-        filename="03_context_and_scope.md",
+        number=3,
     ),
     SectionSpec(
         key="solution_strategy",
         title="Solution Strategy",
         order=40,
-        filename="04_solution_strategy.md",
+        number=4,
     ),
     SectionSpec(
         key="building_block_view",
         title="Building Block View",
         order=50,
-        filename="05_building_block_view.md",
+        number=5,
     ),
     SectionSpec(
         key="runtime_view",
         title="Runtime View",
         order=60,
-        filename="06_runtime_view.md",
+        number=6,
     ),
     SectionSpec(
         key="deployment_view",
         title="Deployment View",
         order=70,
-        filename="07_deployment_view.md",
+        number=7,
     ),
     SectionSpec(
         key="cross_cutting_concepts",
         title="Cross-cutting Concepts",
         order=80,
-        filename="08_cross_cutting_concepts.md",
+        number=8,
     ),
     SectionSpec(
         key="architecture_decisions",
         title="Architecture Decisions",
         order=90,
-        filename="09_architecture_decisions.md",
+        number=9,
     ),
     SectionSpec(
         key="quality_requirements",
         title="Quality Requirements",
         order=100,
-        filename="10_quality_requirements.md",
+        number=10,
     ),
     SectionSpec(
         key="risks_and_technical_debt",
         title="Risks and Technical Debt",
         order=110,
-        filename="11_risks_and_technical_debt.md",
+        number=11,
     ),
     SectionSpec(
         key="glossary",
         title="Glossary",
         order=120,
-        filename="12_glossary.md",
+        number=12,
     ),
 )
 
@@ -224,10 +221,12 @@ def validate_record(record: ArchitectureRecord) -> list[str]:
         issues.append("Order must be an integer")
     if not record.title.strip():
         issues.append("Title must not be empty")
-    if record.type != "section" and record.path.stem != record.id:
+    if record.path.stem != record.id:
         issues.append(
             f"Record id {record.id!r} does not match filename stem {record.path.stem!r}"
         )
+    if not is_ledger_id(record.id):
+        issues.append(f"Record id {record.id!r} must match al_NNNN.")
     return issues
 
 
@@ -295,15 +294,11 @@ def empty_section_placeholder_for_source_format(source_format: str) -> str:
 
 
 def section_filename_for(section_spec: SectionSpec, extension: str = ".md") -> str:
-    return f"{Path(section_spec.filename).stem}{extension}"
+    return filename_for(section_spec.number, extension=extension)
 
 
-def filename_for(kind: str, number: int, extension: str = ".md") -> str:
-    normalized_kind = normalize_kind(kind)
-    prefix = RECORD_TYPE_TO_FILENAME_PREFIX[normalized_kind]
-    if prefix == "adr":
-        return f"adr{number:04d}{extension}"
-    return f"{prefix}_{number:04d}{extension}"
+def filename_for(number: int, extension: str = ".md") -> str:
+    return f"{format_ledger_id(number)}{extension}"
 
 
 def id_from_filename(path: Path) -> str:

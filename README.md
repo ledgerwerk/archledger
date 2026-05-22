@@ -92,7 +92,7 @@ Each section file and record file has YAML front matter plus a body in the confi
 ```yaml
 ---
 schema_version: 2
-id: adr0001
+id: al_0013
 type: adr
 title: "Treat source fragments as canonical"
 status: accepted

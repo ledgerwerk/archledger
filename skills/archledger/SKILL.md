@@ -76,7 +76,7 @@ Use the CLI to allocate ids and paths, then edit the generated source fragment w
 ```bash
 archledger new requirement --title "Render architecture document from source fragments" --status proposed
 archledger new white-box --title "Overall System" --status proposed
-archledger new black-box --title "CLI" --parent white_box_0001 --status proposed
+archledger new black-box --title "CLI" --parent al_0013 --status proposed
 archledger new adr --title "Treat source fragments as canonical" --status proposed
 archledger new quality-requirement --title "Deterministic native builds" --status proposed
 ```
@@ -85,7 +85,7 @@ Every section file and record file must keep YAML front matter followed by a bod
 
 ```yaml
 schema_version: 2
-id: black_box_0001
+id: al_0014
 type: black_box
 title: "CLI"
 status: proposed

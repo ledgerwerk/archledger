@@ -139,7 +139,7 @@ def test_build_includes_structured_arc42_sections(tmp_path: Path) -> None:
             "--status",
             "accepted",
             "--parent",
-            "white_box_0001",
+            "al_0013",
         ],
     )
 
@@ -292,7 +292,7 @@ def test_build_uses_latest_record_metadata_date_when_epoch_not_set(
             "accepted",
         ],
     )
-    record_path = next(tmp_path.rglob("requirement_*.adoc"))
+    record_path = tmp_path / ".archledger" / "records" / "requirements" / "al_0013.adoc"
     lines = record_path.read_text(encoding="utf-8").splitlines()
     updated_lines: list[str] = []
     for line in lines:

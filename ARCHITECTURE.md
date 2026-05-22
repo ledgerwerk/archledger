@@ -84,7 +84,7 @@ archledger operates under several technical constraints that shape its architect
 
 archledger interacts with three external partners: the source repository (reads config and records, writes build output), coding agents (CLI invocations with JSON output), and CI pipelines (exit codes and build artifacts). Optional external converters (pandoc, asciidoctor, asciidoctor-pdf) are invoked as subprocesses for multi-format exports. All communication is local filesystem access, process I/O, or subprocess invocation.
 
-See the [System Context diagram](#diagram-diagram_0001) for a visual overview of actors and system boundaries.
+See the [System Context diagram](#diagram-al_0091) for a visual overview of actors and system boundaries.
 
 ## System Context
 
@@ -136,7 +136,7 @@ The fundamental approach is a file-based pipeline: human-editable Markdown or As
 
 A source tracking subsystem (`source snapshot`/`source changed`) allows agents to detect which source files changed since the last baseline and which architecture records are impacted via `source_refs` linkage.
 
-The build pipeline is visualized in the [Build Pipeline Flow diagram](#diagram-diagram_0003) in the runtime view.
+The build pipeline is visualized in the [Build Pipeline Flow diagram](#diagram-al_0093) in the runtime view.
 
 ## Strategy Items
 
@@ -144,7 +144,7 @@ The build pipeline is visualized in the [Build Pipeline Flow diagram](#diagram-d
 
 **Drivers:** Maintainability, Traceability, Reproducibility
 **Constraints:** Markdown or AsciiDoc with YAML front matter as canonical source, No external database dependency, Typer CLI interface
-**Related ADRs:** adr0001, adr0002, adr0003
+**Related ADRs:** al_0087, al_0088, al_0089
 
 ## Strategy
 
@@ -159,7 +159,7 @@ The core approach is a four-stage pipeline: author (create/edit Markdown or Asci
 
 The system is decomposed into fifteen black boxes within a single white box. The CLI Layer receives user input and delegates output formatting, the Config Layer parses and renders project configuration, the Repository Layer orchestrates business logic, the Model Layer defines core data structures and validation, the Record Type Registry maps record types to templates and defaults, the Check Layer validates record content per type, the Source Ref Validation layer normalizes traceability links, the Storage Layer handles file I/O, the Assembly Layer renders the document via Jinja2 templates, the Dialect Layer abstracts format-specific markup, the Section Rendering Layer handles per-record-type output, the Render Layer orchestrates the build pipeline, the Converter Layer handles multi-format export, the Source Tracking Layer detects changes and impacts, and the Migration Layer converts between source dialects.
 
-See the [Building Block Layer Structure diagram](#diagram-diagram_0002) for a visual decomposition showing the layer relationships.
+See the [Building Block Layer Structure diagram](#diagram-al_0092) for a visual decomposition showing the layer relationships.
 
 ## Building Block Layer Structure
 
@@ -233,7 +233,7 @@ The primary interface is the CLI (`archledger` console script). The CLI delegate
 
 #### CLI Layer
 
-**Parent:** white_box_0001
+**Parent:** al_0041
 **Interfaces:** archledger console script (stdin/stdout)
 **Location:** archledger/cli.py, archledger/cli_formatting.py, archledger/cli_payloads.py, archledger/launcher.py
 
@@ -245,7 +245,7 @@ The `source snapshot` and `source changed` commands integrate the source trackin
 
 #### Repository Layer
 
-**Parent:** white_box_0001
+**Parent:** al_0041
 **Interfaces:** create_record(), list_records(), get_record(), load_all_records(), check(), init(), status()
 **Location:** archledger/repository.py
 
@@ -253,7 +253,7 @@ The `ArchitectureRepository` class is the central business logic layer. It orche
 
 #### Render Layer
 
-**Parent:** white_box_0001
+**Parent:** al_0041
 **Interfaces:** build_document()
 **Location:** archledger/render.py
 
@@ -261,7 +261,7 @@ The render module (`render.py`) is a thin facade that orchestrates the build pip
 
 #### Storage Layer
 
-**Parent:** white_box_0001
+**Parent:** al_0041
 **Interfaces:** read_text() / write_text(), read_markdown_front_matter(), resolve_project_paths(), read_source_state() / write_source_state()
 **Location:** archledger/storage/common.py, archledger/storage/frontmatter.py, archledger/storage/meta.py, archledger/storage/paths.py, archledger/storage/source_state.py
 
@@ -269,7 +269,7 @@ The storage subpackage handles all file system I/O. `paths.py` discovers the pro
 
 #### Model Layer
 
-**Parent:** white_box_0001
+**Parent:** al_0041
 **Interfaces:** ArchitectureRecord dataclass, SourceRef dataclass, validate_record(), filename_for(), record_sort_key(), normalize_kind()
 **Location:** archledger/model.py, archledger/errors.py
 
@@ -277,7 +277,7 @@ The model module defines the core data structures and validation rules. `Archite
 
 #### Assembly Layer
 
-**Parent:** white_box_0001
+**Parent:** al_0041
 **Interfaces:** assemble_document(), assemble_asciidoc_document()
 **Location:** archledger/assembly.py
 
@@ -285,7 +285,7 @@ The assembly module loads all records from the repository, groups them by arc42 
 
 #### Dialect Layer
 
-**Parent:** white_box_0001
+**Parent:** al_0041
 **Interfaces:** get_dialect(), Dialect base class, MarkdownDialect / AsciiDocDialect
 **Location:** archledger/dialects.py
 
@@ -293,7 +293,7 @@ The dialects module provides a format-neutral abstraction for document rendering
 
 #### Section Rendering Layer
 
-**Parent:** white_box_0001
+**Parent:** al_0041
 **Interfaces:** section_body(), building_block_hierarchy(), adr_sections(), quality_scenarios(), risk_table(), glossary_table(), (and other per-type renderers)
 **Location:** archledger/section_rendering.py
 
@@ -301,7 +301,7 @@ The section rendering module contains all per-record-type rendering functions. E
 
 #### Converter Layer
 
-**Parent:** white_box_0001
+**Parent:** al_0041
 **Interfaces:** convert_assembled_document()
 **Location:** archledger/converters.py, archledger/conversion_plan.py, archledger/formats.py
 
@@ -311,7 +311,7 @@ Conversion planning is handled by `conversion_plan.py`, which produces a `Conver
 
 #### Source Tracking Layer
 
-**Parent:** white_box_0001
+**Parent:** al_0041
 **Interfaces:** scan_workspace(), diff_source_states(), resolve_impacts()
 **Location:** archledger/source_tracking.py, archledger/storage/source_state.py
 
@@ -321,7 +321,7 @@ The storage sub-module (`storage/source_state.py`) handles JSON serialization an
 
 #### Migration Layer
 
-**Parent:** white_box_0001
+**Parent:** al_0041
 **Interfaces:** convert_sources()
 **Location:** archledger/migration.py
 
@@ -329,7 +329,7 @@ The migration module converts source fragments from one dialect to another. Curr
 
 #### Config Layer
 
-**Parent:** white_box_0001
+**Parent:** al_0041
 **Interfaces:** load_project_config(), render_default_config(), ProjectConfig dataclass
 **Location:** archledger/config/**init**.py, archledger/config/model.py, archledger/config/parse.py, archledger/config/render.py
 
@@ -339,7 +339,7 @@ The `[diagrams]` section supports five diagram types (`text`, `ascii`, `unicode`
 
 #### Record Type Registry
 
-**Parent:** white_box_0001
+**Parent:** al_0041
 **Interfaces:** RECORD_TYPES registry, CLI_KIND_ALIASES, RecordTypeSpec dataclass
 **Location:** archledger/record_types.py
 
@@ -351,7 +351,7 @@ This module was extracted from `model.py` to keep the model focused on data stru
 
 #### Check Layer
 
-**Parent:** white_box_0001
+**Parent:** al_0041
 **Interfaces:** content_warnings()
 **Location:** archledger/checks.py
 
@@ -363,7 +363,7 @@ This module was extracted from `repository.py` to isolate validation logic.
 
 #### Source Ref Validation
 
-**Parent:** white_box_0001
+**Parent:** al_0041
 **Interfaces:** normalize_source_refs(), validate_relative_posix_path()
 **Location:** archledger/source_refs.py
 
@@ -373,7 +373,7 @@ The `source_refs.py` module handles validation and normalization of source trace
 
 Key runtime scenarios: initializing a new project (scaffolding directories and section files), creating and rendering records (the primary authoring flow), validating records with check (ensuring consistency and completeness), building multi-format output (assembly plus optional conversion), taking source snapshots and detecting changes (source tracking), and converting source dialects (Markdown to AsciiDoc migration).
 
-See the [Build Pipeline Flow diagram](#diagram-diagram_0003) for a visual overview of the four-stage pipeline.
+See the [Build Pipeline Flow diagram](#diagram-al_0093) for a visual overview of the four-stage pipeline.
 
 ## Build Pipeline Flow
 
@@ -464,7 +464,7 @@ delegate to pandoc or asciidoctor.
 
 archledger runs as a local CLI tool on developer machines and in CI runners. There is no server component. The storage directory can be co-located with the source repository or placed in an external path via configuration.
 
-See the [Deployment Topology diagram](#diagram-diagram_0004) for a visual overview of deployment nodes.
+See the [Deployment Topology diagram](#diagram-al_0094) for a visual overview of deployment nodes.
 
 ## Deployment Topology
 
@@ -537,7 +537,7 @@ CI release validation runs unit tests, package build checks, version consistency
 
 Four cross-cutting concepts pervade the architecture: the record lifecycle (draft, proposed, accepted, deprecated, superseded) which controls visibility and validation behavior, the config discovery mechanism which resolves project paths from the workspace directory upward, the dialect abstraction which ensures format-neutral rendering for both Markdown and AsciiDoc sources, and the multi-type diagram record system which supports text, ascii, unicode, svgbob, and mermaid diagram types with type-appropriate validation and templating.
 
-A fourth cross-cutting concern is source tracking and change impact analysis, which is visualized in the [Source Tracking Flow diagram](#diagram-diagram_0005).
+A fourth cross-cutting concern is source tracking and change impact analysis, which is visualized in the [Source Tracking Flow diagram](#diagram-al_0095).
 
 ## Source Tracking Flow
 
@@ -875,7 +875,7 @@ Repair/recount operations can restore consistency without data loss.
 **Date:** 2026-05-22
 **Deciders:** archledger maintainers
 **Supersedes:**
-**Related:** adr0006
+**Related:** al_0090
 
 ## Context
 
@@ -903,12 +903,12 @@ The top quality scenarios address deterministic builds and agent-friendly CLI in
 
 | Title                                      | Category      | Measure                                                                         | Scenarios                                    |
 | ------------------------------------------ | ------------- | ------------------------------------------------------------------------------- | -------------------------------------------- |
-| Deterministic native build output          | reliability   | Byte-identical output for equal accepted records and deterministic date source. | quality_scenario_0003, quality_scenario_0008 |
-| Fast check and build on small repositories | performance   | check/build complete in under 5s on representative small repositories.          | quality_scenario_0008                        |
-| Safe path validation                       | safety        | Path escape attempts are rejected with explicit errors.                         | quality_scenario_0006                        |
-| Clear converter failure diagnostics        | operability   | Converter failures identify missing tool and installation hint.                 | quality_scenario_0004                        |
-| JSON output stability                      | compatibility | JSON payload keys for stable commands remain backward compatible.               | quality_scenario_0007                        |
-| Source tracking correctness                | correctness   | Source tracking reports file and impact deltas accurately.                      | quality_scenario_0005                        |
+| Deterministic native build output          | reliability   | Byte-identical output for equal accepted records and deterministic date source. | al_0061, al_0066 |
+| Fast check and build on small repositories | performance   | check/build complete in under 5s on representative small repositories.          | al_0066                        |
+| Safe path validation                       | safety        | Path escape attempts are rejected with explicit errors.                         | al_0064                        |
+| Clear converter failure diagnostics        | operability   | Converter failures identify missing tool and installation hint.                 | al_0062                        |
+| JSON output stability                      | compatibility | JSON payload keys for stable commands remain backward compatible.               | al_0065                        |
+| Source tracking correctness                | correctness   | Source tracking reports file and impact deltas accurately.                      | al_0063                        |
 
 ## Quality Scenarios
 
