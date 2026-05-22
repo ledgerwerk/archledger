@@ -789,12 +789,13 @@ def _emit_success(
     human_message: str,
 ) -> None:
     if state.json_output:
+        normalized_result = _normalize_json_paths(result)
         typer.echo(
             json.dumps(
                 {
                     "ok": True,
                     "command": command,
-                    "result": result,
+                    "result": normalized_result,
                     "warnings": warnings,
                 },
                 indent=2,
@@ -844,6 +845,53 @@ def _check_error(result: CheckResult, *, strict: bool) -> ArchledgerError:
             "warnings": [_finding_payload(finding) for finding in result.warnings],
         },
     )
+
+
+_JSON_PATH_KEYS = frozenset(
+    {
+        "workspace_root",
+        "config_path",
+        "archledger_dir",
+        "sections_dir",
+        "records_dir",
+        "archive_dir",
+        "build_dir",
+        "storage_meta_path",
+        "source_state_path",
+        "assembled_path",
+        "output_path",
+        "source_path",
+        "from",
+        "to",
+        "path",
+        "created_paths",
+    }
+)
+
+
+def _normalize_json_paths(value: object, *, key: str | None = None) -> object:
+    if isinstance(value, dict):
+        return {
+            item_key: _normalize_json_paths(item_value, key=item_key)
+            for item_key, item_value in value.items()
+        }
+    if isinstance(value, list):
+        if key in {"created_paths"}:
+            return [_normalize_path_string(item) for item in value]
+        return [_normalize_json_paths(item, key=key) for item in value]
+    if isinstance(value, str) and key is not None and _looks_like_path_key(key):
+        return _normalize_path_string(value)
+    return value
+
+
+def _looks_like_path_key(key: str) -> bool:
+    return key in _JSON_PATH_KEYS or key.endswith("_path") or key.endswith("_dir")
+
+
+def _normalize_path_string(value: object) -> object:
+    if not isinstance(value, str):
+        return value
+    return value.replace("\\", "/")
 
 
 def _seed_arc42_minimal(repo: ArchitectureRepository) -> list[ArchitectureRecord]:
