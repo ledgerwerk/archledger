@@ -406,15 +406,15 @@ For the full maintainer checklist, see `docs/release-process.rst`.
 
 ## Troubleshooting
 
-| Symptom                                           | Cause                                                                 | Fix                                                                                                  |
-| ------------------------------------------------- | --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `No archledger.toml found`                        | Command ran outside a configured workspace.                           | Run from the project tree or pass `--root`.                                                          |
-| Draft records missing from builds                 | Drafts are excluded by default.                                       | Use `--include-drafts` or promote the record status.                                                 |
-| Build blocked by warnings                         | `--strict` treats warnings as failures.                               | Fix the warnings or build without `--strict`.                                                        |
-| Converter executable not found                    | Requested output needs `pandoc`, `asciidoctor`, or `asciidoctor-pdf`. | Install the required tool or change the per-output converter config.                                 |
-| `source changed` says no baseline found           | No source snapshot exists yet.                                        | Run `archledger --json source snapshot --reason after-archledger-update` after the docs are current. |
-| `snapshot` or `changed` says tracking is disabled | `[tracking].enabled = false`.                                         | Re-enable tracking or avoid tracking commands for that workspace.                                    |
-| `source convert --apply` fails without `pandoc`   | Apply mode is strict by default.                                      | Install `pandoc` or re-run with `--allow-mixed-body-format` if you accept a manual cleanup step.     |
+| Symptom                                           | Cause                                                                 | Fix                                                                                                         |
+| ------------------------------------------------- | --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `No archledger.toml found`                        | Command ran outside a configured workspace.                           | Run from the project tree or pass `--root`.                                                                 |
+| Draft records missing from builds                 | Drafts are excluded by default.                                       | Use `--include-drafts` or promote the record status.                                                        |
+| Build blocked by warnings                         | `--strict` treats warnings as failures.                               | Fix the warnings or build without `--strict`.                                                               |
+| Converter executable not found                    | Requested output needs `pandoc`, `asciidoctor`, or `asciidoctor-pdf`. | Install the required tool or change the per-output converter config.                                        |
+| `source changed` says no baseline found           | No source snapshot exists yet.                                        | Run `archledger --json source snapshot --reason after-archledger-update` after the docs are current.        |
+| `snapshot` or `changed` says tracking is disabled | `[tracking].enabled = false`.                                         | Re-enable tracking or avoid tracking commands for that workspace.                                           |
+| `source convert --apply` fails without `pandoc`   | Apply mode is strict by default.                                      | Install `pandoc` or re-run with `--allow-mixed-body-format` if you accept a manual cleanup step.            |
 | `check` reports missing ledger IDs                | Numbered fragments were deleted or moved manually.                    | Use `archledger archive` for lifecycle removal and `archledger doctor --repair` for safe structural repair. |
 
 ## Skill
