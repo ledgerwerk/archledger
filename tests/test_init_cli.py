@@ -23,9 +23,7 @@ def test_init_writes_archledger_toml_and_default_storage(tmp_path: Path) -> None
     assert (tmp_path / ".archledger" / "storage.yaml").is_file()
     assert (tmp_path / ".archledger" / "sections").is_dir()
     assert (tmp_path / ".archledger" / "records" / "building_blocks").is_dir()
-    assert (
-        tmp_path / ".archledger" / "sections" / "al_0001.adoc"
-    ).is_file()
+    assert (tmp_path / ".archledger" / "sections" / "al_0001.adoc").is_file()
     storage_text = (tmp_path / ".archledger" / "storage.yaml").read_text(
         encoding="utf-8"
     )
@@ -68,9 +66,7 @@ def test_init_markdown_source_writes_markdown_config(tmp_path: Path) -> None:
     assert 'default_format = "markdown"' in config_text
     assert 'default_output = "architecture.md"' in config_text
     assert "schema_version = 2" in config_text
-    assert (
-        tmp_path / ".archledger" / "sections" / "al_0001.md"
-    ).is_file()
+    assert (tmp_path / ".archledger" / "sections" / "al_0001.md").is_file()
 
 
 def test_init_asciidoc_source_writes_asciidoc_config(tmp_path: Path) -> None:

@@ -246,9 +246,7 @@ def test_new_requirement_increments_with_custom_record_extension(
         "al_0014.mk",
         "al_0015.mk",
     ]
-    assert 'title: "C"' in (record_dir / "al_0015.mk").read_text(
-        encoding="utf-8"
-    )
+    assert 'title: "C"' in (record_dir / "al_0015.mk").read_text(encoding="utf-8")
     assert "next_number: 16" in (tmp_path / ".archledger" / "storage.yaml").read_text(
         encoding="utf-8"
     )
@@ -292,11 +290,7 @@ def test_new_quality_requirement_creates_quality_requirement_0001(
 
     assert result.exit_code == 0
     assert (
-        tmp_path
-        / ".archledger"
-        / "records"
-        / "quality_requirements"
-        / "al_0013.adoc"
+        tmp_path / ".archledger" / "records" / "quality_requirements" / "al_0013.adoc"
     ).is_file()
 
 
@@ -320,11 +314,7 @@ def test_new_context_interface_accepts_context_kind_and_partner(tmp_path: Path) 
 
     assert result.exit_code == 0
     created = (
-        tmp_path
-        / ".archledger"
-        / "records"
-        / "contexts"
-        / "al_0013.adoc"
+        tmp_path / ".archledger" / "records" / "contexts" / "al_0013.adoc"
     ).read_text(encoding="utf-8")
     assert 'context_kind: "business"' in created
     assert 'partner: "GitHub"' in created
@@ -373,11 +363,7 @@ def test_new_quality_scenario_accepts_quality_and_environment(tmp_path: Path) ->
 
     assert result.exit_code == 0
     created = (
-        tmp_path
-        / ".archledger"
-        / "records"
-        / "quality_scenarios"
-        / "al_0013.adoc"
+        tmp_path / ".archledger" / "records" / "quality_scenarios" / "al_0013.adoc"
     ).read_text(encoding="utf-8")
     assert 'quality: "reproducibility"' in created
     assert 'environment: "ci"' in created
@@ -429,11 +415,7 @@ def test_seed_arc42_minimal_creates_starter_records(tmp_path: Path) -> None:
         tmp_path / ".archledger" / "records" / "building_blocks" / "al_0013.adoc"
     ).is_file()
     assert (
-        tmp_path
-        / ".archledger"
-        / "records"
-        / "quality_goals"
-        / "al_0016.adoc"
+        tmp_path / ".archledger" / "records" / "quality_goals" / "al_0016.adoc"
     ).is_file()
     assert (
         tmp_path / ".archledger" / "records" / "decisions" / "al_0021.adoc"
@@ -477,9 +459,7 @@ def test_filename_id_must_match(tmp_path: Path) -> None:
         app,
         ["--root", str(tmp_path), "new", "black-box", "CLI"],
     )
-    source = (
-        tmp_path / ".archledger" / "records" / "building_blocks" / "al_0013.adoc"
-    )
+    source = tmp_path / ".archledger" / "records" / "building_blocks" / "al_0013.adoc"
     renamed = source.with_name("al_9999.adoc")
     source.rename(renamed)
 
@@ -497,9 +477,7 @@ def test_duplicate_id_check_fails(tmp_path: Path) -> None:
         app,
         ["--root", str(tmp_path), "new", "black-box", "CLI"],
     )
-    original = (
-        tmp_path / ".archledger" / "records" / "building_blocks" / "al_0013.adoc"
-    )
+    original = tmp_path / ".archledger" / "records" / "building_blocks" / "al_0013.adoc"
     duplicate = tmp_path / ".archledger" / "records" / "concepts" / "concept_0001.adoc"
     duplicate.write_text(
         original.read_text(encoding="utf-8").replace(
@@ -580,10 +558,7 @@ def test_check_warns_for_incomplete_content_metadata(tmp_path: Path) -> None:
     assert "Quality goal al_0013 has no scenario." in messages
     assert "Stakeholder al_0014 has no expectations." in messages
     assert "Context interface al_0015 has no partner." in messages
-    assert (
-        "Context interface al_0015 has no inputs, outputs, or channels."
-        in messages
-    )
+    assert "Context interface al_0015 has no inputs, outputs, or channels." in messages
     assert "Runtime scenario al_0016 has no participants." in messages
     assert "Runtime scenario al_0016 has no trigger." in messages
 
@@ -622,11 +597,7 @@ def test_check_warns_for_invalid_risk_levels_and_unmeasurable_quality_scenario(
         encoding="utf-8",
     )
     quality_path = (
-        tmp_path
-        / ".archledger"
-        / "records"
-        / "quality_scenarios"
-        / "al_0014.adoc"
+        tmp_path / ".archledger" / "records" / "quality_scenarios" / "al_0014.adoc"
     )
     quality_path.write_text(
         quality_path.read_text(encoding="utf-8").replace(
@@ -643,10 +614,7 @@ def test_check_warns_for_invalid_risk_levels_and_unmeasurable_quality_scenario(
     messages = [item["message"] for item in payload["result"]["warnings"]]
     assert "Risk al_0013 has unsupported severity: critical" in messages
     assert "Risk al_0013 has unsupported probability: certain" in messages
-    assert (
-        "Quality scenario al_0014 response_measure should be measurable."
-        in messages
-    )
+    assert "Quality scenario al_0014 response_measure should be measurable." in messages
 
 
 def test_check_strict_fails_on_new_content_warning(tmp_path: Path) -> None:

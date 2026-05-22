@@ -361,9 +361,8 @@ class ArchitectureRepository:
             loaded_records.append(record)
             for warning_message in content_warnings(record):
                 findings_warnings.append(CheckFinding("warning", warning_message, path))
-            if (
-                record.status == "archived"
-                and not path.is_relative_to(self.paths.archive_dir)
+            if record.status == "archived" and not path.is_relative_to(
+                self.paths.archive_dir
             ):
                 findings_errors.append(
                     CheckFinding(
@@ -629,8 +628,7 @@ class ArchitectureRepository:
                 DoctorRepair(
                     kind="recomputed_counter",
                     message=(
-                        "Recomputed storage.yaml next_number "
-                        f"to {next_number_after}"
+                        f"Recomputed storage.yaml next_number to {next_number_after}"
                     ),
                     path=self.paths.storage_meta_path,
                     before=meta_before.next_number,
@@ -754,9 +752,13 @@ class ArchitectureRepository:
         return errors, warnings, missing_numbers, duplicate_numbers, highest_seen
 
     def _write_archive_tombstone(self, number: int) -> Path:
-        path = self.paths.archive_dir / "tombstones" / filename_for(
-            number,
-            extension=self.config.record_extension,
+        path = (
+            self.paths.archive_dir
+            / "tombstones"
+            / filename_for(
+                number,
+                extension=self.config.record_extension,
+            )
         )
         if path.exists():
             return path
