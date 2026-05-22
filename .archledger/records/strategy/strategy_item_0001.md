@@ -23,8 +23,8 @@ related_adrs:
 created_at: "2026-05-20T06:11:34Z"
 updated_at: "2026-05-20T12:00:00Z"
 source_refs:
-- archledger/assembly.py
-- archledger/section_rendering.py
+  - archledger/assembly.py
+  - archledger/section_rendering.py
 ---
 
 ## Strategy

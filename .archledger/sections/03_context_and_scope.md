@@ -12,32 +12,4 @@ status: accepted
 
 archledger interacts with three external partners: the source repository (reads config and records, writes build output), coding agents (CLI invocations with JSON output), and CI pipelines (exit codes and build artifacts). Optional external converters (pandoc, asciidoctor, asciidoctor-pdf) are invoked as subprocesses for multi-format exports. All communication is local filesystem access, process I/O, or subprocess invocation.
 
-System context (portable text diagram):
-
-```text
-+----------------------+      CLI/JSON       +--------------------+
-| Developer / Agent /  | ------------------> | archledger CLI     |
-| CI Runner            |                     | (Typer entrypoint) |
-+----------------------+                     +---------+----------+
-                                                    |
-                                                    | read/write files
-                                                    v
-                                         +----------+-----------+
-                                         | Project workspace    |
-                                         | + .archledger state  |
-                                         | + source code/docs   |
-                                         +----------+-----------+
-                                                    |
-                                                    | generated artifacts
-                                                    v
-                                         +----------+-----------+
-                                         | ARCHITECTURE.md /    |
-                                         | optional exports     |
-                                         +----------+-----------+
-                                                    |
-                                                    | optional subprocess tools
-                                                    v
-                                         +----------------------+
-                                         | pandoc / asciidoctor |
-                                         +----------------------+
-```
+See the [System Context diagram](#diagram-diagram_0001) for a visual overview of actors and system boundaries.

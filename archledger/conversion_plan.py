@@ -120,6 +120,7 @@ def plan_conversion(
         f"Cannot build {requested_format.value} from {assembly.source_format} source."
     )
 
+
 def docbook_output_path(assembly: AssemblyResult) -> Path:
     return assembly.output_path.with_suffix(".docbook.xml")
 

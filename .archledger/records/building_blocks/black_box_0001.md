@@ -11,22 +11,22 @@ level: 1
 parent: white_box_0001
 order: 10
 interfaces:
-- archledger console script (stdin/stdout)
+  - archledger console script (stdin/stdout)
 location:
-- archledger/cli.py
-- archledger/cli_formatting.py
-- archledger/cli_payloads.py
-- archledger/launcher.py
+  - archledger/cli.py
+  - archledger/cli_formatting.py
+  - archledger/cli_payloads.py
+  - archledger/launcher.py
 fulfilled_requirements: []
 risks: []
 tags: []
-created_at: '2026-05-20T05:52:14Z'
-updated_at: '2026-05-21T16:00:00Z'
+created_at: "2026-05-20T05:52:14Z"
+updated_at: "2026-05-21T16:00:00Z"
 source_refs:
-- archledger/cli.py
-- archledger/cli_formatting.py
-- archledger/cli_payloads.py
-- archledger/launcher.py
+  - archledger/cli.py
+  - archledger/cli_formatting.py
+  - archledger/cli_payloads.py
+  - archledger/launcher.py
 ---
 
 The Typer-based CLI exposes top-level commands: `init`, `status`, `paths`, `schema`, `new`, `seed`, `list`, `show`, `read`, `check`, `build`, and the `source` subgroup. The `source` subgroup contains `snapshot`, `changed`, and `convert` for source tracking and dialect migration. Each command resolves the project config, constructs a Repository, and delegates to it. Two output modes are supported: human-readable text (default) and structured JSON (`--json` flag). Error handling maps domain exceptions (`ArchledgerError` subclasses) to appropriate exit codes and error output.

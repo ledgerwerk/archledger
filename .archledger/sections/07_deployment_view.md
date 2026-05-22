@@ -11,3 +11,5 @@ status: accepted
 ---
 
 archledger runs as a local CLI tool on developer machines and in CI runners. There is no server component. The storage directory can be co-located with the source repository or placed in an external path via configuration.
+
+See the [Deployment Topology diagram](#diagram-diagram_0004) for a visual overview of deployment nodes.

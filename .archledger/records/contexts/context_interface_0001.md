@@ -19,8 +19,8 @@ outputs:
 channels:
   - Local filesystem
 source_refs:
-- archledger/section_rendering.py
-- tests/test_build.py
+  - archledger/section_rendering.py
+  - tests/test_build.py
 ---
 
 The source repository hosts the `archledger.toml` config and the architecture record files. archledger reads records from disk and writes the rendered document back to the repository's build directory or a specified output path.

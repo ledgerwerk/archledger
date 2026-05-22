@@ -273,7 +273,7 @@ def test_source_state_rejects_backslash_paths(tmp_path: Path) -> None:
                         "sha256": "def",
                         "file_count": 1,
                     }
-                }
+                },
             }
         ),
         encoding="utf-8",

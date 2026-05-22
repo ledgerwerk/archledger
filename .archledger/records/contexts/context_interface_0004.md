@@ -10,23 +10,23 @@ date: "2026-05-21"
 context_kind: "business"
 partner: "Developers, maintainers, and release managers"
 inputs:
-- architecture requirements
-- review feedback
-- release acceptance decisions
+  - architecture requirements
+  - review feedback
+  - release acceptance decisions
 outputs:
-- generated architecture document
-- release notes inputs
-- documentation process guidance
+  - generated architecture document
+  - release notes inputs
+  - documentation process guidance
 channels:
-- CLI invocation
-- pull request review
-- CI artifacts
+  - CLI invocation
+  - pull request review
+  - CI artifacts
 body_format: markdown
 created_at: "2026-05-21T18:23:10Z"
 updated_at: "2026-05-21T18:23:10Z"
 source_refs:
-- README.md
-- docs/release-process.rst
+  - README.md
+  - docs/release-process.rst
 ---
 
 Stakeholders provide architecture requirements, review generated artifacts, and consume release documentation from repository and CI outputs.

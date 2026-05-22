@@ -32,8 +32,8 @@ from archledger.section_rendering import (
     requirements_overview,
     risk_table,
     runtime_scenarios,
-    section_diagrams,
     section_body,
+    section_diagrams,
     solution_strategy_items,
     stakeholders_table,
 )
@@ -138,7 +138,9 @@ def _document_date(records: list[ArchitectureRecord]) -> str:
         try:
             timestamp = int(source_date_epoch)
         except ValueError as exc:
-            raise RenderError("SOURCE_DATE_EPOCH must be an integer Unix timestamp.") from exc
+            raise RenderError(
+                "SOURCE_DATE_EPOCH must be an integer Unix timestamp."
+            ) from exc
         return datetime.fromtimestamp(timestamp, tz=timezone.utc).date().isoformat()
 
     latest_date: date | None = None

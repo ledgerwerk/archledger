@@ -15,9 +15,9 @@ body_format: markdown
 created_at: "2026-05-21T18:18:48Z"
 updated_at: "2026-05-21T18:18:48Z"
 source_refs:
-- pyproject.toml
-- tests/test_release_packaging.py
-- docs/index.rst
+  - pyproject.toml
+  - tests/test_release_packaging.py
+  - docs/index.rst
 ---
 
 Optional conversion toolchain: pandoc (html/docx/rst/textile), asciidoctor (html), and asciidoctor-pdf (pdf). Native source-format builds do not require these tools.

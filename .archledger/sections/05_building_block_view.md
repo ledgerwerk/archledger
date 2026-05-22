@@ -12,9 +12,4 @@ status: accepted
 
 The system is decomposed into fifteen black boxes within a single white box. The CLI Layer receives user input and delegates output formatting, the Config Layer parses and renders project configuration, the Repository Layer orchestrates business logic, the Model Layer defines core data structures and validation, the Record Type Registry maps record types to templates and defaults, the Check Layer validates record content per type, the Source Ref Validation layer normalizes traceability links, the Storage Layer handles file I/O, the Assembly Layer renders the document via Jinja2 templates, the Dialect Layer abstracts format-specific markup, the Section Rendering Layer handles per-record-type output, the Render Layer orchestrates the build pipeline, the Converter Layer handles multi-format export, the Source Tracking Layer detects changes and impacts, and the Migration Layer converts between source dialects.
 
-Pipeline ownership by building block:
-
-```text
-Config/Storage layers -> Repository + Check layers -> Assembly + Section Rendering
--> (optional) Converter layer -> output artifact(s)
-```
+See the [Building Block Layer Structure diagram](#diagram-diagram_0002) for a visual decomposition showing the layer relationships.

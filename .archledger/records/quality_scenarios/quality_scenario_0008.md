@@ -18,8 +18,8 @@ body_format: markdown
 created_at: "2026-05-21T18:18:56Z"
 updated_at: "2026-05-21T18:18:56Z"
 source_refs:
-- tests/test_build.py
-- tests/test_source_tracking.py
+  - tests/test_build.py
+  - tests/test_source_tracking.py
 ---
 
 Config v5 + schema v2 records validate in strict mode.

@@ -7,7 +7,9 @@ from archledger.model import ArchitectureRecord
 from archledger.section_rendering import building_block_hierarchy, section_diagrams
 
 
-def test_building_block_hierarchy_omits_empty_fulfilled_requirements_and_risks() -> None:
+def test_building_block_hierarchy_omits_empty_fulfilled_requirements_and_risks() -> (
+    None
+):
     record = _black_box_record(fulfilled_requirements=[], risks=[])
 
     rendered = building_block_hierarchy([record], get_dialect("markdown"))
@@ -16,7 +18,9 @@ def test_building_block_hierarchy_omits_empty_fulfilled_requirements_and_risks()
     assert "**Risks:**" not in rendered
 
 
-def test_building_block_hierarchy_renders_fulfilled_requirements_and_risks_when_present() -> None:
+def test_building_block_hierarchy_renders_fulfilled_requirements_and_risks_when_present() -> (
+    None
+):
     record = _black_box_record(
         fulfilled_requirements=["requirement_0001"],
         risks=["risk_0001"],

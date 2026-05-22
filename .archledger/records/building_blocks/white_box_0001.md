@@ -13,11 +13,11 @@ order: 10
 diagram: null
 quality_characteristics: []
 tags: []
-created_at: '2026-05-20T05:52:14Z'
-updated_at: '2026-05-21T16:00:00Z'
+created_at: "2026-05-20T05:52:14Z"
+updated_at: "2026-05-21T16:00:00Z"
 source_refs:
-- path: archledger/
-  reason: All source code under the archledger package
+  - path: archledger/
+    reason: All source code under the archledger package
 ---
 
 ## Motivation

@@ -537,7 +537,7 @@ def _parse_diagram_config(
     )
     if renderer == "kroki" and not kroki_url:
         raise ConfigError(
-            "diagrams.kroki_url must be set when diagrams.renderer is \"kroki\"."
+            'diagrams.kroki_url must be set when diagrams.renderer is "kroki".'
         )
     return enabled, renderer, default_type, output_dir, image_format, kroki_url
 

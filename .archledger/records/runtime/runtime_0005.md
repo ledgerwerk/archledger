@@ -15,8 +15,8 @@ participants:
 trigger: "User invokes archledger source changed"
 result: "List of changed files, impacted architecture records, impacted sections, and unlinked changed files."
 source_refs:
-- archledger/cli.py
-- tests/test_repository_cli.py
+  - archledger/cli.py
+  - tests/test_repository_cli.py
 ---
 
 1. CLI loads the tracking baseline from the source state JSON file (if it exists).

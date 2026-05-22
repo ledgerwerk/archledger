@@ -1,6 +1,9 @@
 # archledger
 
-`archledger` is an arc42-oriented architecture documentation ledger. It stores architecture knowledge as small, reviewable source fragments with YAML front matter and Markdown or AsciiDoc bodies. The fragments are the source of truth; complete documents are generated artifacts written to the configured build output directory (by default `.archledger/build/`).
+`archledger` is a source-first arc42 documentation tool. It stores architecture
+knowledge as small, reviewable Markdown or AsciiDoc records with YAML front
+matter, validates those records, tracks source drift, and assembles complete
+arc42-style architecture documents on demand.
 
 ## Release status
 
@@ -19,7 +22,10 @@
 - a compact Typer CLI for init, read, record creation, validation, source drift tracking, migration, and builds
 - deterministic native document assembly with optional converter-backed exports
 
-It is **not** a task tracker, workflow engine, lock manager, or sync service.
+The “ledger” is the project-local set of architecture records: requirements, decisions, constraints, building blocks, runtime scenarios, deployment nodes, quality scenarios, risks, glossary terms, and diagrams.
+
+`archledger` is **not** an accounting ledger, blockchain ledger, Arch Linux package
+tool, or task tracker.
 
 ## When to use it
 
@@ -372,15 +378,15 @@ For the full maintainer checklist, see `docs/release-process.rst`.
 
 ## Troubleshooting
 
-| Symptom                                           | Cause                                                                 | Fix                                                                                              |
-| ------------------------------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| `No archledger.toml found`                        | Command ran outside a configured workspace.                           | Run from the project tree or pass `--root`.                                                      |
-| Draft records missing from builds                 | Drafts are excluded by default.                                       | Use `--include-drafts` or promote the record status.                                             |
-| Build blocked by warnings                         | `--strict` treats warnings as failures.                               | Fix the warnings or build without `--strict`.                                                    |
-| Converter executable not found                    | Requested output needs `pandoc`, `asciidoctor`, or `asciidoctor-pdf`. | Install the required tool or change the per-output converter config.                             |
+| Symptom                                           | Cause                                                                 | Fix                                                                                                  |
+| ------------------------------------------------- | --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `No archledger.toml found`                        | Command ran outside a configured workspace.                           | Run from the project tree or pass `--root`.                                                          |
+| Draft records missing from builds                 | Drafts are excluded by default.                                       | Use `--include-drafts` or promote the record status.                                                 |
+| Build blocked by warnings                         | `--strict` treats warnings as failures.                               | Fix the warnings or build without `--strict`.                                                        |
+| Converter executable not found                    | Requested output needs `pandoc`, `asciidoctor`, or `asciidoctor-pdf`. | Install the required tool or change the per-output converter config.                                 |
 | `source changed` says no baseline found           | No source snapshot exists yet.                                        | Run `archledger --json source snapshot --reason after-archledger-update` after the docs are current. |
-| `snapshot` or `changed` says tracking is disabled | `[tracking].enabled = false`.                                         | Re-enable tracking or avoid tracking commands for that workspace.                                |
-| `source convert --apply` fails without `pandoc`   | Apply mode is strict by default.                                      | Install `pandoc` or re-run with `--allow-mixed-body-format` if you accept a manual cleanup step. |
+| `snapshot` or `changed` says tracking is disabled | `[tracking].enabled = false`.                                         | Re-enable tracking or avoid tracking commands for that workspace.                                    |
+| `source convert --apply` fails without `pandoc`   | Apply mode is strict by default.                                      | Install `pandoc` or re-run with `--allow-mixed-body-format` if you accept a manual cleanup step.     |
 
 ## Skill
 

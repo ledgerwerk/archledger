@@ -14,22 +14,4 @@ The fundamental approach is a file-based pipeline: human-editable Markdown or As
 
 A source tracking subsystem (`source snapshot`/`source changed`) allows agents to detect which source files changed since the last baseline and which architecture records are impacted via `source_refs` linkage.
 
-Build pipeline (portable text diagram):
-
-```text
-config discovery
-      |
-      v
-load sections + records
-      |
-      v
-validate/check rules
-      |
-      v
-assemble native arc42 document
-      |
-      +--> optional converter execution (pandoc/asciidoctor)
-      |
-      v
-write output artifact(s)
-```
+The build pipeline is visualized in the [Build Pipeline Flow diagram](#diagram-diagram_0003) in the runtime view.

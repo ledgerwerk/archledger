@@ -16,8 +16,8 @@ participants:
 trigger: "User invokes archledger new with kind, title, and status arguments"
 result: "A new Markdown record file is created and the architecture document can be rebuilt."
 source_refs:
-- archledger/cli.py
-- tests/test_repository_cli.py
+  - archledger/cli.py
+  - tests/test_repository_cli.py
 ---
 
 1. CLI parses the `new` command arguments (kind, title, status, parent, section).

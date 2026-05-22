@@ -204,13 +204,17 @@ def _diagram_warnings(record: ArchitectureRecord) -> list[str]:
     warnings: list[str] = []
     diagram_type = record.metadata.get("diagram_type")
     if not isinstance(diagram_type, str) or diagram_type.strip().lower() != "mermaid":
-        warnings.append(f"Diagram {record.id} has unsupported diagram_type: {diagram_type}")
+        warnings.append(
+            f"Diagram {record.id} has unsupported diagram_type: {diagram_type}"
+        )
     caption = record.metadata.get("caption")
     if not isinstance(caption, str) or not caption.strip():
         warnings.append(f"Diagram {record.id} has no caption.")
 
     body_format_value = record.metadata.get("body_format")
-    body_format = body_format_value.strip().lower() if isinstance(body_format_value, str) else ""
+    body_format = (
+        body_format_value.strip().lower() if isinstance(body_format_value, str) else ""
+    )
     if body_format == "markdown":
         if not _has_markdown_mermaid_block(record.body):
             warnings.append(
@@ -229,7 +233,9 @@ def _diagram_warnings(record: ArchitectureRecord) -> list[str]:
 
 
 def _has_markdown_mermaid_block(body: str) -> bool:
-    return bool(re.search(r"```mermaid\s*\n.*?\n```", body, flags=re.IGNORECASE | re.DOTALL))
+    return bool(
+        re.search(r"```mermaid\s*\n.*?\n```", body, flags=re.IGNORECASE | re.DOTALL)
+    )
 
 
 def _markdown_mermaid_block_is_empty(body: str) -> bool:

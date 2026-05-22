@@ -16,8 +16,8 @@ participants:
 trigger: "User invokes archledger build with optional --format, --formats, --all, or --output"
 result: "Assembled architecture document in the requested format(s) written to the build directory."
 source_refs:
-- archledger/cli.py
-- tests/test_repository_cli.py
+  - archledger/cli.py
+  - tests/test_repository_cli.py
 ---
 
 1. CLI resolves the project config and constructs a Repository.

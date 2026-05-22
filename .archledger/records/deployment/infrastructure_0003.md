@@ -15,9 +15,9 @@ body_format: markdown
 created_at: "2026-05-21T18:18:47Z"
 updated_at: "2026-05-21T18:18:47Z"
 source_refs:
-- pyproject.toml
-- tests/test_release_packaging.py
-- docs/index.rst
+  - pyproject.toml
+  - tests/test_release_packaging.py
+  - docs/index.rst
 ---
 
 Distribution targets are PyPI source/wheel artifacts built from this repository. Release pipelines build wheel/sdist and publish versioned packages for installation with `pip install archledger`.

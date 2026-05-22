@@ -20,8 +20,8 @@ channels:
   - Process exit codes
   - Build artifact storage
 source_refs:
-- archledger/section_rendering.py
-- tests/test_build.py
+  - archledger/section_rendering.py
+  - tests/test_build.py
 ---
 
 A CI runner can execute `archledger check` to validate record integrity and `archledger build` to produce the rendered document. Non-zero exit codes signal validation failures. The built Markdown can be published as a CI artifact or deployed to a documentation site.

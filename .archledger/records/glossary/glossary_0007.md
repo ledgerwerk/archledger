@@ -11,8 +11,8 @@ order: 70
 term: "Source State"
 definition: "A persisted snapshot of all tracked workspace files with their SHA-256 hashes, sizes, and modification times. Used as the baseline for change detection."
 source_refs:
-- README.md
-- docs/agent-workflow.rst
+  - README.md
+  - docs/agent-workflow.rst
 ---
 
 A persisted snapshot of all tracked workspace files with their SHA-256 hashes, sizes, and modification times. Created by `archledger snapshot` and used by `archledger changed` as the baseline for change detection. Stored as JSON in the build directory.

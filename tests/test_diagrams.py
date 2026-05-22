@@ -81,7 +81,9 @@ def test_check_warns_for_diagram_without_asciidoc_mermaid_block(tmp_path: Path) 
     assert result.exit_code == 0
     warnings = json.loads(result.stdout)["result"]["warnings"]
     messages = [item["message"] for item in warnings]
-    assert "Diagram diagram_0001 asciidoc body is missing a [mermaid] block." in messages
+    assert (
+        "Diagram diagram_0001 asciidoc body is missing a [mermaid] block." in messages
+    )
 
 
 def test_check_warns_for_empty_markdown_mermaid_block(tmp_path: Path) -> None:

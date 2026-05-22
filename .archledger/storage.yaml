@@ -1,7 +1,7 @@
 storage_version: 1
 created_with_archledger: 0.1.dev2+gfebe6dc46.d19800101
 project_uuid: 6bddbb56-b273-4aae-9860-bfa4de93f115
-created_at: '2026-05-19T18:50:37Z'
+created_at: "2026-05-19T18:50:37Z"
 next_numbers:
   requirement: 11
   stakeholder: 4
@@ -19,4 +19,5 @@ next_numbers:
   quality_requirement: 7
   quality_scenario: 9
   risk: 4
+  diagram: 6
   glossary: 8

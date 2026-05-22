@@ -27,13 +27,13 @@ markers = [
 
 [project]
 name = "archledger"
-description = "Markdown and AsciiDoc architecture documentation ledger for arc42-style documents"
+description = "Source-first arc42 architecture documentation from Markdown and AsciiDoc records"
 authors = [{name = "Archledger Contributors"}]
 maintainers = [{name = "Holger Nahrstaedt"}]
 requires-python = ">=3.10"
 readme = "README.md"
 license = "Apache-2.0"
-keywords = ["arc42", "architecture", "cli", "developer-tools", "documentation"]
+keywords = ["arc42", "architecture", "documentation", "adr", "asciidoc", "markdown", "developer-tools"]
 dependencies = [
     "typer",
     "PyYAML",

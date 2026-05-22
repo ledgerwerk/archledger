@@ -16,9 +16,7 @@ def test_build_generates_all_arc42_major_sections(tmp_path: Path) -> None:
     result = runner.invoke(app, ["--root", str(tmp_path), "build"])
 
     assert result.exit_code == 0
-    output = (tmp_path / "build" / "architecture.adoc").read_text(
-        encoding="utf-8"
-    )
+    output = (tmp_path / "build" / "architecture.adoc").read_text(encoding="utf-8")
     assert "== Introduction and Goals" in output
     assert "== Architecture Constraints" in output
     assert "== Context and Scope" in output
@@ -148,9 +146,7 @@ def test_build_includes_structured_arc42_sections(tmp_path: Path) -> None:
     result = runner.invoke(app, ["--root", str(tmp_path), "build"])
 
     assert result.exit_code == 0
-    output = (tmp_path / "build" / "architecture.adoc").read_text(
-        encoding="utf-8"
-    )
+    output = (tmp_path / "build" / "architecture.adoc").read_text(encoding="utf-8")
     assert "=== Whitebox Overall System" in output
     assert "==== Level 1" in output
     assert "===== CLI" in output
@@ -178,9 +174,7 @@ def test_build_includes_adr_under_architecture_decisions(tmp_path: Path) -> None
     result = runner.invoke(app, ["--root", str(tmp_path), "build"])
 
     assert result.exit_code == 0
-    output = (tmp_path / "build" / "architecture.adoc").read_text(
-        encoding="utf-8"
-    )
+    output = (tmp_path / "build" / "architecture.adoc").read_text(encoding="utf-8")
     assert "== Architecture Decisions" in output
     assert "Use AsciiDoc records" in output
     assert "*Status:* accepted" in output
@@ -234,9 +228,7 @@ def test_build_renders_structured_risk_overview(tmp_path: Path) -> None:
     result = runner.invoke(app, ["--root", str(tmp_path), "build"])
 
     assert result.exit_code == 0
-    output = (tmp_path / "build" / "architecture.adoc").read_text(
-        encoding="utf-8"
-    )
+    output = (tmp_path / "build" / "architecture.adoc").read_text(encoding="utf-8")
     assert "== Risks and Technical Debt" in output
     assert "=== Risk Overview" in output
     assert "|Title |Severity |Probability |Mitigation |Notes" in output
@@ -496,9 +488,7 @@ def test_legacy_markdown_project_still_builds_markdown(tmp_path: Path) -> None:
     result = runner.invoke(app, ["--root", str(tmp_path), "build"])
 
     assert result.exit_code == 0
-    output = (tmp_path / "build" / "architecture.md").read_text(
-        encoding="utf-8"
-    )
+    output = (tmp_path / "build" / "architecture.md").read_text(encoding="utf-8")
     assert "# Introduction and Goals" in output
     assert "Render markdown output" in output
 

@@ -181,7 +181,7 @@ def test_convert_sources_preserves_v5_tracking_and_build_config(
     )
     config_text = config_text.replace(
         'converter = "auto"',
-        '\n'.join(
+        "\n".join(
             [
                 'converter = "pandoc"',
                 'pdf_engine = "tectonic"',
@@ -190,8 +190,7 @@ def test_convert_sources_preserves_v5_tracking_and_build_config(
         ),
     )
     config_path.write_text(
-        config_text
-        + "\n[build.outputs.html]\n"
+        config_text + "\n[build.outputs.html]\n"
         'tool = "pandoc"\n'
         "\n[build.outputs.docx]\n"
         'reference_docx = "docs/override.docx"\n',

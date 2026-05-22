@@ -15,9 +15,9 @@ body_format: markdown
 created_at: "2026-05-21T18:18:47Z"
 updated_at: "2026-05-21T18:18:47Z"
 source_refs:
-- pyproject.toml
-- tests/test_release_packaging.py
-- docs/index.rst
+  - pyproject.toml
+  - tests/test_release_packaging.py
+  - docs/index.rst
 ---
 
 The runtime entry point is the console script `archledger = "archledger.launcher:main"`, installed via package metadata and executed in local/CI environments.

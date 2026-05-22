@@ -2,52 +2,52 @@
   "created_at": "2026-05-21T16:00:26Z",
   "directories": {
     ".": {
-      "file_count": 104,
-      "sha256": "9625c1b38ab1e55976673930c0cbbec6d2addd8136f019e5302f52996df5c495"
+      "file_count": 109,
+      "sha256": "44d46f466cb705c2478c4b148b9f41bd222c01a9f3890a4a30cf920eaf850996"
     },
     "archledger": {
-      "file_count": 68,
-      "sha256": "507ee992ff32b12b46cf0028ec36902a898b7138067af3c961b26b857857c094"
+      "file_count": 71,
+      "sha256": "52d6af25e1a4fd299ee24c693a788c126f855298e8f7b0d20aea3f4e089d9bfa"
     },
     "archledger/config": {
       "file_count": 4,
-      "sha256": "be47efdf873277d45833312ef7da224e96d03e087c06ffc71433302bade61afe"
+      "sha256": "4d56220897db96b0d9b7426ce47917ee316746c0a0170f642ee5db768f7564d8"
     },
     "archledger/storage": {
       "file_count": 7,
-      "sha256": "5b110c6aa72069528d6efc3b20b1b3c0a6955227bb552363d0e5008eb8166d40"
+      "sha256": "04af432161733b038964ff6c1ef31fef7d2e56368cafda9e904097b20a817665"
     },
     "archledger/templates": {
-      "file_count": 37,
-      "sha256": "ef0cc13e8563c53c774c46ce95efe4be4f07dc6934c87a4dfabdfc87982319ba"
+      "file_count": 39,
+      "sha256": "dac69ea809f74619fd0b0e598d710c806ce743c622c0bc60f1df4b03ef4350e1"
     },
     "archledger/templates/records": {
-      "file_count": 34,
-      "sha256": "e7885d874406039d2b122c630c698fb09b4e75dc50dd089621eac77449bc326d"
+      "file_count": 36,
+      "sha256": "06e0f43efd8c5d6c60897eac134bbc4e8bc2ed9badfd2e760712f5f632aa8dad"
     },
     "docs": {
       "file_count": 10,
-      "sha256": "74d02957ad80c7ad4cb92431f56185a889a6d745b5af50f7f13ac8826fe552b4"
+      "sha256": "0b299494b760c7288bc6567cf48ced54a65a3024f68bc4e72683ea9d205fe1fc"
     },
     "skills": {
       "file_count": 1,
-      "sha256": "2b285a1aaf85098543d6221a77c00d11e841d48a4656d8df3488d3302ecaf88a"
+      "sha256": "ff35c79c43d5e84963d3ba69e846a9cf7d52a92292c840219d329c89b2666813"
     },
     "skills/archledger": {
       "file_count": 1,
-      "sha256": "a2d421d6299098afe11cb5ea9abaa48350b81dc0f6175b517f17d8d0b4387991"
+      "sha256": "e7de20538b1bf1012f28b9c90094cc4a32262b03e917e4987c01ed2292e78049"
     },
     "tests": {
-      "file_count": 16,
-      "sha256": "7af7219bc55d9a5416666ace847a75db38b7ed4dec474c61117132f22faeefa2"
+      "file_count": 18,
+      "sha256": "fecc438eeaa2085720b0df7bf85cc1055e1c6d5e4f9c5e9b9acbff2bea31e6a0"
     }
   },
   "files": {
     ".archledger.toml": {
-      "sha256": "c58c2780b5322a040bf0507b60ba79eba5f26f8c548f83489306995c7bda1fce"
+      "sha256": "e99f816c263eb85b559e65158b35dce40c6ad9ecec73e15f1519899e2e01b58a"
     },
     ".codecrate.toml": {
-      "sha256": "f3330094d922e9be895a19d8733f9543936d710e1f65dc52617ec4ec38019e4d"
+      "sha256": "98a874b313ad3920b213cd56540c625a480c46b7a3d99b5cfd948f4bea35b2e1"
     },
     ".pre-commit-config.yaml": {
       "sha256": "f62c5fe9146a9e7f992c5af12f5f02010bc1896d9a5426c02d6829547b016dc9"
@@ -59,25 +59,25 @@
       "sha256": "a2772615e41d74ec62417cea55b13a2b371822b0ce7f02552198f33822f184b1"
     },
     ".taskledger.toml": {
-      "sha256": "c4a8a5b595828a9a2fd370d045d79cd0b0cde6d2f845c75ae43372f55b2ac3f7"
+      "sha256": "1a494e85e8c2db4794f8bbc9a9ec84d2c3aa3bb2c72f7c02bd978d56aac9140e"
     },
     "CHANGELOG.md": {
       "sha256": "d20f1aa9e9121ec0cb2b1efdb96f2fa95621d759e2752b40febfe0e61628556f"
     },
     "README.md": {
-      "sha256": "ef022010c4a56fba9f561d6bd980e59dcc07626a0a19dc5c2673b310b41ca51f"
+      "sha256": "1a1979e77efacbb84986b1e7e81538936aad79d584603fcd538257725f029279"
     },
     "archledger/__init__.py": {
       "sha256": "c442496577c6ee3d7260f799fa229c81f0b3fa94eb372fbd88797cc37f8de242"
     },
     "archledger/assembly.py": {
-      "sha256": "099fcb0957b3fb6bb6d984898daedade8e15743ed72de54ad5c5366f84da28ef"
+      "sha256": "c794856bea732b6e4bc62be9823b4682732290fc8bd2b30b970acd8b66cf4353"
     },
     "archledger/checks.py": {
-      "sha256": "ba0955f4ae4934e4db35b1c86cbe9d17aebb6c632c504cdd2cfba719951f936d"
+      "sha256": "c8c73a6f9fe5548ba8d433f1ef4be14237dfe5aa45b116b6588e9ce01432b745"
     },
     "archledger/cli.py": {
-      "sha256": "a36541220adb9517fd615c353ed3497d719e6e223023c241e91cb4555848c3d6"
+      "sha256": "d8adee7806646653a74d918ba463eb392d861775b8ee0134110831b9e730e3fd"
     },
     "archledger/cli_formatting.py": {
       "sha256": "824201d93cf6c8087ec731b459bfe5b7153889bbe082801c2cd8b33cee5c0e89"
@@ -86,22 +86,25 @@
       "sha256": "52be58445e67031a69c803a6d461c17f48cb7eaabedbb206dd7f02dedddaa576"
     },
     "archledger/config/__init__.py": {
-      "sha256": "57eb87538671fb62f424e081cef49d30541fefbaa5038c1091bc7974dcd98cde"
+      "sha256": "b2a09eaa8d8c85d0ffac836f5bdf7ae23b1db32e5b078b7d78dc08c39ad63274"
     },
     "archledger/config/model.py": {
-      "sha256": "ec06b4d28ad6e904fd0a6a8ec1a0837da1443d6e930f8fa4561d4d02cebefb1e"
+      "sha256": "d6817c4c6c7646fc7cbd07fd499997ea5c05502f49e6689f22cafeee5e7be8a3"
     },
     "archledger/config/parse.py": {
-      "sha256": "0fd532a3ee3498cf234462b2f059c81cb7ae84aca18fbf73e6cacd554a1aafe9"
+      "sha256": "489985c417dd3c768dc1f6fad1d524ebe1a714f9a1bbffcfc8257cf2413167a9"
     },
     "archledger/config/render.py": {
-      "sha256": "b1841b272a08db338c70d15a0c2841ee70f6c1615011f9a751243e4f864e60be"
+      "sha256": "4a092eb405b51619ff278c71a4cf7fcf20b094f3271eea07bd855f2422952152"
     },
     "archledger/conversion_plan.py": {
-      "sha256": "98e017e85a941d1fbc5314544a0501f20bbe3f59617a13ca5d2aa8fdb2e62050"
+      "sha256": "78049c93c08d8f125c984ea37d98a64be4dbe6faf1bd998d772a539bdfccea53"
     },
     "archledger/converters.py": {
-      "sha256": "7ed11f37bf83d4f0bd82142c06edfc5834ecd4bfb2e80e4a4e6dd7a791c35d73"
+      "sha256": "dcf30c001c7cfa94250042d17af7949a19f8e2df5f410831f09b99e9bfca5701"
+    },
+    "archledger/diagrams.py": {
+      "sha256": "012156fc6afc4d8f42c28fc0a82e3d0a51342a56109f9fee8113e0581ff68965"
     },
     "archledger/dialects.py": {
       "sha256": "4c0e530de7ac5bc0333cd9cb3239a5f377e66db4185e5c80ead8877ca00d0a77"
@@ -122,7 +125,7 @@
       "sha256": "d7123bf65b5f87b0528b992c082fecb5ac51d15e103a1e4471345831441e860d"
     },
     "archledger/record_types.py": {
-      "sha256": "eadcb0411a30cda9fdee32053afb12434b4dbb5f3cc0f17353a76c7c76421a5d"
+      "sha256": "ef41d0dbda1beff6c5a3ca8cf9bd9ee037ef3fb759ee409ff4a459d235939b1a"
     },
     "archledger/render.py": {
       "sha256": "da556c55b0a540f57ff1c809f8e96f36e0c38bc1b48d426d736f96b9d485e74e"
@@ -131,7 +134,7 @@
       "sha256": "5c81bf66509277fcdc524a428d8b961b9e5c099abb1062ddfbd18a3f1f68b6fe"
     },
     "archledger/section_rendering.py": {
-      "sha256": "79a9866e2bf6516a6ee8b7b52a9cf67c3804d5febcb5b7cccc67b08222ca914e"
+      "sha256": "215ceb71a69c5e22ee857c1f9510c38840380262568dcb66202eb98c65596594"
     },
     "archledger/source_refs.py": {
       "sha256": "8eb314aa2ba7bd11b7c5f30fa019e283c771b23ffb950244c1a10a8fb9e1e10d"
@@ -152,10 +155,10 @@
       "sha256": "7866ac0f08ef712ab099751b988ffc2b67e179c71a98a913151aa2daff0cf798"
     },
     "archledger/storage/paths.py": {
-      "sha256": "2941a618122e68697744e8e3e6dd4acf401a3136b891e8d328aed50ff62b6f40"
+      "sha256": "c199cc878dbf68c6f5b5cd142c58cc912b9281dd881262b583effacba16328b2"
     },
     "archledger/storage/project_config.py": {
-      "sha256": "5ce6ae3bd2d31922f2163ab16d29d6c0cca8729b16a12d814d1b74ea62c54f66"
+      "sha256": "2347fa060b465c7de5f8d56b0cbed87008b20828ee284250e173aebe27c9d8f9"
     },
     "archledger/storage/source_state.py": {
       "sha256": "dbb85930ad3db486a0d7ee7af5c3ab1361790f23dac008ce05af6833d979ee81"
@@ -164,10 +167,10 @@
       "sha256": "490c376c2f3e8acde50ae80326748d8fa974f34ab3774269bc24088838fbb917"
     },
     "archledger/templates/arc42_document.adoc.j2": {
-      "sha256": "17ad5e923742546cc4c898018644c8192e9eb37c7c353018b01587d7c67d8222"
+      "sha256": "e4bcaa39b36fa302eb412d7b621f6cabf49fc43a78671c3d62bf5396049072fc"
     },
     "archledger/templates/arc42_document.md.j2": {
-      "sha256": "a0ddc7d579800a97e5f191d2cfe53214aec2a94648f70fc49de15f26ab0dd546"
+      "sha256": "de3dec2125c7574610fb9dac1e6349a82bdb0e3fa2a746942963cb85907a0473"
     },
     "archledger/templates/records/adr.adoc.j2": {
       "sha256": "3e97be4b38d55b1630b8d0048795db8652473e4941a51d34a19a3feb1e6a04c0"
@@ -198,6 +201,12 @@
     },
     "archledger/templates/records/context_interface.md.j2": {
       "sha256": "e5291535617a19bc8394f2d010eb2045684941dc314e29d1fbc4682a8ddc4305"
+    },
+    "archledger/templates/records/diagram.adoc.j2": {
+      "sha256": "5900351266974c0a611000c8cdbb3018c234271b7a6d08dce16f85c17fd8f7e5"
+    },
+    "archledger/templates/records/diagram.md.j2": {
+      "sha256": "138b864a938619b4f1b8acad371458e5575f8c5109fbc86ae3167c708677b75e"
     },
     "archledger/templates/records/glossary_term.adoc.j2": {
       "sha256": "f9da78e6c3f63ef053be43710ea50333aca1b32109a11c9da40c1892227b13e3"
@@ -278,10 +287,10 @@
       "sha256": "01ab36282bb4d887526f2d583cd607c6465cf69adfcbb4b56f932a33f99c30cc"
     },
     "docs/build-and-export.rst": {
-      "sha256": "cf3531daaa45bf15dc30848cf02f60cd70d5de2d9de103a405e3cde462e1dba5"
+      "sha256": "dc1b9e4274ab1b6ecc02b72c0123c6ab2dba8ac144fe6eb7d905e1d31e8837db"
     },
     "docs/cli.rst": {
-      "sha256": "3214476a172e60fe4a9e1fb0e1062f0b2503f6b7dcc43b93e210e5ffce1f1deb"
+      "sha256": "1e6e70887a448101d474a05da3efcaa74153c5e12c8a25d2a3ec579f25d68e6f"
     },
     "docs/conf.py": {
       "sha256": "321928ab9da5a0d993741a081d09595be7c0bdfd3dd50259a33db17965e4ae05"
@@ -296,7 +305,7 @@
       "sha256": "18253c5166704b2fb98e7d26050e48a9417d0af2372cb321bc95530341a7be06"
     },
     "docs/source-model.rst": {
-      "sha256": "5b33498ec99dd895b714afd9babe07e6277b746b1b8f6a952e009ba9ff29c1c7"
+      "sha256": "9b59becbcb2a01943ac6c918f0807b08410bb9cd94f364b77c69e57d2a95aee6"
     },
     "docs/source-tracking.rst": {
       "sha256": "947a12a99c93654d06c22e2c5487e760b0acd987c3fabdf6e31d292987a4d673"
@@ -305,19 +314,22 @@
       "sha256": "88531fde6d067a68aaec4a15d06125075ab17f0424044c1ac337eea399782eed"
     },
     "skills/archledger/SKILL.md": {
-      "sha256": "510185645e230c913e60e626b99b55481f2dbc8487ac2602293e129a3f33db9a"
+      "sha256": "bd117b22007390550e898a747e0e45d0d35a1014122808aa35fcb49cfed607e6"
     },
     "tests/__init__.py": {
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     "tests/test_build.py": {
-      "sha256": "df0f35c820ae61f5f30214029505643fbd972586b1157d13cb0efc5e7568d4bd"
+      "sha256": "d8959f0061d50c3ada8211cf5a701ed7b22064bf07a449bde2ade7a215cb9d17"
     },
     "tests/test_build_formats.py": {
-      "sha256": "a92614a22de2c41e8ce9fb3a6e482d5cc1da872ccdb9b1ebbd2510dbe09d304d"
+      "sha256": "905cec812c729b8e586a884a416bac43635fc8476dd39ce53f800abc07c416db"
     },
     "tests/test_converter_integration.py": {
       "sha256": "af5ae95ecd2bad22c2d26a30e488297e82ae742e7ce78fee50142c0e3469ec7b"
+    },
+    "tests/test_diagrams.py": {
+      "sha256": "001052628bca877c4ce18fac42eea61533c33e79838801a646d6aee793c1d18e"
     },
     "tests/test_frontmatter.py": {
       "sha256": "2e9ddd419560ab614ca011c3ec565881cd1012b0c36282586ff4839e90f961ff"
@@ -329,7 +341,7 @@
       "sha256": "da1ce2f70c49a93e53d791c23d06e26553fc42c2454795efb0c83e1b4e1aceba"
     },
     "tests/test_paths.py": {
-      "sha256": "1e1459dbe86cbbc492da73c7eea1abeb0b0bdec96062689368f9795099e1acff"
+      "sha256": "e1375b50ac3ac9f7dfcf51dda21283303705657b93895818fd7c01f71d7eb509"
     },
     "tests/test_read_cli.py": {
       "sha256": "0311dffce8428665fd59da559e3fbd80324ca8da96da41dbc7ac9a2b7c225dab"
@@ -338,7 +350,10 @@
       "sha256": "83ee06433f5e88e019ed21c3cc1ee5ae26a5ce2304a98a459118c7af8faedc28"
     },
     "tests/test_repository_cli.py": {
-      "sha256": "ac3c95fbf75b01e0597bb3aec2e9f1b23c49a7bc7efda58bb5b80687fe21fcce"
+      "sha256": "096da3fd5bab04b5a16f33ed0d45c3ec144f1c19d9d604c93e3a8ac4cf26064e"
+    },
+    "tests/test_section_rendering.py": {
+      "sha256": "365e2195589503573e97e7794849d66c8ee5ecf0ac3b1c27f091db5af7e7bfe5"
     },
     "tests/test_skill_file.py": {
       "sha256": "cbba11f6cc97159a1ccb061cc4d45c5aa7d6b6be0b1fb26c031d52b4b0e2f2d2"
@@ -353,12 +368,12 @@
       "sha256": "8da3df70168bd7d8c1c51b9302dc042fe4648dbc1f17f3a4724bc3cb8b113dff"
     },
     "tests/test_templates.py": {
-      "sha256": "418b4398d8ff5c0723d1c7f1ab1ebd1d0494ca355e3a7d3afa9a024f47f13239"
+      "sha256": "4e68d8fbb4e9aa37f7b7869ad4a9d045d6eda2cb0cbdc917c71d10778616ead2"
     }
   },
   "project_name": "archledger",
   "project_uuid": "6bddbb56-b273-4aae-9860-bfa4de93f115",
-  "reason": "after-archledger-update",
+  "reason": "added 5 mermaid diagram records for context, building blocks, runtime, deployment, and source tracking",
   "scanner": {
     "exclude": [
       ".git/**",
@@ -376,7 +391,6 @@
       "**/*.py",
       "**/*.toml",
       "**/*.md",
-      "**/*.adoc",
       "**/*.rst",
       "**/*.j2",
       "**/*.yaml",
@@ -388,5 +402,5 @@
     "used": "git"
   },
   "schema": "archledger.source-state.v2",
-  "updated_at": "2026-05-21T16:05:22Z"
+  "updated_at": "2026-05-21T19:38:35Z"
 }

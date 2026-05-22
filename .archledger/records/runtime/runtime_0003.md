@@ -15,8 +15,8 @@ participants:
 trigger: "User invokes `archledger init` in a project directory"
 result: "Config file created, directory scaffold initialized with 12 section files and 15 record subdirectories."
 source_refs:
-- archledger/cli.py
-- tests/test_repository_cli.py
+  - archledger/cli.py
+  - tests/test_repository_cli.py
 ---
 
 1. CLI checks that `archledger.toml` does not already exist.

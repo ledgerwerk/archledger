@@ -144,7 +144,9 @@ def section_diagrams(
         return ""
     lines: list[str] = []
     for record in diagrams:
-        caption = str(record.metadata.get("caption", record.title)).strip() or record.title
+        caption = (
+            str(record.metadata.get("caption", record.title)).strip() or record.title
+        )
         lines.extend(
             [
                 dialect.heading(dialect.record_heading_level, record.title),

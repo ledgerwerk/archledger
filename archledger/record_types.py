@@ -351,7 +351,5 @@ RECORD_TYPE_TO_TEMPLATE = {
     kind: f"{spec.template_basename}.md.j2" for kind, spec in RECORD_TYPES.items()
 }
 CLI_KIND_ALIASES = {
-    alias: spec.kind
-    for spec in RECORD_TYPE_SPECS
-    for alias in spec.aliases
+    alias: spec.kind for spec in RECORD_TYPE_SPECS for alias in spec.aliases
 }

@@ -18,8 +18,8 @@ body_format: markdown
 created_at: "2026-05-21T18:18:54Z"
 updated_at: "2026-05-21T18:18:54Z"
 source_refs:
-- tests/test_build.py
-- tests/test_source_tracking.py
+  - tests/test_build.py
+  - tests/test_source_tracking.py
 ---
 
 Missing converters fail clearly and point to installation guidance.

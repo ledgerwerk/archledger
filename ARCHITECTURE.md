@@ -1,7 +1,7 @@
 ---
 title: "archledger Architecture Documentation"
 date: "1980-01-01"
-generator: "archledger 0.1.dev16+g27f6f5afb.d19800101"
+generator: "archledger 0.1.dev17+gab9b1ef7e.d19800101"
 arc42_template_version: "9.0-EN"
 ---
 
@@ -31,34 +31,34 @@ Detailed agent guidance lives in `docs/agent-workflow.rst`.
 
 ## Requirements Overview
 
-| Title | Priority | Source | Stakeholders | Quality goals |
-| --- | --- | --- | --- | --- |
-| Project initialization creates archledger workspace structure | must | archledger CLI behavior and repository implementation |  |  |
-| File-based source model uses editable records | must | archledger CLI behavior and repository implementation |  |  |
-| Record creation enforces schema and unique ids | must | archledger CLI behavior and repository implementation |  |  |
-| Read current architecture model without export | must | archledger CLI behavior and repository implementation |  |  |
-| Native build requires no external converter tools | must | archledger CLI behavior and repository implementation |  |  |
-| Multi-format export supports configured converter tools | must | archledger CLI behavior and repository implementation |  |  |
-| Source tracking reports changes impacts and unlinked files | must | archledger CLI behavior and repository implementation |  |  |
-| Path safety prevents writes outside allowed roots | must | archledger CLI behavior and repository implementation |  |  |
-| CLI provides stable machine-readable JSON output | must | archledger CLI behavior and repository implementation |  |  |
-| Local-first operation requires no network services | must | archledger CLI behavior and repository implementation |  |  |
+| Title                                                         | Priority | Source                                                | Stakeholders | Quality goals |
+| ------------------------------------------------------------- | -------- | ----------------------------------------------------- | ------------ | ------------- |
+| Project initialization creates archledger workspace structure | must     | archledger CLI behavior and repository implementation |              |               |
+| File-based source model uses editable records                 | must     | archledger CLI behavior and repository implementation |              |               |
+| Record creation enforces schema and unique ids                | must     | archledger CLI behavior and repository implementation |              |               |
+| Read current architecture model without export                | must     | archledger CLI behavior and repository implementation |              |               |
+| Native build requires no external converter tools             | must     | archledger CLI behavior and repository implementation |              |               |
+| Multi-format export supports configured converter tools       | must     | archledger CLI behavior and repository implementation |              |               |
+| Source tracking reports changes impacts and unlinked files    | must     | archledger CLI behavior and repository implementation |              |               |
+| Path safety prevents writes outside allowed roots             | must     | archledger CLI behavior and repository implementation |              |               |
+| CLI provides stable machine-readable JSON output              | must     | archledger CLI behavior and repository implementation |              |               |
+| Local-first operation requires no network services            | must     | archledger CLI behavior and repository implementation |              |               |
 
 ## Quality Goals
 
-| Title | Priority | Scenario |
-| --- | --- | --- |
-| Maintainability | 1 | A developer can add a new record type with template, model mapping, and CLI alias in under 30 minutes, touching at most three files. |
-| Reproducibility | 1 | Given the same set of accepted records, archledger build produces byte-identical output regardless of the host machine or locale. |
-| Traceability | 1 | Every architecture record links to source evidence (file paths, CLI commands, test names) so that a reviewer can trace any documented decision back to code within two clicks. |
+| Title           | Priority | Scenario                                                                                                                                                                       |
+| --------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Maintainability | 1        | A developer can add a new record type with template, model mapping, and CLI alias in under 30 minutes, touching at most three files.                                           |
+| Reproducibility | 1        | Given the same set of accepted records, archledger build produces byte-identical output regardless of the host machine or locale.                                              |
+| Traceability    | 1        | Every architecture record links to source evidence (file paths, CLI commands, test names) so that a reviewer can trace any documented decision back to code within two clicks. |
 
 ## Stakeholders
 
-| Title | Contact | Expectations |
-| --- | --- | --- |
-| Coding Agent | None | JSON CLI output for machine parsing, Deterministic builds for CI pipelines, Seed preset for quick bootstrap, Skill file (SKILL.md) for agent protocol |
-| Developer | None | Simple installation via pip, Clear CLI commands for init, new, check, build, Human-readable Markdown records easy to edit in any text editor |
-| Architect | None | Structured arc42 sections with deterministic ordering, ADR records with Context/Decision/Consequences validation, Quality scenarios with measurable response measures, Cross-references between building blocks, ADRs, risks, and glossary terms |
+| Title        | Contact | Expectations                                                                                                                                                                                                                                     |
+| ------------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Coding Agent | None    | JSON CLI output for machine parsing, Deterministic builds for CI pipelines, Seed preset for quick bootstrap, Skill file (SKILL.md) for agent protocol                                                                                            |
+| Developer    | None    | Simple installation via pip, Clear CLI commands for init, new, check, build, Human-readable Markdown records easy to edit in any text editor                                                                                                     |
+| Architect    | None    | Structured arc42 sections with deterministic ordering, ADR records with Context/Decision/Consequences validation, Quality scenarios with measurable response measures, Cross-references between building blocks, ADRs, risks, and glossary terms |
 
 # Architecture Constraints
 
@@ -84,35 +84,44 @@ archledger operates under several technical constraints that shape its architect
 
 archledger interacts with three external partners: the source repository (reads config and records, writes build output), coding agents (CLI invocations with JSON output), and CI pipelines (exit codes and build artifacts). Optional external converters (pandoc, asciidoctor, asciidoctor-pdf) are invoked as subprocesses for multi-format exports. All communication is local filesystem access, process I/O, or subprocess invocation.
 
-System context (portable text diagram):
+See the [System Context diagram](#diagram-diagram_0001) for a visual overview of actors and system boundaries.
 
-```text
-+----------------------+      CLI/JSON       +--------------------+
-| Developer / Agent /  | ------------------> | archledger CLI     |
-| CI Runner            |                     | (Typer entrypoint) |
-+----------------------+                     +---------+----------+
-                                                    |
-                                                    | read/write files
-                                                    v
-                                         +----------+-----------+
-                                         | Project workspace    |
-                                         | + .archledger state  |
-                                         | + source code/docs   |
-                                         +----------+-----------+
-                                                    |
-                                                    | generated artifacts
-                                                    v
-                                         +----------+-----------+
-                                         | ARCHITECTURE.md /    |
-                                         | optional exports     |
-                                         +----------+-----------+
-                                                    |
-                                                    | optional subprocess tools
-                                                    v
-                                         +----------------------+
-                                         | pandoc / asciidoctor |
-                                         +----------------------+
+## System Context
+
+archledger operates as a local CLI tool. External actors interact through shell invocations. Optional converter tools (pandoc, asciidoctor) are invoked as subprocesses for non-native export formats.
+
+```mermaid
+graph TB
+    Developer["fa:fa-user Developer"]
+    Agent["fa:fa-robot Coding Agent"]
+    CI["fa:fa-server CI Pipeline"]
+
+    CLI["archledger CLI\n(Typer entrypoint)"]
+
+    Workspace["Project Workspace\n.archledger/ records/"]
+    Output["Build Output\nARCHITECTURE.md / exports"]
+
+    Pandoc["pandoc\n(optional)"]
+    Asciidoctor["asciidoctor / asciidoctor-pdf\n(optional)"]
+
+    Developer -->|"CLI invocation"| CLI
+    Agent -->|"CLI --json"| CLI
+    CI -->|"exit codes + artifacts"| CLI
+
+    CLI -->|"read config & records"| Workspace
+    CLI -->|"write assembled doc"| Output
+
+    CLI -->|"subprocess"| Pandoc
+    CLI -->|"subprocess"| Asciidoctor
+
+    style CLI fill:#4a9eff,color:#fff
+    style Workspace fill:#e8f4fd
+    style Output fill:#e8f4fd
+    style Pandoc fill:#f0f0f0,stroke-dasharray: 5 5
+    style Asciidoctor fill:#f0f0f0,stroke-dasharray: 5 5
 ```
+
+**Caption:** archledger system context showing external actors and adjacent systems
 
 ## Business Context
 
@@ -134,25 +143,7 @@ The fundamental approach is a file-based pipeline: human-editable Markdown or As
 
 A source tracking subsystem (`source snapshot`/`source changed`) allows agents to detect which source files changed since the last baseline and which architecture records are impacted via `source_refs` linkage.
 
-Build pipeline (portable text diagram):
-
-```text
-config discovery
-      |
-      v
-load sections + records
-      |
-      v
-validate/check rules
-      |
-      v
-assemble native arc42 document
-      |
-      +--> optional converter execution (pandoc/asciidoctor)
-      |
-      v
-write output artifact(s)
-```
+The build pipeline is visualized in the [Build Pipeline Flow diagram](#diagram-diagram_0003) in the runtime view.
 
 ## Strategy Items
 
@@ -175,12 +166,86 @@ The core approach is a four-stage pipeline: author (create/edit Markdown or Asci
 
 The system is decomposed into fifteen black boxes within a single white box. The CLI Layer receives user input and delegates output formatting, the Config Layer parses and renders project configuration, the Repository Layer orchestrates business logic, the Model Layer defines core data structures and validation, the Record Type Registry maps record types to templates and defaults, the Check Layer validates record content per type, the Source Ref Validation layer normalizes traceability links, the Storage Layer handles file I/O, the Assembly Layer renders the document via Jinja2 templates, the Dialect Layer abstracts format-specific markup, the Section Rendering Layer handles per-record-type output, the Render Layer orchestrates the build pipeline, the Converter Layer handles multi-format export, the Source Tracking Layer detects changes and impacts, and the Migration Layer converts between source dialects.
 
-Pipeline ownership by building block:
+See the [Building Block Layer Structure diagram](#diagram-diagram_0002) for a visual decomposition showing the layer relationships.
 
-```text
-Config/Storage layers -> Repository + Check layers -> Assembly + Section Rendering
--> (optional) Converter layer -> output artifact(s)
+## Building Block Layer Structure
+
+The system is organized as a layered pipeline. User input flows down from the CLI through business logic to storage. Rendering flows upward from storage through assembly to the build output.
+
+```mermaid
+graph TB
+    subgraph "Interface Layer"
+        CLI["CLI Layer\ncli.py, cli_formatting.py,\ncli_payloads.py, launcher.py"]
+    end
+
+    subgraph "Business Logic Layer"
+        Repo["Repository Layer\nrepository.py"]
+        Model["Model Layer\nmodel.py, errors.py"]
+        Registry["Record Type Registry\nrecord_types.py"]
+        Checks["Check Layer\nchecks.py"]
+        SrcRefs["Source Ref Validation\nsource_refs.py"]
+    end
+
+    subgraph "Configuration Layer"
+        Config["Config Layer\nconfig/"]
+    end
+
+    subgraph "Rendering Layer"
+        Render["Render Layer\nrender.py"]
+        Assembly["Assembly Layer\nassembly.py"]
+        Dialect["Dialect Layer\ndialects.py"]
+        SectionR["Section Rendering Layer\nsection_rendering.py"]
+    end
+
+    subgraph "Export Layer"
+        Converter["Converter Layer\nconverters.py,\nconversion_plan.py, formats.py"]
+        Migration["Migration Layer\nmigration.py"]
+    end
+
+    subgraph "Infrastructure Layer"
+        Storage["Storage Layer\nstorage/"]
+        Tracking["Source Tracking Layer\nsource_tracking.py,\nstorage/source_state.py"]
+    end
+
+    CLI --> Repo
+    CLI --> Config
+    Repo --> Model
+    Repo --> Registry
+    Repo --> Checks
+    Repo --> SrcRefs
+    Repo --> Storage
+
+    Render --> Assembly
+    Assembly --> Dialect
+    Assembly --> SectionR
+    Assembly --> Storage
+
+    Render --> Converter
+    Converter --> Storage
+
+    CLI --> Tracking
+    Tracking --> Storage
+
+    Config --> Storage
+
+    style CLI fill:#4a9eff,color:#fff
+    style Repo fill:#6c5ce7,color:#fff
+    style Model fill:#6c5ce7,color:#fff
+    style Registry fill:#6c5ce7,color:#fff
+    style Checks fill:#6c5ce7,color:#fff
+    style SrcRefs fill:#6c5ce7,color:#fff
+    style Config fill:#fdcb6e
+    style Render fill:#00b894,color:#fff
+    style Assembly fill:#00b894,color:#fff
+    style Dialect fill:#00b894,color:#fff
+    style SectionR fill:#00b894,color:#fff
+    style Converter fill:#e17055,color:#fff
+    style Migration fill:#e17055,color:#fff
+    style Storage fill:#dfe6e9
+    style Tracking fill:#dfe6e9
 ```
+
+**Caption:** Layered decomposition of archledger into fifteen black boxes
 
 ## Whitebox Overall System
 
@@ -312,7 +377,7 @@ The migration module converts source fragments from one dialect to another. Curr
 
 **Parent:** white_box_0001
 **Interfaces:** load_project_config(), render_default_config(), ProjectConfig dataclass
-**Location:** archledger/config/__init__.py, archledger/config/model.py, archledger/config/parse.py, archledger/config/render.py
+**Location:** archledger/config/**init**.py, archledger/config/model.py, archledger/config/parse.py, archledger/config/render.py
 
 The `config` subpackage owns all project configuration concerns. `config/model.py` defines frozen dataclasses for each configuration domain: `SourceConfig`, `BuildConfig` (with nested `BuildOutputConfig`), `Arc42Config`, `SkillConfig`, `TrackingConfig`, and the unified `ProjectConfig` facade that composes them via properties. `config/parse.py` loads and validates `archledger.toml` using `tomllib` (or `tomli` for Python < 3.11), with strict key validation and environment variable expansion. `config/render.py` generates default configuration files for `archledger init`. The subpackage re-exports key types from `__init__.py`.
 
@@ -343,6 +408,67 @@ The `source_refs.py` module handles validation and normalization of source trace
 # Runtime View
 
 Key runtime scenarios: initializing a new project (scaffolding directories and section files), creating and rendering records (the primary authoring flow), validating records with check (ensuring consistency and completeness), building multi-format output (assembly plus optional conversion), taking source snapshots and detecting changes (source tracking), and converting source dialects (Markdown to AsciiDoc migration).
+
+See the [Build Pipeline Flow diagram](#diagram-diagram_0003) for a visual overview of the four-stage pipeline.
+
+## Build Pipeline Flow
+
+The build pipeline processes architecture records through four stages. Native Markdown and AsciiDoc builds require no external tools. Non-native exports delegate to pandoc or asciidoctor.
+
+```mermaid
+flowchart LR
+    subgraph "1. Author"
+        A1["Create / edit\nrecord files"]
+    end
+
+    subgraph "2. Validate"
+        V1["Parse front matter"]
+        V2["Check schema"]
+        V3["Check cross-refs"]
+        V4["Type-specific checks"]
+        V1 --> V2 --> V3 --> V4
+    end
+
+    subgraph "3. Assemble"
+        R1["Load records & sections"]
+        R2["Resolve dialect"]
+        R3["Render Jinja2 template"]
+        R4["Write native document"]
+        R1 --> R2 --> R3 --> R4
+    end
+
+    subgraph "4. Export"
+        E1["Plan conversion"]
+        E2{"Native format?"}
+        E3["Copy file"]
+        E4["Invoke pandoc / asciidoctor"]
+        E5["Report results"]
+        E1 --> E2
+        E2 -->|yes| E3 --> E5
+        E2 -->|no| E4 --> E5
+    end
+
+    A1 -->|"archledger new"| V1
+    V4 -->|"archledger check"| R1
+    R4 -->|"archledger build"| E1
+
+    style A1 fill:#4a9eff,color:#fff
+    style V1 fill:#6c5ce7,color:#fff
+    style V2 fill:#6c5ce7,color:#fff
+    style V3 fill:#6c5ce7,color:#fff
+    style V4 fill:#6c5ce7,color:#fff
+    style R1 fill:#00b894,color:#fff
+    style R2 fill:#00b894,color:#fff
+    style R3 fill:#00b894,color:#fff
+    style R4 fill:#00b894,color:#fff
+    style E1 fill:#e17055,color:#fff
+    style E2 fill:#e17055,color:#fff
+    style E3 fill:#e17055,color:#fff
+    style E4 fill:#e17055,color:#fff
+    style E5 fill:#e17055,color:#fff
+```
+
+**Caption:** The four-stage pipeline from authoring to export
 
 ## Create and render a new architecture record
 
@@ -403,6 +529,58 @@ Key runtime scenarios: initializing a new project (scaffolding directories and s
 
 archledger runs as a local CLI tool on developer machines and in CI runners. There is no server component. The storage directory can be co-located with the source repository or placed in an external path via configuration.
 
+See the [Deployment Topology diagram](#diagram-diagram_0004) for a visual overview of deployment nodes.
+
+## Deployment Topology
+
+archledger has no server component. It runs as a local CLI tool on developer machines and in CI runners. The storage directory is co-located with the source repository.
+
+```mermaid
+graph TB
+    subgraph "Developer Machine"
+        DevEnv["Python 3.10+\nvenv / system"]
+        DevCLI["archledger CLI\n(console script)"]
+        DevWorkspace["Project Workspace\n.archledger/ + source/"]
+        DevOutput["Build Output\nARCHITECTURE.md"]
+        DevConverters["Optional Tools\npandoc, asciidoctor"]
+
+        DevCLI --> DevWorkspace
+        DevCLI --> DevOutput
+        DevCLI -.->|"optional"| DevConverters
+    end
+
+    subgraph "CI Runner"
+        CIPython["Python 3.10+"]
+        CICLI["archledger CLI"]
+        CIWorkspace["Checkout\n.archledger/ + source/"]
+        CIArtifact["Build Artifacts"]
+
+        CICLI --> CIWorkspace
+        CICLI --> CIArtifact
+    end
+
+    subgraph "PyPI"
+        PyPI["archledger wheel"]
+    end
+
+    PyPI -->|"pip install"| DevEnv
+    PyPI -->|"pip install"| CIPython
+
+    DevEnv --> DevCLI
+    CIPython --> CICLI
+
+    DevWorkspace -->|"git push"| CIWorkspace
+    CIArtifact -->|"publish"| Docs["Docs Hosting"]
+
+    style DevCLI fill:#4a9eff,color:#fff
+    style CICLI fill:#4a9eff,color:#fff
+    style PyPI fill:#fdcb6e
+    style DevConverters fill:#f0f0f0,stroke-dasharray: 5 5
+    style Docs fill:#00b894,color:#fff
+```
+
+**Caption:** archledger deployment nodes and their relationships
+
 ## Local development
 
 Developer machine with Python >= 3.10. archledger is installed via `pip install -e .` in a virtual environment. The project directory contains `archledger.toml` at the root. The storage directory (default `.archledger/`) holds sections, records, and build output. No network access, database, or server process is required.
@@ -435,6 +613,50 @@ CI release validation runs unit tests, package build checks, version consistency
 
 Three cross-cutting concepts pervade the architecture: the record lifecycle (draft, proposed, accepted, deprecated, superseded) which controls visibility and validation behavior, the config discovery mechanism which resolves project paths from the workspace directory upward, and the dialect abstraction which ensures format-neutral rendering for both Markdown and AsciiDoc sources.
 
+A fourth cross-cutting concern is source tracking and change impact analysis, which is visualized in the [Source Tracking Flow diagram](#diagram-diagram_0005).
+
+## Source Tracking Flow
+
+Source tracking compares a saved baseline against the current workspace state. It uses SHA-256 file hashes and matches changed paths against record `source_refs` to report impacted architecture records.
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant CLI as archledger CLI
+    participant Tracking as Source Tracking
+    participant Storage as Storage Layer
+    participant Records as Architecture Records
+
+    User->>CLI: archledger source snapshot
+    CLI->>Storage: scan workspace files
+    Storage-->>Tracking: file list + SHA-256 hashes
+    Tracking->>Storage: persist source-state.json
+    Tracking-->>CLI: snapshot confirmed
+
+    Note over User,Records: Later, after code changes...
+
+    User->>CLI: archledger source changed
+    CLI->>Storage: load source-state.json
+    Storage-->>Tracking: baseline hashes
+    CLI->>Storage: scan workspace files
+    Storage-->>Tracking: current hashes
+    Tracking->>Tracking: diff baseline vs current
+    Note right of Tracking: added / modified / deleted\npossible renames
+    CLI->>Records: load all records with source_refs
+    Records-->>Tracking: source_refs per record
+    Tracking->>Tracking: match changed paths to refs
+    Note right of Tracking: impacted records\nimpacted sections\nunlinked changed files
+    Tracking-->>CLI: ChangeSet + impacts
+    CLI-->>User: JSON report
+
+    style CLI fill:#4a9eff,color:#fff
+    style Tracking fill:#6c5ce7,color:#fff
+    style Storage fill:#dfe6e9
+    style Records fill:#00b894,color:#fff
+```
+
+**Caption:** How source tracking detects changes and maps them to impacted records
+
 ## Record lifecycle and status
 
 Every record has a status field that controls its lifecycle: `draft` (incomplete, excluded from default builds), `proposed` (visible but not formally confirmed), `accepted` (confirmed, included by default), `deprecated` (visible but no longer preferred), and `superseded` (hidden unless explicitly included). The `check` command warns about draft records and empty sections. The `build` command only includes records with visible statuses by default; `--include-draft` and `--include-superseded` flags override this.
@@ -457,14 +679,13 @@ The source tracking subsystem allows agents to detect which workspace files chan
 
 Key architectural decisions: dual-source support (Markdown and AsciiDoc as first-class formats), Markdown/AsciiDoc records with YAML front matter as the storage format, Typer as the CLI framework, Jinja2 for document rendering, and optional external converters for multi-format export. Each decision was driven by the goals of maintainability, traceability, and reproducibility.
 
-
 ## Use Markdown/AsciiDoc records with YAML front matter
 
 **Status:** accepted
 **Date:** 2026-05-20
 **Deciders:** Holger
-**Supersedes:** 
-**Related:** 
+**Supersedes:**
+**Related:**
 
 ## Context
 
@@ -488,14 +709,13 @@ Negative: no referential integrity enforced at write time (only at check time). 
 - Structurizr DSL: requires Java tooling, not Markdown-first.
 - Markdown only: excludes AsciiDoc communities and their tooling ecosystem.
 
-
 ## Typer CLI over argparse or Click
 
 **Status:** accepted
 **Date:** 2026-05-20
 **Deciders:** Holger
-**Supersedes:** 
-**Related:** 
+**Supersedes:**
+**Related:**
 
 ## Context
 
@@ -517,14 +737,13 @@ Negative: Typer adds a dependency. Some advanced CLI patterns require working ar
 - Click: mature and flexible, but decorator-heavy and less type-annotated.
 - docopt: declarative but less structured for subcommands.
 
-
 ## Jinja2 for document rendering
 
 **Status:** accepted
 **Date:** 2026-05-20
 **Deciders:** Holger
-**Supersedes:** 
-**Related:** 
+**Supersedes:**
+**Related:**
 
 ## Context
 
@@ -546,14 +765,13 @@ Negative: complex rendering logic is split between the template and Python helpe
 - Mako: less common in this space, different syntax.
 - Static site generator (MkDocs, Sphinx): heavier dependency, not designed for single-document output.
 
-
 ## Use SHA-256-only source-state file entries plus directory hashes
 
 **Status:** accepted
 **Date:** 2026-05-21
 **Deciders:** archledger maintainers
-**Supersedes:** 
-**Related:** 
+**Supersedes:**
+**Related:**
 
 ## Context
 
@@ -571,14 +789,13 @@ Improves determinism and avoids unstable file-size/mtime dependence; requires co
 
 - Keep legacy behavior unchanged: rejected because it leaves release-critical ambiguity.
 
-
 ## Config v5 and source schema v2 are the release baseline
 
 **Status:** accepted
 **Date:** 2026-05-21
 **Deciders:** archledger maintainers
-**Supersedes:** 
-**Related:** 
+**Supersedes:**
+**Related:**
 
 ## Context
 
@@ -596,14 +813,13 @@ Strict checks are consistent; migration effort is required for older local recor
 
 - Keep legacy behavior unchanged: rejected because it leaves release-critical ambiguity.
 
-
 ## Native builds require no external tools
 
 **Status:** accepted
 **Date:** 2026-05-21
 **Deciders:** archledger maintainers
-**Supersedes:** 
-**Related:** 
+**Supersedes:**
+**Related:**
 
 ## Context
 
@@ -621,14 +837,13 @@ Improves portability; non-native formats remain optional.
 
 - Keep legacy behavior unchanged: rejected because it leaves release-critical ambiguity.
 
-
 ## Non-native exports delegate to pandoc or asciidoctor
 
 **Status:** accepted
 **Date:** 2026-05-21
 **Deciders:** archledger maintainers
-**Supersedes:** 
-**Related:** 
+**Supersedes:**
+**Related:**
 
 ## Context
 
@@ -646,14 +861,13 @@ Clear dependency errors are required when tools are missing.
 
 - Keep legacy behavior unchanged: rejected because it leaves release-critical ambiguity.
 
-
 ## Output path resolution remains bounded to configured roots
 
 **Status:** accepted
 **Date:** 2026-05-21
 **Deciders:** archledger maintainers
-**Supersedes:** 
-**Related:** 
+**Supersedes:**
+**Related:**
 
 ## Context
 
@@ -671,14 +885,13 @@ Safer defaults; invalid paths fail early with explicit diagnostics.
 
 - Keep legacy behavior unchanged: rejected because it leaves release-critical ambiguity.
 
-
 ## Source refs use relative POSIX paths without parent traversal
 
 **Status:** accepted
 **Date:** 2026-05-21
 **Deciders:** archledger maintainers
-**Supersedes:** 
-**Related:** 
+**Supersedes:**
+**Related:**
 
 ## Context
 
@@ -696,14 +909,13 @@ Traceability links stay portable and secure; invalid refs are rejected.
 
 - Keep legacy behavior unchanged: rejected because it leaves release-critical ambiguity.
 
-
 ## Storage counters are metadata and can be recomputed
 
 **Status:** accepted
 **Date:** 2026-05-21
 **Deciders:** archledger maintainers
-**Supersedes:** 
-**Related:** 
+**Supersedes:**
+**Related:**
 
 ## Context
 
@@ -727,27 +939,27 @@ The top quality scenarios address deterministic builds and agent-friendly CLI in
 
 ## Quality Requirements Overview
 
-| Title | Category | Measure | Scenarios |
-| --- | --- | --- | --- |
-| Deterministic native build output | reliability | Byte-identical output for equal accepted records and deterministic date source. | quality_scenario_0003, quality_scenario_0008 |
-| Fast check and build on small repositories | performance | check/build complete in under 5s on representative small repositories. | quality_scenario_0008 |
-| Safe path validation | safety | Path escape attempts are rejected with explicit errors. | quality_scenario_0006 |
-| Clear converter failure diagnostics | operability | Converter failures identify missing tool and installation hint. | quality_scenario_0004 |
-| JSON output stability | compatibility | JSON payload keys for stable commands remain backward compatible. | quality_scenario_0007 |
-| Source tracking correctness | correctness | Source tracking reports file and impact deltas accurately. | quality_scenario_0005 |
+| Title                                      | Category      | Measure                                                                         | Scenarios                                    |
+| ------------------------------------------ | ------------- | ------------------------------------------------------------------------------- | -------------------------------------------- |
+| Deterministic native build output          | reliability   | Byte-identical output for equal accepted records and deterministic date source. | quality_scenario_0003, quality_scenario_0008 |
+| Fast check and build on small repositories | performance   | check/build complete in under 5s on representative small repositories.          | quality_scenario_0008                        |
+| Safe path validation                       | safety        | Path escape attempts are rejected with explicit errors.                         | quality_scenario_0006                        |
+| Clear converter failure diagnostics        | operability   | Converter failures identify missing tool and installation hint.                 | quality_scenario_0004                        |
+| JSON output stability                      | compatibility | JSON payload keys for stable commands remain backward compatible.               | quality_scenario_0007                        |
+| Source tracking correctness                | correctness   | Source tracking reports file and impact deltas accurately.                      | quality_scenario_0005                        |
 
 ## Quality Scenarios
 
-| Title | Quality | Stimulus | Response measure |
-| --- | --- | --- | --- |
-| Build produces identical output for identical inputs | reliability | Runs archledger build twice on the same set of accepted records | Zero lines of diff between the two output files |
-| Agent can create and validate records via CLI | usability | Agent creates a new black-box record and validates it via check --json | Zero human interventions required; all operations complete via CLI invocations with exit code 0 |
-| Native build does not require converters | portability | User runs native markdown/asciidoc build on a clean Python environment. | Exit code 0 and no converter invocation. |
-| Missing converter fails clearly | operability | User requests PDF/DOCX without required converter installed. | Exit code non-zero with actionable diagnostic. |
-| Source tracking detects rename | traceability | A tracked file is renamed with unchanged contents. | `source changed --json` includes at least one rename candidate with source/target paths and confidence >= 0.5. |
-| Output path cannot escape build directory | safety | Config or CLI sets an escaping output path such as ../architecture.md. | Invalid escaping output path causes non-zero exit and an error mentioning root-bound path validation. |
-| Agent can read model without build | usability | Agent runs archledger read --json --body after source edits. | `archledger read --json --body` exits 0 and creates 0 build output files. |
-| Config v5 records validate strictly | maintainability | Repository records include schema_version/date/body_format in source schema v2. | archledger check --strict exits 0. |
+| Title                                                | Quality         | Stimulus                                                                        | Response measure                                                                                               |
+| ---------------------------------------------------- | --------------- | ------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Build produces identical output for identical inputs | reliability     | Runs archledger build twice on the same set of accepted records                 | Zero lines of diff between the two output files                                                                |
+| Agent can create and validate records via CLI        | usability       | Agent creates a new black-box record and validates it via check --json          | Zero human interventions required; all operations complete via CLI invocations with exit code 0                |
+| Native build does not require converters             | portability     | User runs native markdown/asciidoc build on a clean Python environment.         | Exit code 0 and no converter invocation.                                                                       |
+| Missing converter fails clearly                      | operability     | User requests PDF/DOCX without required converter installed.                    | Exit code non-zero with actionable diagnostic.                                                                 |
+| Source tracking detects rename                       | traceability    | A tracked file is renamed with unchanged contents.                              | `source changed --json` includes at least one rename candidate with source/target paths and confidence >= 0.5. |
+| Output path cannot escape build directory            | safety          | Config or CLI sets an escaping output path such as ../architecture.md.          | Invalid escaping output path causes non-zero exit and an error mentioning root-bound path validation.          |
+| Agent can read model without build                   | usability       | Agent runs archledger read --json --body after source edits.                    | `archledger read --json --body` exits 0 and creates 0 build output files.                                      |
+| Config v5 records validate strictly                  | maintainability | Repository records include schema_version/date/body_format in source schema v2. | archledger check --strict exits 0.                                                                             |
 
 # Risks and Technical Debt
 
@@ -755,22 +967,22 @@ Primary risks: documentation can drift from implementation (mitigated by source 
 
 ## Risk Overview
 
-| Title | Severity | Probability | Mitigation | Notes |
-| --- | --- | --- | --- | --- |
-| Documentation drifts from implementation | medium | medium | Run archledger check in CI to detect stale or placeholder records. Use source tracking (snapshot/changed) to detect impacted records. Encourage agents to update records when modifying code and to maintain source_refs on records. | Architecture records describe the system at a point in time. As the codebase evolves, records may become stale or inaccurate. The `check` command detects placeholder text and missing fields, but cannot detect semantic drift. The source tracking subsystem (`snapshot`/`changed`) with `source_refs` on records provides file-level change-to-record linkage, enabling agents to identify which documentation needs updating when code changes. |
-| Counter collisions on rapid record creation | medium | medium | Run archledger check --repair-counters to recompute counters from existing files. Always run repair-counters after counter anomalies. | The storage metadata file tracks next-number counters for each record type prefix. If the metadata becomes stale (e.g., after manual file operations or rapid concurrent creation), new records may receive colliding IDs or filenames. The `--repair-counters` flag on `check` recomputes counters from the actual files on disk. |
-| External converter tools unavailable in CI or developer environments | medium | low | Native builds (Markdown-to-Markdown, AsciiDoc-to-AsciiDoc) require no external tools. Non-native formats fail gracefully with clear install instructions. CI can pre-install pandoc and asciidoctor gems. | The converter layer depends on external tools (pandoc, asciidoctor, asciidoctor-pdf) for non-native output formats. These tools may not be available in all environments. When a tool is missing, the build fails with a clear error message and installation instructions. Native builds always work without external dependencies. |
+| Title                                                                | Severity | Probability | Mitigation                                                                                                                                                                                                                           | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| -------------------------------------------------------------------- | -------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Documentation drifts from implementation                             | medium   | medium      | Run archledger check in CI to detect stale or placeholder records. Use source tracking (snapshot/changed) to detect impacted records. Encourage agents to update records when modifying code and to maintain source_refs on records. | Architecture records describe the system at a point in time. As the codebase evolves, records may become stale or inaccurate. The `check` command detects placeholder text and missing fields, but cannot detect semantic drift. The source tracking subsystem (`snapshot`/`changed`) with `source_refs` on records provides file-level change-to-record linkage, enabling agents to identify which documentation needs updating when code changes. |
+| Counter collisions on rapid record creation                          | medium   | medium      | Run archledger check --repair-counters to recompute counters from existing files. Always run repair-counters after counter anomalies.                                                                                                | The storage metadata file tracks next-number counters for each record type prefix. If the metadata becomes stale (e.g., after manual file operations or rapid concurrent creation), new records may receive colliding IDs or filenames. The `--repair-counters` flag on `check` recomputes counters from the actual files on disk.                                                                                                                  |
+| External converter tools unavailable in CI or developer environments | medium   | low         | Native builds (Markdown-to-Markdown, AsciiDoc-to-AsciiDoc) require no external tools. Non-native formats fail gracefully with clear install instructions. CI can pre-install pandoc and asciidoctor gems.                            | The converter layer depends on external tools (pandoc, asciidoctor, asciidoctor-pdf) for non-native output formats. These tools may not be available in all environments. When a tool is missing, the build fails with a clear error message and installation instructions. Native builds always work without external dependencies.                                                                                                                |
 
 # Glossary
 
 Domain and technical terms used throughout the architecture documentation.
 
-| Term | Definition |
-| --- | --- |
-| Architecture Record | A Markdown or AsciiDoc file with YAML front matter that describes one architecture element: a requirement, stakeholder, quality goal, constraint, context interface, strategy item, building block, runtime scenario, infrastructure, concept, ADR, quality requirement, quality scenario, risk, or glossary term. |
-| arc42 | A template for architecture documentation created by Dr. Gernot Starke. It defines 12 sections: introduction and goals, constraints, context and scope, solution strategy, building block view, runtime view, deployment view, cross-cutting concepts, architecture decisions, quality requirements, risks and technical debt, and glossary. archledger follows this structure. |
-| Front Matter | The YAML block at the top of a Markdown record file, delimited by ---, containing machine-readable metadata fields. Parsed by archledger's frontmatter module to populate the ArchitectureRecord dataclass. |
-| Storage Directory | The directory (configured as archledger_dir in archledger.toml) that holds the sections/, records/, build/ subdirectories and storage.yaml metadata file. Can be relative to the project root or an absolute external path. |
-| Dialect | A source format abstraction that defines how to render markup elements (headings, tables, bullets, strong text). archledger provides MarkdownDialect and AsciiDocDialect. |
-| Source Ref | A traceability link from an architecture record to a source code artifact. Source refs have a path (relative to workspace root), optional symbols, and an optional reason. They enable change impact analysis. |
-| Source State | A persisted snapshot of all tracked workspace files with their SHA-256 hashes, sizes, and modification times. Used as the baseline for change detection. |
+| Term                | Definition                                                                                                                                                                                                                                                                                                                                                                      |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Architecture Record | A Markdown or AsciiDoc file with YAML front matter that describes one architecture element: a requirement, stakeholder, quality goal, constraint, context interface, strategy item, building block, runtime scenario, infrastructure, concept, ADR, quality requirement, quality scenario, risk, or glossary term.                                                              |
+| arc42               | A template for architecture documentation created by Dr. Gernot Starke. It defines 12 sections: introduction and goals, constraints, context and scope, solution strategy, building block view, runtime view, deployment view, cross-cutting concepts, architecture decisions, quality requirements, risks and technical debt, and glossary. archledger follows this structure. |
+| Front Matter        | The YAML block at the top of a Markdown record file, delimited by ---, containing machine-readable metadata fields. Parsed by archledger's frontmatter module to populate the ArchitectureRecord dataclass.                                                                                                                                                                     |
+| Storage Directory   | The directory (configured as archledger_dir in archledger.toml) that holds the sections/, records/, build/ subdirectories and storage.yaml metadata file. Can be relative to the project root or an absolute external path.                                                                                                                                                     |
+| Dialect             | A source format abstraction that defines how to render markup elements (headings, tables, bullets, strong text). archledger provides MarkdownDialect and AsciiDocDialect.                                                                                                                                                                                                       |
+| Source Ref          | A traceability link from an architecture record to a source code artifact. Source refs have a path (relative to workspace root), optional symbols, and an optional reason. They enable change impact analysis.                                                                                                                                                                  |
+| Source State        | A persisted snapshot of all tracked workspace files with their SHA-256 hashes, sizes, and modification times. Used as the baseline for change detection.                                                                                                                                                                                                                        |

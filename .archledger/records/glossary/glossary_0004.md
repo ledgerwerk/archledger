@@ -11,8 +11,8 @@ order: 40
 term: "Storage Directory"
 definition: "The directory (configured as archledger_dir in archledger.toml) that holds the sections/, records/, build/ subdirectories and storage.yaml metadata file. Can be relative to the project root or an absolute external path."
 source_refs:
-- README.md
-- docs/agent-workflow.rst
+  - README.md
+  - docs/agent-workflow.rst
 ---
 
 Describe this glossary term.

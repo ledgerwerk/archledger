@@ -1,6 +1,6 @@
 ---
 name: archledger
-description: Fill and maintain Markdown- or AsciiDoc-backed arc42 architecture documentation with YAML front matter, direct source reading, validation, and optional exports.
+description: Maintain source-first arc42 architecture documentation backed by Markdown or AsciiDoc records, YAML front matter, validation, drift tracking, and optional exports.
 license: Apache-2.0
 compatibility: opencode,codex,chatgpt
 metadata:
@@ -129,16 +129,16 @@ archledger new diagram "Deployment topology" --section deployment_view --diagram
 
 Diagram syntax by source format:
 
-- Markdown: fenced `````mermaid`` blocks
-- AsciiDoc: ``[mermaid]`` + ``....`` blocks
+- Markdown: fenced ````mermaid` blocks
+- AsciiDoc: `[mermaid]` + `....` blocks
 
 Prefer sections:
 
-- ``context_and_scope`` for context diagrams
-- ``building_block_view`` for structure/decomposition
-- ``runtime_view`` for flows/sequences
-- ``deployment_view`` for topology
-- ``cross_cutting_concepts`` for shared mechanisms
+- `context_and_scope` for context diagrams
+- `building_block_view` for structure/decomposition
+- `runtime_view` for flows/sequences
+- `deployment_view` for topology
+- `cross_cutting_concepts` for shared mechanisms
 
 ## Reading and editing rules
 

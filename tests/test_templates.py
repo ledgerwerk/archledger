@@ -37,10 +37,9 @@ def test_all_record_templates_are_bundled() -> None:
 
 
 def test_record_type_registry_preserves_legacy_maps() -> None:
-    assert (
-        {kind: spec.directory for kind, spec in RECORD_TYPES.items()}
-        == RECORD_TYPE_TO_DIR
-    )
+    assert {
+        kind: spec.directory for kind, spec in RECORD_TYPES.items()
+    } == RECORD_TYPE_TO_DIR
     assert {
         kind: spec.filename_prefix for kind, spec in RECORD_TYPES.items()
     } == RECORD_TYPE_TO_FILENAME_PREFIX
@@ -51,9 +50,7 @@ def test_record_type_registry_preserves_legacy_maps() -> None:
         kind: f"{spec.template_basename}.md.j2" for kind, spec in RECORD_TYPES.items()
     } == RECORD_TYPE_TO_TEMPLATE
     assert {
-        alias: kind
-        for kind, spec in RECORD_TYPES.items()
-        for alias in spec.aliases
+        alias: kind for kind, spec in RECORD_TYPES.items() for alias in spec.aliases
     } == CLI_KIND_ALIASES
 
 
