@@ -57,7 +57,11 @@ def read_storage_meta(path: Path) -> StorageMeta:
             "storage.yaml created_with_archledger, project_uuid, and created_at "
             "must be non-empty strings."
         )
-    if isinstance(next_number, bool) or not isinstance(next_number, int) or next_number < 1:
+    if (
+        isinstance(next_number, bool)
+        or not isinstance(next_number, int)
+        or next_number < 1
+    ):
         raise StorageError("storage.yaml next_number must be a positive integer.")
 
     return StorageMeta(
@@ -93,7 +97,11 @@ def recompute_next_number(
         *(extension.lower() for extension in source_extensions),
     }
     highest = 0
-    for root in (archledger_dir / "sections", archledger_dir / "records"):
+    for root in (
+        archledger_dir / "sections",
+        archledger_dir / "records",
+        archledger_dir / "archive",
+    ):
         if not root.is_dir():
             continue
         for path in root.rglob("*"):
@@ -105,3 +113,18 @@ def recompute_next_number(
                 continue
             highest = max(highest, number)
     return highest + 1
+
+
+def next_number_floor(
+    archledger_dir: Path,
+    current_next_number: int,
+    *,
+    source_extensions: tuple[str, ...] = (),
+) -> int:
+    return max(
+        current_next_number,
+        recompute_next_number(
+            archledger_dir,
+            source_extensions=source_extensions,
+        ),
+    )

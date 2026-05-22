@@ -57,7 +57,7 @@ def assemble_document(
     strict: bool = False,
     write: bool = True,
 ) -> AssemblyResult:
-    check_result = repo.check(strict=strict, repair_counters=False)
+    check_result = repo.check(strict=strict)
     if check_result.has_failures(strict=strict):
         raise RenderError(
             f"Build blocked by {len(check_result.errors)} error(s) and "

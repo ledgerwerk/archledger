@@ -160,6 +160,7 @@ Prefer sections:
 - Read the repository evidence before writing documentation: README, tests, package metadata, CI, deployment files, and design notes.
 - Update section files and record files directly; never patch generated complete documents as the source of truth.
 - Never edit generated build output in the configured build output directory; it is derived output only.
+- Never delete numbered fragments; use `archledger archive <id> --reason "..."` and repair structural gaps with `archledger doctor --repair`.
 - Use `source_refs` when a record or section describes concrete files, symbols, or directories.
 - Prefer `proposed` for newly inferred records unless the user explicitly says the content is accepted.
 - Run `archledger check` after record edits.

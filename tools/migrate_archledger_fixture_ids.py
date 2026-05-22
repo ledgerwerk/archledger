@@ -5,8 +5,8 @@ from pathlib import Path
 from typing import Any
 
 from archledger.model import (
-    ArchitectureRecord,
     MAJOR_SECTION_SPECS,
+    ArchitectureRecord,
     record_sort_key,
 )
 from archledger.storage.frontmatter import read_front_matter_document

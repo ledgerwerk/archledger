@@ -801,6 +801,30 @@ def test_status_json_output(tmp_path: Path) -> None:
     payload = json.loads(result.stdout)
     assert payload["ok"] is True
     assert payload["command"] == "status"
+    assert payload["result"]["archive_dir"].endswith(".archledger/archive")
+
+
+def test_paths_json_includes_archive_and_source_state_path(tmp_path: Path) -> None:
+    init_project(tmp_path)
+
+    result = runner.invoke(app, ["--root", str(tmp_path), "--json", "paths"])
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload["ok"] is True
+    assert payload["result"]["archive_dir"].endswith(".archledger/archive")
+    assert payload["result"]["source_state_path"].endswith(
+        ".archledger/source-state.json"
+    )
+
+
+def test_check_rejects_removed_fix_option(tmp_path: Path) -> None:
+    init_project(tmp_path)
+
+    result = runner.invoke(app, ["--root", str(tmp_path), "check", "--fix"])
+
+    assert result.exit_code != 0
+    assert "No such option" in result.output
 
 
 def test_source_group_help_lists_snapshot_changed_convert() -> None:
@@ -933,6 +957,154 @@ def test_show_missing_record_returns_json_error(tmp_path: Path) -> None:
     payload = json.loads(result.stdout)
     assert payload["ok"] is False
     assert payload["command"] == "show"
+
+
+def test_archive_moves_record_to_archive_and_excludes_from_list(tmp_path: Path) -> None:
+    init_project(tmp_path)
+    runner.invoke(
+        app,
+        [
+            "--root",
+            str(tmp_path),
+            "new",
+            "requirement",
+            "Old requirement",
+            "--status",
+            "accepted",
+        ],
+    )
+
+    result = runner.invoke(
+        app,
+        ["--root", str(tmp_path), "archive", "al_0013", "--reason", "obsolete"],
+    )
+
+    assert result.exit_code == 0
+    active_record = (
+        tmp_path / ".archledger" / "records" / "requirements" / "al_0013.adoc"
+    )
+    assert not active_record.exists()
+    archived = (
+        tmp_path
+        / ".archledger"
+        / "archive"
+        / "records"
+        / "requirements"
+        / "al_0013.adoc"
+    )
+    assert archived.is_file()
+    text = archived.read_text(encoding="utf-8")
+    assert "status: archived" in text
+    assert "archived_reason: obsolete" in text
+
+    list_result = runner.invoke(
+        app,
+        ["--root", str(tmp_path), "list", "--all-statuses"],
+    )
+    assert "al_0013" not in list_result.stdout
+
+
+def test_new_record_does_not_reuse_archived_number(tmp_path: Path) -> None:
+    init_project(tmp_path)
+    runner.invoke(app, ["--root", str(tmp_path), "new", "requirement", "Old"])
+    runner.invoke(app, ["--root", str(tmp_path), "archive", "al_0013"])
+    runner.invoke(app, ["--root", str(tmp_path), "new", "requirement", "New"])
+
+    new_record_path = (
+        tmp_path / ".archledger" / "records" / "requirements" / "al_0014.adoc"
+    )
+    assert new_record_path.is_file()
+
+
+def test_check_fails_when_ledger_number_is_missing(tmp_path: Path) -> None:
+    init_project(tmp_path)
+    runner.invoke(app, ["--root", str(tmp_path), "new", "requirement", "A"])
+    runner.invoke(app, ["--root", str(tmp_path), "new", "requirement", "B"])
+
+    (tmp_path / ".archledger" / "records" / "requirements" / "al_0013.adoc").unlink()
+
+    result = runner.invoke(app, ["--root", str(tmp_path), "--json", "check"])
+
+    assert result.exit_code == 1
+    payload = json.loads(result.stdout)
+    messages = [item["message"] for item in payload["error"]["details"]["errors"]]
+    assert any("Missing ledger ID: al_0013" in message for message in messages)
+
+
+def test_doctor_repair_creates_tombstone_for_missing_record_number(
+    tmp_path: Path,
+) -> None:
+    init_project(tmp_path)
+    runner.invoke(app, ["--root", str(tmp_path), "new", "requirement", "A"])
+    missing = tmp_path / ".archledger" / "records" / "requirements" / "al_0013.adoc"
+    missing.unlink()
+
+    result = runner.invoke(
+        app,
+        ["--root", str(tmp_path), "--json", "doctor", "--repair"],
+    )
+
+    assert result.exit_code == 0
+    tombstone = tmp_path / ".archledger" / "archive" / "tombstones" / "al_0013.adoc"
+    assert tombstone.is_file()
+    payload = json.loads(result.stdout)
+    repairs = payload["result"]["repairs"]
+    assert any(item["kind"] == "created_tombstone" for item in repairs)
+
+
+def test_doctor_repair_refuses_duplicate_ids(tmp_path: Path) -> None:
+    init_project(tmp_path)
+    runner.invoke(app, ["--root", str(tmp_path), "new", "requirement", "A"])
+    original = tmp_path / ".archledger" / "records" / "requirements" / "al_0013.adoc"
+    duplicate = (
+        tmp_path
+        / ".archledger"
+        / "archive"
+        / "records"
+        / "requirements"
+        / "al_0013.adoc"
+    )
+    duplicate.parent.mkdir(parents=True)
+    duplicate.write_text(original.read_text(encoding="utf-8"), encoding="utf-8")
+
+    result = runner.invoke(
+        app,
+        ["--root", str(tmp_path), "--json", "doctor", "--repair"],
+    )
+
+    assert result.exit_code == 1
+    payload = json.loads(result.stdout)
+    assert any(
+        "Duplicate ledger ID al_0013" in item["message"]
+        for item in payload["error"]["details"]["errors"]
+    )
+
+
+def test_new_refuses_to_allocate_when_storage_counter_proves_missing_number(
+    tmp_path: Path,
+) -> None:
+    init_project(tmp_path)
+    runner.invoke(app, ["--root", str(tmp_path), "new", "requirement", "A"])
+    path = tmp_path / ".archledger" / "records" / "requirements" / "al_0013.adoc"
+    path.unlink()
+
+    result = runner.invoke(app, ["--root", str(tmp_path), "new", "requirement", "B"])
+
+    assert result.exit_code == 1
+    assert "doctor --repair" in result.stderr or "doctor --repair" in result.stdout
+
+
+def test_doctor_repair_recreates_missing_required_section(tmp_path: Path) -> None:
+    init_project(tmp_path)
+    section = tmp_path / ".archledger" / "sections" / "al_0002.adoc"
+    section.unlink()
+
+    result = runner.invoke(app, ["--root", str(tmp_path), "doctor", "--repair"])
+
+    assert result.exit_code == 0
+    assert section.is_file()
+    tombstone = tmp_path / ".archledger" / "archive" / "tombstones" / "al_0002.adoc"
+    assert not tombstone.exists()
 
 
 def init_project(tmp_path: Path) -> None:

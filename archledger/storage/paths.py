@@ -22,6 +22,7 @@ class ProjectPaths:
     archledger_dir: Path
     sections_dir: Path
     records_dir: Path
+    archive_dir: Path
     build_dir: Path
     storage_meta_path: Path
     source_state_path: Path
@@ -87,6 +88,7 @@ def resolve_project_paths(start: Path) -> tuple[ProjectPaths, ProjectConfig, lis
             archledger_dir=archledger_dir,
             sections_dir=archledger_dir / "sections",
             records_dir=archledger_dir / "records",
+            archive_dir=archledger_dir / "archive",
             build_dir=build_dir,
             storage_meta_path=archledger_dir / "storage.yaml",
             source_state_path=source_state_path,

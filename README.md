@@ -360,6 +360,25 @@ For coding agents, prefer this loop:
 6. Build only when the user asks for an exported artifact
 7. `archledger --json source snapshot --reason after-archledger-update` after the docs have been updated and validated
 
+### Archiving and structural repair
+
+Do not delete numbered source fragments. Use:
+
+```bash
+archledger archive al_0022 --reason "obsolete after al_0041"
+```
+
+Archived records move to `.archledger/archive/` and keep their original ID. They are excluded from default read/list/build flows but still reserve their ledger number.
+
+Use:
+
+```bash
+archledger doctor
+archledger doctor --repair
+```
+
+`doctor --repair` can recreate missing required section files, create archive tombstones for missing non-section IDs, and recompute `storage.yaml.next_number` without renumbering existing records.
+
 ## Development
 
 Run the standard checks:
@@ -396,6 +415,7 @@ For the full maintainer checklist, see `docs/release-process.rst`.
 | `source changed` says no baseline found           | No source snapshot exists yet.                                        | Run `archledger --json source snapshot --reason after-archledger-update` after the docs are current. |
 | `snapshot` or `changed` says tracking is disabled | `[tracking].enabled = false`.                                         | Re-enable tracking or avoid tracking commands for that workspace.                                    |
 | `source convert --apply` fails without `pandoc`   | Apply mode is strict by default.                                      | Install `pandoc` or re-run with `--allow-mixed-body-format` if you accept a manual cleanup step.     |
+| `check` reports missing ledger IDs                | Numbered fragments were deleted or moved manually.                    | Use `archledger archive` for lifecycle removal and `archledger doctor --repair` for safe structural repair. |
 
 ## Skill
 

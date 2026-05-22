@@ -8,6 +8,7 @@ The source of truth is the fragment tree under ``archledger_dir``:
 
 - ``sections/`` for the major arc42 chapter skeleton
 - ``records/`` for individual architecture facts
+- ``archive/`` for archived records and tombstones that preserve allocated ledger IDs
 
 Records include structural, behavioral, and decision artifacts plus first-class
 ``diagram`` records. Diagram records default to plain text diagrams (``diagram_type = "text"``).
@@ -15,6 +16,7 @@ Text diagrams stay embedded in Markdown/AsciiDoc record bodies as readable fence
 Mermaid is available for compact sequence, state, or flow diagrams but is not the default.
 
 Fragments contain YAML front matter and a body in the configured dialect.
+Archived fragments keep normal front matter and use ``status: archived``.
 
 Traceability
 ------------

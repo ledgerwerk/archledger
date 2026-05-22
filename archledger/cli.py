@@ -10,6 +10,9 @@ import typer
 
 from archledger import __version__
 from archledger.cli_formatting import (
+    format_archive_message as _format_archive_message,
+)
+from archledger.cli_formatting import (
     format_build_message as _format_build_message,
 )
 from archledger.cli_formatting import (
@@ -20,6 +23,9 @@ from archledger.cli_formatting import (
 )
 from archledger.cli_formatting import (
     format_convert_sources_message as _format_convert_sources_message,
+)
+from archledger.cli_formatting import (
+    format_doctor_message as _format_doctor_message,
 )
 from archledger.cli_formatting import (
     format_init_message as _format_init_message,
@@ -52,6 +58,9 @@ from archledger.cli_formatting import (
     format_status_message as _format_status_message,
 )
 from archledger.cli_payloads import (
+    archive_payload as _archive_payload,
+)
+from archledger.cli_payloads import (
     build_result_payload as _build_payload,
 )
 from archledger.cli_payloads import (
@@ -62,6 +71,9 @@ from archledger.cli_payloads import (
 )
 from archledger.cli_payloads import (
     convert_sources_payload as _convert_sources_payload,
+)
+from archledger.cli_payloads import (
+    doctor_payload as _doctor_payload,
 )
 from archledger.cli_payloads import (
     finding_payload as _finding_payload,
@@ -505,7 +517,6 @@ def read(
 def check(
     ctx: typer.Context,
     strict: Annotated[bool, typer.Option("--strict")] = False,
-    fix: Annotated[bool, typer.Option("--fix")] = False,
 ) -> None:
     state = _state(ctx)
 
@@ -515,12 +526,55 @@ def check(
         config: ProjectConfig,
     ) -> dict[str, object]:
         del paths, config
-        result = repo.check(strict=strict, repair_counters=fix)
+        result = repo.check(strict=strict)
         if result.has_failures(strict=strict):
             raise _check_error(result, strict=strict)
         return _check_payload(result)
 
     _run_configured_command(state, "check", build_result, _format_check_message)
+
+
+@app.command("archive")
+def archive(
+    ctx: typer.Context,
+    record_id: Annotated[str, typer.Argument(help="Ledger ID to archive.")],
+    reason: Annotated[str, typer.Option("--reason", help="Archive reason.")] = "",
+) -> None:
+    state = _state(ctx)
+
+    def build_result(
+        repo: ArchitectureRepository,
+        paths: ProjectPaths,
+        config: ProjectConfig,
+    ) -> dict[str, object]:
+        del paths, config
+        return _archive_payload(repo.archive_record(record_id, reason=reason))
+
+    _run_configured_command(state, "archive", build_result, _format_archive_message)
+
+
+@app.command("doctor")
+def doctor(
+    ctx: typer.Context,
+    repair: Annotated[bool, typer.Option("--repair")] = False,
+) -> None:
+    state = _state(ctx)
+
+    def build_result(
+        repo: ArchitectureRepository,
+        paths: ProjectPaths,
+        config: ProjectConfig,
+    ) -> dict[str, object]:
+        del paths, config
+        result = repo.doctor(repair=repair)
+        if result.errors:
+            raise ArchledgerError(
+                f"Doctor found {len(result.errors)} error(s).",
+                details=_doctor_payload(result),
+            )
+        return _doctor_payload(result)
+
+    _run_configured_command(state, "doctor", build_result, _format_doctor_message)
 
 
 @source_app.command("snapshot")

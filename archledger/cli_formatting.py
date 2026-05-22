@@ -130,8 +130,40 @@ def format_check_message(payload: dict[str, object]) -> str:
     for entry in warning_messages:
         if isinstance(entry, dict):
             lines.append(f"warning: {entry['message']}")
-    if payload.get("repaired_counters"):
-        lines.append("Counters repaired.")
+    return "\n".join(lines)
+
+
+def format_archive_message(payload: dict[str, object]) -> str:
+    if payload.get("already_archived"):
+        return f"Already archived {payload['id']}: {payload['to']}"
+    return f"Archived {payload['id']}: {payload['from']} -> {payload['to']}"
+
+
+def format_doctor_message(payload: dict[str, object]) -> str:
+    errors = payload.get("errors", [])
+    warnings = payload.get("warnings", [])
+    repairs = payload.get("repairs", [])
+    if (
+        not isinstance(errors, list)
+        or not isinstance(warnings, list)
+        or not isinstance(repairs, list)
+    ):
+        raise RuntimeError("Doctor payload was malformed.")
+    lines = [
+        (
+            f"Doctor completed: {len(errors)} error(s), "
+            f"{len(warnings)} warning(s), {len(repairs)} repair(s)"
+        )
+    ]
+    for entry in errors:
+        if isinstance(entry, dict):
+            lines.append(f"error: {entry['message']}")
+    for entry in warnings:
+        if isinstance(entry, dict):
+            lines.append(f"warning: {entry['message']}")
+    for entry in repairs:
+        if isinstance(entry, dict):
+            lines.append(f"repair: {entry['message']}")
     return "\n".join(lines)
 
 

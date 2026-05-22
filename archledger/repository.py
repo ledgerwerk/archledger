@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from dataclasses import replace as dataclass_replace
 from pathlib import Path
 from typing import cast
 
@@ -9,6 +10,7 @@ from jinja2 import Environment, PackageLoader, select_autoescape
 from archledger import __version__
 from archledger.checks import content_warnings
 from archledger.errors import StorageError, ValidationError
+from archledger.ids import format_ledger_id, is_ledger_id, parse_ledger_id
 from archledger.model import (
     CURRENT_SOURCE_SCHEMA_VERSION,
     MAJOR_SECTION_SPECS,
@@ -16,6 +18,7 @@ from archledger.model import (
     RECORD_TYPE_TO_DIR,
     RECORD_TYPES,
     REQUIRED_RECORD_FIELDS,
+    SOURCE_FORMAT_EXTENSIONS,
     VALID_BODY_FORMATS,
     ArchitectureRecord,
     SectionSpec,
@@ -29,19 +32,18 @@ from archledger.model import (
     validate_record,
 )
 from archledger.record_types import RecordContextInput
-from archledger.ids import format_ledger_id
 from archledger.source_refs import normalize_source_refs
 from archledger.storage.common import ensure_dir, utc_now_iso, write_text_atomic
 from archledger.storage.frontmatter import (
     FrontMatterError,
     iter_source_files,
     read_front_matter_document,
+    write_front_matter_document,
 )
 from archledger.storage.meta import (
-    StorageMeta,
     default_storage_meta,
+    next_number_floor,
     read_storage_meta,
-    recompute_next_number,
     write_storage_meta,
 )
 from archledger.storage.paths import ProjectPaths
@@ -61,6 +63,7 @@ class StatusResult:
     workspace_root: Path
     config_path: Path
     archledger_dir: Path
+    archive_dir: Path
     sections_count: int
     record_directories_count: int
     storage_meta_path: Path
@@ -78,10 +81,47 @@ class CheckFinding:
 class CheckResult:
     errors: tuple[CheckFinding, ...]
     warnings: tuple[CheckFinding, ...]
-    repaired_counters: bool = False
 
     def has_failures(self, *, strict: bool) -> bool:
         return bool(self.errors) or (strict and bool(self.warnings))
+
+
+@dataclass(frozen=True, slots=True)
+class ArchiveResult:
+    record_id: str
+    source_path: Path
+    archive_path: Path
+    reason: str
+    already_archived: bool = False
+
+
+@dataclass(frozen=True, slots=True)
+class DoctorRepair:
+    kind: str
+    message: str
+    path: Path | None = None
+    before: int | None = None
+    after: int | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class DoctorResult:
+    errors: tuple[CheckFinding, ...]
+    warnings: tuple[CheckFinding, ...]
+    repairs: tuple[DoctorRepair, ...]
+    storage_next_number_before: int
+    storage_next_number_after: int
+    highest_seen: int
+    missing_numbers: tuple[int, ...]
+    duplicate_numbers: tuple[int, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class NumberedSourcePath:
+    number: int
+    record_id: str
+    path: Path
+    storage_area: str
 
 
 class ArchitectureRepository:
@@ -106,6 +146,7 @@ class ArchitectureRepository:
             self.paths.archledger_dir,
             self.paths.sections_dir,
             self.paths.records_dir,
+            self.paths.archive_dir,
             self.paths.build_dir,
         ):
             if not path.exists():
@@ -137,13 +178,11 @@ class ArchitectureRepository:
 
         if not self.paths.storage_meta_path.exists() or overwrite:
             meta = default_storage_meta(self.config.project_uuid, __version__)
-            meta = StorageMeta(
-                storage_version=meta.storage_version,
-                created_with_archledger=meta.created_with_archledger,
-                project_uuid=meta.project_uuid,
-                created_at=meta.created_at,
-                next_number=recompute_next_number(
+            meta = dataclass_replace(
+                meta,
+                next_number=next_number_floor(
                     self.paths.archledger_dir,
+                    meta.next_number,
                     source_extensions=(
                         self.config.section_extension,
                         self.config.record_extension,
@@ -175,6 +214,7 @@ class ArchitectureRepository:
             workspace_root=self.paths.workspace_root,
             config_path=self.paths.config_path,
             archledger_dir=self.paths.archledger_dir,
+            archive_dir=self.paths.archive_dir,
             sections_count=section_count,
             record_directories_count=record_directories_count,
             storage_meta_path=self.paths.storage_meta_path,
@@ -189,8 +229,21 @@ class ArchitectureRepository:
     ) -> ArchitectureRecord:
         normalized_kind = normalize_kind(kind)
         self._ensure_storage_ready()
-        number = recompute_next_number(
+        sequence_errors, _, missing_numbers, duplicate_numbers, _ = (
+            self._ledger_sequence_findings()
+        )
+        if missing_numbers or duplicate_numbers:
+            raise ValidationError(
+                "Ledger numbering is inconsistent. Run: archledger doctor --repair"
+            )
+        if sequence_errors:
+            raise ValidationError(
+                "Storage integrity checks failed. Run: archledger doctor --repair"
+            )
+        meta = read_storage_meta(self.paths.storage_meta_path)
+        number = next_number_floor(
             self.paths.archledger_dir,
+            meta.next_number,
             source_extensions=(
                 self.config.section_extension,
                 self.config.record_extension,
@@ -221,7 +274,7 @@ class ArchitectureRepository:
             **context
         )
         write_text_atomic(target_path, text)
-        self._write_recomputed_counter()
+        self._write_counter(number + 1)
         return self._load_record_from_path(target_path)
 
     def list_records(
@@ -277,7 +330,6 @@ class ArchitectureRepository:
         self,
         *,
         strict: bool = False,
-        repair_counters: bool = False,
     ) -> CheckResult:
         del strict
         self._ensure_storage_ready()
@@ -285,7 +337,7 @@ class ArchitectureRepository:
         findings_warnings: list[CheckFinding] = []
         loaded_records: list[ArchitectureRecord] = []
 
-        for path in self._all_record_paths():
+        for path in self._all_record_paths(include_archive=True):
             try:
                 record = self._load_record_from_path(path)
             except FrontMatterError as exc:
@@ -309,6 +361,28 @@ class ArchitectureRepository:
             loaded_records.append(record)
             for warning_message in content_warnings(record):
                 findings_warnings.append(CheckFinding("warning", warning_message, path))
+            if (
+                record.status == "archived"
+                and not path.is_relative_to(self.paths.archive_dir)
+            ):
+                findings_errors.append(
+                    CheckFinding(
+                        "error",
+                        f"Archived record {record.id} is outside archive storage.",
+                        path,
+                    )
+                )
+            if (
+                path.is_relative_to(self.paths.archive_dir)
+                and record.status != "archived"
+            ):
+                findings_errors.append(
+                    CheckFinding(
+                        "error",
+                        f"Archived file {record.id} must use status archived.",
+                        path,
+                    )
+                )
 
         seen_ids: dict[str, Path] = {}
         for record in loaded_records:
@@ -342,12 +416,52 @@ class ArchitectureRepository:
                         record.path,
                     )
                 )
+            if record.type == "section" and path_in_archive(
+                record.path, self.paths.archive_dir
+            ):
+                findings_errors.append(
+                    CheckFinding(
+                        "error",
+                        f"Required section {record.id} must not be archived.",
+                        record.path,
+                    )
+                )
 
         for section_spec in MAJOR_SECTION_SPECS:
+            section_id = format_ledger_id(section_spec.number)
+            section_paths = [
+                self.paths.sections_dir / f"{section_id}{extension}"
+                for extension in self._known_source_extensions()
+            ]
+            archived_section_paths = [
+                self.paths.archive_dir / "sections" / f"{section_id}{extension}"
+                for extension in self._known_source_extensions()
+            ]
+            if not any(path.is_file() for path in section_paths):
+                findings_errors.append(
+                    CheckFinding(
+                        "error",
+                        f"Required section file is missing: {section_spec.key}",
+                        section_paths[0],
+                    )
+                )
+            archived_section = next(
+                (path for path in archived_section_paths if path.is_file()),
+                None,
+            )
+            if archived_section is not None:
+                findings_errors.append(
+                    CheckFinding(
+                        "error",
+                        f"Required section file is archived: {section_spec.key}",
+                        archived_section,
+                    )
+                )
             if any(
                 record.type != "section"
                 and record.section == section_spec.key
                 and record.status in {"accepted", "proposed"}
+                and not path_in_archive(record.path, self.paths.archive_dir)
                 for record in loaded_records
             ):
                 continue
@@ -355,21 +469,324 @@ class ArchitectureRepository:
                 CheckFinding(
                     "warning",
                     f"Section {section_spec.key} has no accepted/proposed records.",
-                    self.paths.sections_dir
-                    / section_filename_for(section_spec, self.config.section_extension),
+                    section_paths[0],
                 )
             )
 
-        repaired_counters = False
-        if repair_counters:
-            self._write_recomputed_counter()
-            repaired_counters = True
+        sequence_errors, sequence_warnings, _, _, _ = self._ledger_sequence_findings()
+        findings_errors.extend(sequence_errors)
+        findings_warnings.extend(sequence_warnings)
 
         return CheckResult(
             errors=tuple(findings_errors),
             warnings=tuple(findings_warnings),
-            repaired_counters=repaired_counters,
         )
+
+    def archive_record(self, record_id: str, *, reason: str = "") -> ArchiveResult:
+        self._ensure_storage_ready()
+        if not is_ledger_id(record_id):
+            raise ValidationError(f"Invalid ledger ID: {record_id}")
+
+        active_path: Path | None = None
+        for path in iter_source_files(
+            self.paths.records_dir,
+            self._known_source_extensions(),
+        ):
+            if path.stem == record_id:
+                active_path = path
+                break
+
+        if active_path is None:
+            archived_path = self._find_archived_path(record_id)
+            if archived_path is not None:
+                return ArchiveResult(
+                    record_id=record_id,
+                    source_path=archived_path,
+                    archive_path=archived_path,
+                    reason=reason,
+                    already_archived=True,
+                )
+            section_candidate = (
+                self.paths.sections_dir / f"{record_id}{self.config.section_extension}"
+            )
+            if section_candidate.is_file():
+                raise ValidationError(
+                    f"Cannot archive required section {record_id}. "
+                    "Sections are part of the arc42 skeleton."
+                )
+            raise ValidationError(f"Record not found: {record_id}")
+
+        metadata, body = read_front_matter_document(active_path)
+        now = utc_now_iso()
+        relative_active = active_path.relative_to(self.paths.archledger_dir)
+        archive_path = self.paths.archive_dir / relative_active
+        if archive_path.exists():
+            raise ValidationError(f"Archive target already exists: {archive_path}")
+
+        metadata = {
+            **metadata,
+            "status": "archived",
+            "archived_at": now,
+            "archived_reason": reason,
+            "archived_from": str(relative_active),
+            "updated_at": now,
+        }
+        ensure_dir(archive_path.parent)
+        write_front_matter_document(archive_path, metadata, body)
+        active_path.unlink()
+
+        return ArchiveResult(
+            record_id=record_id,
+            source_path=active_path,
+            archive_path=archive_path,
+            reason=reason,
+        )
+
+    def doctor(self, *, repair: bool = False) -> DoctorResult:
+        self._ensure_storage_ready()
+        meta_before = read_storage_meta(self.paths.storage_meta_path)
+        repairs: list[DoctorRepair] = []
+
+        if repair and not self.paths.archive_dir.is_dir():
+            ensure_dir(self.paths.archive_dir)
+            repairs.append(
+                DoctorRepair(
+                    kind="created_archive_dir",
+                    message=f"Created archive directory: {self.paths.archive_dir}",
+                    path=self.paths.archive_dir,
+                )
+            )
+
+        (
+            sequence_errors,
+            sequence_warnings,
+            missing_numbers,
+            duplicate_numbers,
+            highest_seen,
+        ) = self._ledger_sequence_findings()
+
+        if repair and not duplicate_numbers:
+            for number in missing_numbers:
+                section_spec = next(
+                    (spec for spec in MAJOR_SECTION_SPECS if spec.number == number),
+                    None,
+                )
+                if section_spec is not None:
+                    section_path = self.paths.sections_dir / section_filename_for(
+                        section_spec,
+                        self.config.section_extension,
+                    )
+                    if not section_path.is_file():
+                        write_text_atomic(
+                            section_path,
+                            _section_document(
+                                section_spec,
+                                self.config.source_format,
+                                source_schema_version=self.config.source_schema_version,
+                            ),
+                        )
+                        repairs.append(
+                            DoctorRepair(
+                                kind="recreated_section",
+                                message=(
+                                    f"Recreated required section "
+                                    f"{format_ledger_id(number)}"
+                                ),
+                                path=section_path,
+                            )
+                        )
+                    continue
+                tombstone_path = self._write_archive_tombstone(number)
+                repairs.append(
+                    DoctorRepair(
+                        kind="created_tombstone",
+                        message=(
+                            f"Created archive tombstone {format_ledger_id(number)}"
+                        ),
+                        path=tombstone_path,
+                    )
+                )
+
+            (
+                sequence_errors,
+                sequence_warnings,
+                missing_numbers,
+                duplicate_numbers,
+                highest_seen,
+            ) = self._ledger_sequence_findings()
+
+        next_number_after = next_number_floor(
+            self.paths.archledger_dir,
+            meta_before.next_number,
+            source_extensions=(
+                self.config.section_extension,
+                self.config.record_extension,
+            ),
+        )
+        if repair and next_number_after != meta_before.next_number:
+            self._write_counter(next_number_after)
+            repairs.append(
+                DoctorRepair(
+                    kind="recomputed_counter",
+                    message=(
+                        "Recomputed storage.yaml next_number "
+                        f"to {next_number_after}"
+                    ),
+                    path=self.paths.storage_meta_path,
+                    before=meta_before.next_number,
+                    after=next_number_after,
+                )
+            )
+
+        meta_after = read_storage_meta(self.paths.storage_meta_path)
+        return DoctorResult(
+            errors=tuple(sequence_errors),
+            warnings=tuple(sequence_warnings),
+            repairs=tuple(repairs),
+            storage_next_number_before=meta_before.next_number,
+            storage_next_number_after=meta_after.next_number,
+            highest_seen=highest_seen,
+            missing_numbers=missing_numbers,
+            duplicate_numbers=duplicate_numbers,
+        )
+
+    def _find_archived_path(self, record_id: str) -> Path | None:
+        for path in iter_source_files(
+            self.paths.archive_dir,
+            self._known_source_extensions(),
+        ):
+            if path.stem == record_id:
+                return path
+        return None
+
+    def _numbered_source_paths(
+        self, *, include_archive: bool
+    ) -> list[NumberedSourcePath]:
+        roots: list[tuple[str, Path]] = [
+            ("section", self.paths.sections_dir),
+            ("record", self.paths.records_dir),
+        ]
+        if include_archive:
+            roots.append(("archive", self.paths.archive_dir))
+
+        results: list[NumberedSourcePath] = []
+        for storage_area, root in roots:
+            for path in iter_source_files(
+                root,
+                self._known_source_extensions(),
+            ):
+                try:
+                    number = parse_ledger_id(path.stem)
+                except ValueError:
+                    continue
+                results.append(
+                    NumberedSourcePath(
+                        number=number,
+                        record_id=path.stem,
+                        path=path,
+                        storage_area=storage_area,
+                    )
+                )
+        return results
+
+    def _ledger_sequence_findings(
+        self,
+    ) -> tuple[
+        list[CheckFinding],
+        list[CheckFinding],
+        tuple[int, ...],
+        tuple[int, ...],
+        int,
+    ]:
+        meta = read_storage_meta(self.paths.storage_meta_path)
+        numbered_paths = self._numbered_source_paths(include_archive=True)
+        by_number: dict[int, list[NumberedSourcePath]] = {}
+        for item in numbered_paths:
+            by_number.setdefault(item.number, []).append(item)
+
+        highest_seen = max(by_number, default=0)
+        upper_bound = max(highest_seen, meta.next_number - 1)
+        missing_numbers = tuple(
+            number for number in range(1, upper_bound + 1) if number not in by_number
+        )
+        duplicate_numbers = tuple(
+            number for number, paths in sorted(by_number.items()) if len(paths) > 1
+        )
+
+        errors: list[CheckFinding] = []
+        warnings: list[CheckFinding] = []
+        for number in missing_numbers:
+            errors.append(
+                CheckFinding(
+                    "error",
+                    (
+                        f"Missing ledger ID: {format_ledger_id(number)}. "
+                        "Move deleted items to archive or run: "
+                        "archledger doctor --repair"
+                    ),
+                    None,
+                )
+            )
+        for number in duplicate_numbers:
+            locations = ", ".join(str(item.path) for item in by_number[number])
+            errors.append(
+                CheckFinding(
+                    "error",
+                    (
+                        f"Duplicate ledger ID {format_ledger_id(number)} "
+                        f"appears in: {locations}"
+                    ),
+                    None,
+                )
+            )
+        if meta.next_number <= highest_seen:
+            warnings.append(
+                CheckFinding(
+                    "warning",
+                    (
+                        f"storage.yaml next_number is {meta.next_number}, "
+                        f"but filesystem requires at least {highest_seen + 1}. "
+                        "Run: archledger doctor --repair"
+                    ),
+                    self.paths.storage_meta_path,
+                )
+            )
+        return errors, warnings, missing_numbers, duplicate_numbers, highest_seen
+
+    def _write_archive_tombstone(self, number: int) -> Path:
+        path = self.paths.archive_dir / "tombstones" / filename_for(
+            number,
+            extension=self.config.record_extension,
+        )
+        if path.exists():
+            return path
+        record_id = format_ledger_id(number)
+        now = utc_now_iso()
+        metadata = {
+            "schema_version": self.config.source_schema_version,
+            "id": record_id,
+            "type": "archive_tombstone",
+            "title": f"Archived placeholder for missing ledger ID {record_id}",
+            "status": "archived",
+            "section": "risks_and_technical_debt",
+            "order": number,
+            "date": now[:10],
+            "body_format": self.config.source_format,
+            "created_at": now,
+            "updated_at": now,
+            "archived_at": now,
+            "archived_reason": (
+                "Created by archledger doctor --repair for a missing ledger number."
+            ),
+        }
+        body = (
+            "This tombstone preserves a ledger number whose original source fragment "
+            "is no longer present. It was created automatically by "
+            "`archledger doctor --repair`.\n"
+        )
+        ensure_dir(path.parent)
+        write_front_matter_document(path, metadata, body)
+        return path
 
     def _template_context(
         self,
@@ -431,17 +848,25 @@ class ArchitectureRepository:
             return records
         return [record for record in records if record.type != "section"]
 
-    def _all_record_paths(self) -> list[Path]:
-        return [
+    def _all_record_paths(self, *, include_archive: bool = False) -> list[Path]:
+        paths = [
             *iter_source_files(
                 self.paths.sections_dir,
-                (self.config.section_extension,),
+                self._known_source_extensions(),
             ),
             *iter_source_files(
                 self.paths.records_dir,
-                (self.config.record_extension,),
+                self._known_source_extensions(),
             ),
         ]
+        if include_archive:
+            paths.extend(
+                iter_source_files(
+                    self.paths.archive_dir,
+                    self._known_source_extensions(),
+                )
+            )
+        return paths
 
     def _load_record_from_path(self, path: Path) -> ArchitectureRecord:
         metadata, body = read_front_matter_document(path)
@@ -493,22 +918,25 @@ class ArchitectureRepository:
                 "archledger storage layout is incomplete. Run: archledger init"
             )
 
-    def _write_recomputed_counter(self) -> None:
+    def _write_counter(self, next_number: int) -> None:
         current_meta = read_storage_meta(self.paths.storage_meta_path)
-        refreshed_meta = StorageMeta(
-            storage_version=current_meta.storage_version,
-            created_with_archledger=current_meta.created_with_archledger,
-            project_uuid=current_meta.project_uuid,
-            created_at=current_meta.created_at,
-            next_number=recompute_next_number(
-                self.paths.archledger_dir,
-                source_extensions=(
-                    self.config.section_extension,
-                    self.config.record_extension,
+        write_storage_meta(
+            self.paths.storage_meta_path,
+            dataclass_replace(
+                current_meta,
+                next_number=max(
+                    next_number_floor(
+                        self.paths.archledger_dir,
+                        current_meta.next_number,
+                        source_extensions=(
+                            self.config.section_extension,
+                            self.config.record_extension,
+                        ),
+                    ),
+                    next_number,
                 ),
             ),
         )
-        write_storage_meta(self.paths.storage_meta_path, refreshed_meta)
 
     def _source_contract_findings(
         self,
@@ -575,6 +1003,17 @@ class ArchitectureRepository:
 
         return errors, warnings
 
+    def _known_source_extensions(self) -> tuple[str, ...]:
+        return tuple(
+            sorted(
+                {
+                    *SOURCE_FORMAT_EXTENSIONS.values(),
+                    self.config.section_extension,
+                    self.config.record_extension,
+                }
+            )
+        )
+
 
 def _section_document(
     section_spec: SectionSpec,
@@ -603,3 +1042,11 @@ def _section_document(
         "",
     ]
     return "\n".join(lines)
+
+
+def path_in_archive(path: Path, archive_dir: Path) -> bool:
+    try:
+        path.relative_to(archive_dir)
+    except ValueError:
+        return False
+    return True

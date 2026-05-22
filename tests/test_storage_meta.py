@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from archledger.errors import StorageError
-from archledger.storage.meta import read_storage_meta
+from archledger.storage.meta import next_number_floor, read_storage_meta
 
 
 def test_storage_next_number_bool_is_rejected(tmp_path: Path) -> None:
@@ -46,3 +46,12 @@ def test_storage_version_must_be_two(tmp_path: Path) -> None:
 
     with pytest.raises(StorageError, match="storage_version"):
         read_storage_meta(storage)
+
+
+def test_next_number_floor_preserves_counter_floor(tmp_path: Path) -> None:
+    archledger_dir = tmp_path / ".archledger"
+    sections = archledger_dir / "sections"
+    sections.mkdir(parents=True)
+    (sections / "al_0001.adoc").write_text("---\n---\n", encoding="utf-8")
+
+    assert next_number_floor(archledger_dir, 50) == 50

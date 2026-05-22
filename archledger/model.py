@@ -45,7 +45,7 @@ OUTPUT_FORMAT_EXTENSIONS = {
     "textile": ".textile",
 }
 VALID_STATUSES = frozenset(
-    {"draft", "proposed", "accepted", "deprecated", "superseded"}
+    {"draft", "proposed", "accepted", "deprecated", "superseded", "archived"}
 )
 VISIBLE_BY_DEFAULT_STATUSES = frozenset({"proposed", "accepted", "deprecated"})
 REQUIRED_RECORD_FIELDS = ("id", "type", "title", "status", "section", "order")
@@ -310,11 +310,14 @@ def is_visible_status(
     *,
     include_draft: bool,
     include_superseded: bool,
+    include_archived: bool = False,
 ) -> bool:
     if status == "draft":
         return include_draft
     if status == "superseded":
         return include_superseded
+    if status == "archived":
+        return include_archived
     return status in VISIBLE_BY_DEFAULT_STATUSES
 
 

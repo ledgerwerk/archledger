@@ -21,6 +21,7 @@ Inspect the current source state:
    archledger --json paths
    archledger --json status
    archledger --json check
+   archledger --json doctor
    archledger --json read --body --include-drafts
 
 Track implementation drift:
@@ -37,6 +38,16 @@ Create records:
    archledger new requirement "Render architecture document" --status proposed
    archledger new adr "Treat source fragments as canonical" --status proposed
    archledger new diagram "Runtime login flow" --section runtime_view --status proposed
+
+Archive and repair:
+
+.. code-block:: bash
+
+   archledger archive al_0022 --reason "obsolete after al_0041"
+   archledger doctor
+   archledger doctor --repair
+
+``check`` is read-only. It validates numbering and integrity but does not mutate counters or source files.
 
 Build output:
 

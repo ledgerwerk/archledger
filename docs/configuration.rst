@@ -43,6 +43,10 @@ Example
 ``source-state.json`` stores SHA-256 content hashes only for files. It does not
 persist mtimes or file sizes. Directory hashes are derived from file hashes.
 
+The archive path is fixed at ``<archledger_dir>/archive`` and is used by
+``archledger archive`` and ``archledger doctor --repair`` to preserve
+ledger-number history without renumbering.
+
 Per-output overrides
 --------------------
 

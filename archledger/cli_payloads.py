@@ -17,8 +17,10 @@ from archledger.model import (
 from archledger.record_types import RECORD_TYPE_SPECS
 from archledger.repository import (
     ArchitectureRepository,
+    ArchiveResult,
     CheckFinding,
     CheckResult,
+    DoctorResult,
     InitResult,
     StatusResult,
 )
@@ -51,6 +53,7 @@ def status_payload(
         "workspace_root": str(status_result.workspace_root),
         "config_path": str(status_result.config_path),
         "archledger_dir": str(status_result.archledger_dir),
+        "archive_dir": str(status_result.archive_dir),
         "storage_meta_path": str(status_result.storage_meta_path),
         "build_dir": str(status_result.build_dir),
         "sections_count": status_result.sections_count,
@@ -72,6 +75,7 @@ def where_payload(
         "archledger_dir": str(paths.archledger_dir),
         "sections_dir": str(paths.sections_dir),
         "records_dir": str(paths.records_dir),
+        "archive_dir": str(paths.archive_dir),
         "build_dir": str(paths.build_dir),
         "storage_meta_path": str(paths.storage_meta_path),
         "source_state_path": str(paths.source_state_path),
@@ -223,6 +227,7 @@ def read_payload(
             "archledger_dir": str(paths.archledger_dir),
             "sections_dir": str(paths.sections_dir),
             "records_dir": str(paths.records_dir),
+            "archive_dir": str(paths.archive_dir),
         },
         "records": records,
     }
@@ -320,7 +325,41 @@ def check_payload(result: CheckResult) -> dict[str, object]:
     return {
         "errors": [finding_payload(finding) for finding in result.errors],
         "warnings": [finding_payload(finding) for finding in result.warnings],
-        "repaired_counters": result.repaired_counters,
+    }
+
+
+def archive_payload(result: ArchiveResult) -> dict[str, object]:
+    return {
+        "id": result.record_id,
+        "from": str(result.source_path),
+        "to": str(result.archive_path),
+        "reason": result.reason,
+        "already_archived": result.already_archived,
+    }
+
+
+def doctor_payload(result: DoctorResult) -> dict[str, object]:
+    return {
+        "schema": "archledger.doctor.v1",
+        "errors": [finding_payload(finding) for finding in result.errors],
+        "warnings": [finding_payload(finding) for finding in result.warnings],
+        "repairs": [
+            {
+                "kind": repair.kind,
+                "message": repair.message,
+                **({"path": str(repair.path)} if repair.path else {}),
+                **({"before": repair.before} if repair.before is not None else {}),
+                **({"after": repair.after} if repair.after is not None else {}),
+            }
+            for repair in result.repairs
+        ],
+        "ledger": {
+            "highest_seen": result.highest_seen,
+            "storage_next_number_before": result.storage_next_number_before,
+            "storage_next_number_after": result.storage_next_number_after,
+            "missing_ids": [format_ledger_id(n) for n in result.missing_numbers],
+            "duplicate_ids": [format_ledger_id(n) for n in result.duplicate_numbers],
+        },
     }
 
 
