@@ -1,0 +1,20 @@
+---
+id: al_concept_0074
+type: concept
+title: Source tracking and change impact analysis
+schema_version: 2
+date: "2026-05-21"
+body_format: markdown
+status: accepted
+section: cross_cutting_concepts
+order: 40
+applies_to:
+  - Source Tracking Layer
+  - CLI Layer
+  - Repository Layer
+source_refs:
+  - README.md
+  - archledger/section_rendering.py
+---
+
+The source tracking subsystem allows agents to detect which workspace files changed since the last baseline snapshot and which architecture records are impacted. A snapshot (`archledger source snapshot`) records SHA-256 hashes of all tracked files. The `source changed` command computes the diff between the baseline and current state, then cross-references changed files with record `source_refs` to identify impacted records and sections. Files that changed but have no linked records are reported as unlinked. This enables agents to update only the documentation affected by code changes.

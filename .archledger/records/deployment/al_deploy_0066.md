@@ -1,0 +1,22 @@
+---
+schema_version: 2
+id: al_deploy_0066
+type: infrastructure
+title: PyPI and wheel installation
+status: accepted
+section: deployment_view
+level: 1
+parent: null
+order: 30
+date: "2026-05-21"
+environment: release
+maps_building_blocks: []
+body_format: markdown
+created_at: "2026-05-21T18:18:47Z"
+updated_at: "2026-05-21T18:18:47Z"
+source_refs:
+  - pyproject.toml
+  - docs/index.rst
+---
+
+Distribution targets are PyPI source/wheel artifacts built from this repository. Release pipelines build wheel/sdist and publish versioned packages for installation with `pip install archledger`.

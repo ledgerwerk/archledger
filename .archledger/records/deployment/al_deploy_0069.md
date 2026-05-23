@@ -1,0 +1,22 @@
+---
+schema_version: 2
+id: al_deploy_0069
+type: infrastructure
+title: Documentation publishing
+status: accepted
+section: deployment_view
+level: 1
+parent: null
+order: 60
+date: "2026-05-21"
+environment: release
+maps_building_blocks: []
+body_format: markdown
+created_at: "2026-05-21T18:18:48Z"
+updated_at: "2026-05-21T18:18:48Z"
+source_refs:
+  - pyproject.toml
+  - docs/index.rst
+---
+
+Documentation publishing includes README guidance, Sphinx docs in `docs/`, and generated `ARCHITECTURE.md` produced from `.archledger` sources.

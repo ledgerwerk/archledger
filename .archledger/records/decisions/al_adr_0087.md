@@ -1,0 +1,45 @@
+---
+schema_version: 2
+id: al_adr_0087
+type: adr
+title: Multi-type diagram support with text as default
+status: accepted
+section: architecture_decisions
+order: 110
+date: "2026-05-22"
+deciders:
+  - archledger maintainers
+supersedes: []
+related:
+  - al_adr_0082
+tags: []
+body_format: markdown
+created_at: "2026-05-22T07:06:53Z"
+updated_at: "2026-05-22T21:45:00Z"
+source_refs:
+  - archledger/record_types.py
+  - archledger/checks.py
+  - archledger/config/parse.py
+  - archledger/config/model.py
+  - archledger/templates/records/diagram.md.j2
+  - archledger/templates/records/diagram.adoc.j2
+  - tests/test_diagrams.py
+---
+
+## Context
+
+The initial diagram support only handled Mermaid syntax. Mermaid requires a renderer (mermaid-cli, browser, or Kroki) to produce visual output, and its source blocks are not directly readable in terminals or plain-text diff views. Architecture diagrams are often structural decompositions that benefit more from being readable at a glance than from being interactive or visually polished.
+
+## Decision
+
+Support five diagram types: `text`, `ascii`, `unicode`, `svgbob`, and `mermaid`. Default to `text` for new diagram records. Text-based diagrams (`text`, `ascii`, `unicode`) use simple fenced/literal blocks that render directly in Markdown and AsciiDoc builds without any external tool. The Check Layer validates each diagram type with dialect-appropriate block detection and enforces a 120-character line-length limit on text diagrams. Templates produce type-appropriate scaffolding.
+
+## Consequences
+
+Text diagrams are immediately readable in source, Git diffs, terminal output, and native builds. Mermaid remains available for sequence/state/flow diagrams where its syntax is more compact. Text diagrams have a line-length limit to prevent unreadable horizontal scrolling. The diagram type is stored in the record metadata and can be overridden per-record via `--diagram-type` on the CLI. Three renderers are supported (`pass-through`, `mermaid-cli`, `asciidoctor-diagram`), down from an earlier broader set; svgbob, goat, and Kroki renderers were removed to reduce external dependency surface.
+
+## Alternatives considered
+
+- Keep Mermaid as sole diagram type: rejected because it prevents readable text-based diagrams that work without a renderer.
+- Support only text diagrams: rejected because Mermaid is better suited for certain diagram categories (sequence, state).
+- Make `unicode` the default: rejected because `text` has broader terminal and font compatibility.

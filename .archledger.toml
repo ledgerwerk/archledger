@@ -1,11 +1,39 @@
 # Project-local archledger configuration.
 # This file lives in the source project root.
-config_version = 5
+config_version = 7
 archledger_dir = ".archledger"
 
 # Stable project identity. Commit this with your source tree.
 project_uuid = "6bddbb56-b273-4aae-9860-bfa4de93f115"
 project_name = "archledger"
+
+[ids]
+prefix = "al"
+width = 4
+segment_mode = "type"
+default_segment = "content"
+
+[ids.segment_map]
+adr = "adr"
+archive_tombstone = "archive"
+black_box = "block"
+concept = "concept"
+constraint = "constraint"
+context_interface = "context"
+diagram = "diagram"
+glossary_term = "glossary"
+infrastructure = "deploy"
+interface = "block"
+quality_goal = "quality"
+quality_requirement = "quality"
+quality_scenario = "quality"
+requirement = "content"
+risk = "risk"
+runtime_scenario = "runtime"
+section = "content"
+stakeholder = "content"
+strategy_item = "strategy"
+white_box = "block"
 
 [source]
 format = "markdown"
@@ -14,32 +42,27 @@ section_extension = ".md"
 record_extension = ".md"
 schema_version = 2
 
-[diagrams]
-enabled = true
-renderer = "pass-through"  # pass-through | mermaid-cli | svgbob | asciidoctor-diagram | kroki
-default_type = "text"
-output_dir = "diagrams"
-image_format = "svg"
-kroki_url = ""
-
 [build]
 default_output = "ARCHITECTURE.md"
 default_format = "markdown"
+# [build].default_output_dir is relative to the directory containing
+# archledger.toml or .archledger.toml.
 default_output_dir = "."
 include_draft = false
 include_superseded = false
 strict = false
 keep_intermediate = false
 converter = "auto"
+pdf_engine = ""
+reference_docx = ""
 
-[tracking]
+[diagrams]
 enabled = true
-state_file = "source-state.json"
-scanner = "auto"
-include = ["**/*.py", "**/*.toml", "**/*.md", "**/*.rst", "**/*.j2", "**/*.yaml", "**/*.yml", "**/*.json"]
-exclude = [".git/**", ".venv/**", "**/__pycache__/**", ".mypy_cache/**", ".pytest_cache/**", ".ruff_cache/**", "dist/**", "build/**"]
-max_file_bytes = 1000000
-hash_algorithm = "sha256"
+renderer = "pass-through"
+default_type = "text"
+output_dir = "diagrams"
+image_format = "svg"
+kroki_url = ""
 
 [arc42]
 template_version = "9.0-EN"
@@ -50,3 +73,33 @@ include_help = false
 [skill]
 installed = false
 path = "skills/archledger/SKILL.md"
+
+[tracking]
+enabled = true
+# source-state.json stores SHA-256 content hashes only for files.
+# It does not persist mtimes or file sizes. Directory hashes are
+# derived from file hashes after scanning.
+state_file = "source-state.json"
+scanner = "auto"
+include = [
+  "**/*.py",
+  "**/*.toml",
+  "**/*.md",
+  "**/*.rst",
+  "**/*.j2",
+  "**/*.yaml",
+  "**/*.yml",
+  "**/*.json",
+]
+exclude = [
+  ".git/**",
+  ".venv/**",
+  "**/__pycache__/**",
+  ".mypy_cache/**",
+  ".pytest_cache/**",
+  ".ruff_cache/**",
+  "dist/**",
+  "build/**",
+]
+max_file_bytes = 1000000
+hash_algorithm = "sha256"

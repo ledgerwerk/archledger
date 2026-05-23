@@ -1,0 +1,38 @@
+---
+schema_version: 2
+id: al_adr_0085
+type: adr
+title: Source refs use relative POSIX paths without parent traversal
+status: accepted
+section: architecture_decisions
+order: 90
+date: "2026-05-21"
+deciders:
+  - archledger maintainers
+supersedes: []
+related: []
+tags: []
+body_format: markdown
+created_at: "2026-05-21T18:18:52Z"
+updated_at: "2026-05-21T18:18:52Z"
+source_refs:
+  - archledger/repository.py
+  - archledger/cli.py
+  - tests/test_repository_cli.py
+---
+
+## Context
+
+Source references must safely link docs to code while preventing ambiguous or unsafe paths.
+
+## Decision
+
+Require relative POSIX source_refs that do not traverse parent directories.
+
+## Consequences
+
+Traceability links stay portable and secure; invalid refs are rejected.
+
+## Alternatives considered
+
+- Keep legacy behavior unchanged: rejected because it leaves release-critical ambiguity.
