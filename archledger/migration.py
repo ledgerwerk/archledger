@@ -167,7 +167,7 @@ def _migrated_config(config: ProjectConfig) -> ProjectConfig:
             default_output = default_document_filename_for_output_format("asciidoc")
     return replace(
         config,
-        config_version=max(config.config_version, 6),
+        config_version=max(config.config_version, 7),
         source_format="asciidoc",
         section_extension=".adoc",
         record_extension=".adoc",

@@ -18,6 +18,16 @@ Mermaid is available for compact sequence, state, or flow diagrams but is not th
 Fragments contain YAML front matter and a body in the configured dialect.
 Archived fragments keep normal front matter and use ``status: archived``.
 
+Ledger ID format
+----------------
+
+Default IDs use ``<prefix>_<number>`` (for example ``al_0013``).
+
+When ``[ids].segment_mode = "type"``, IDs use
+``<prefix>_<segment>_<number>`` (for example ``al_content_0013`` and
+``al_risk_0014``). Segment values come from metadata/config mapping, while
+the numeric sequence remains one global ledger-wide counter.
+
 Traceability
 ------------
 

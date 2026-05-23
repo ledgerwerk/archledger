@@ -101,7 +101,7 @@ def test_convert_sources_allow_mixed_body_format_without_pandoc(
     assert "schema_version: 2" in migrated_text
     assert "body_format: markdown" in migrated_text
     config_text = (tmp_path / "archledger.toml").read_text(encoding="utf-8")
-    assert "config_version = 5" in config_text
+    assert "config_version = 7" in config_text
     assert 'format = "asciidoc"' in config_text
     assert "pandoc not found" in result.stdout
 
@@ -156,7 +156,7 @@ def test_convert_sources_uses_pandoc_when_available(
     assert "body_format: asciidoc" in migrated_text
     assert "Converted body" in migrated_text
     config_text = (tmp_path / "archledger.toml").read_text(encoding="utf-8")
-    assert "config_version = 5" in config_text
+    assert "config_version = 7" in config_text
     assert 'default_format = "asciidoc"' in config_text
 
 
@@ -237,7 +237,7 @@ def test_convert_sources_preserves_v5_tracking_and_build_config(
 
     assert result.exit_code == 0
     migrated_config = config_path.read_text(encoding="utf-8")
-    assert "config_version = 5" in migrated_config
+    assert "config_version = 7" in migrated_config
     assert 'format = "asciidoc"' in migrated_config
     assert 'section_extension = ".adoc"' in migrated_config
     assert 'record_extension = ".adoc"' in migrated_config

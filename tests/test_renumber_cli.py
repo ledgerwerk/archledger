@@ -109,6 +109,117 @@ def test_renumber_apply_renames_files_updates_frontmatter_and_config(
     assert check.exit_code == 0
 
 
+def test_renumber_can_enable_content_segments_without_changing_numbers(
+    tmp_path: Path,
+) -> None:
+    init_project(tmp_path, source_format="markdown")
+
+    req = runner.invoke(app, ["--root", str(tmp_path), "new", "requirement", "A"])
+    assert req.exit_code == 0
+    risk = runner.invoke(app, ["--root", str(tmp_path), "new", "risk", "B"])
+    assert risk.exit_code == 0
+
+    result = runner.invoke(
+        app,
+        [
+            "--root",
+            str(tmp_path),
+            "--json",
+            "renumber",
+            "--id-segment-mode",
+            "type",
+            "--apply",
+        ],
+    )
+    assert result.exit_code == 0, result.stdout
+    payload = json.loads(result.stdout)
+
+    renamed = {item["old_id"]: item["new_id"] for item in payload["result"]["renamed"]}
+    assert renamed["al_0004"] == "al_content_0004"
+    assert renamed["al_0013"] == "al_content_0013"
+    assert renamed["al_0014"] == "al_risk_0014"
+
+    assert (tmp_path / ".archledger" / "sections" / "al_content_0004.md").is_file()
+    assert (
+        tmp_path / ".archledger" / "records" / "requirements" / "al_content_0013.md"
+    ).is_file()
+    assert (
+        tmp_path / ".archledger" / "records" / "risks" / "al_risk_0014.md"
+    ).is_file()
+
+    check = runner.invoke(app, ["--root", str(tmp_path), "check"])
+    assert check.exit_code == 0, check.stdout
+
+
+def test_renumber_can_disable_content_segments(tmp_path: Path) -> None:
+    init_project(tmp_path, source_format="markdown")
+    create = runner.invoke(
+        app,
+        ["--root", str(tmp_path), "new", "risk", "A"],
+    )
+    assert create.exit_code == 0
+    enable = runner.invoke(
+        app,
+        ["--root", str(tmp_path), "renumber", "--id-segment-mode", "type", "--apply"],
+    )
+    assert enable.exit_code == 0, enable.stdout
+
+    disable = runner.invoke(
+        app,
+        [
+            "--root",
+            str(tmp_path),
+            "--json",
+            "renumber",
+            "--id-segment-mode",
+            "none",
+            "--apply",
+        ],
+    )
+    assert disable.exit_code == 0, disable.stdout
+    assert (tmp_path / ".archledger" / "records" / "risks" / "al_0013.md").is_file()
+
+
+def test_renumber_segments_rewrite_parent_references(tmp_path: Path) -> None:
+    init_project(tmp_path, source_format="markdown")
+    parent = runner.invoke(app, ["--root", str(tmp_path), "new", "white-box", "Parent"])
+    assert parent.exit_code == 0
+    child = runner.invoke(
+        app,
+        [
+            "--root",
+            str(tmp_path),
+            "new",
+            "white-box",
+            "Child",
+            "--parent",
+            "al_0013",
+        ],
+    )
+    assert child.exit_code == 0
+
+    result = runner.invoke(
+        app,
+        [
+            "--root",
+            str(tmp_path),
+            "renumber",
+            "--id-segment-mode",
+            "type",
+            "--apply",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+
+    child_path = (
+        tmp_path / ".archledger" / "records" / "building_blocks" / "al_block_0014.md"
+    )
+    assert child_path.is_file()
+    child_text = child_path.read_text(encoding="utf-8")
+    assert "parent: al_block_0013" in child_text
+    assert "parent: al_0013" not in child_text
+
+
 def test_renumber_apply_includes_archive_tombstones(tmp_path: Path) -> None:
     init_project(tmp_path)
     create = runner.invoke(
@@ -142,6 +253,36 @@ def test_renumber_apply_includes_archive_tombstones(tmp_path: Path) -> None:
     assert not (
         tmp_path / ".archledger" / "archive" / "tombstones" / "al_0013.adoc"
     ).exists()
+
+
+def test_renumber_segments_include_archive_tombstones(tmp_path: Path) -> None:
+    init_project(tmp_path)
+    create = runner.invoke(
+        app,
+        ["--root", str(tmp_path), "new", "requirement", "A"],
+    )
+    assert create.exit_code == 0
+    missing = tmp_path / ".archledger" / "records" / "requirements" / "al_0013.adoc"
+    missing.unlink()
+    repair = runner.invoke(app, ["--root", str(tmp_path), "doctor", "--repair"])
+    assert repair.exit_code == 0, repair.output
+
+    result = runner.invoke(
+        app,
+        [
+            "--root",
+            str(tmp_path),
+            "renumber",
+            "--id-segment-mode",
+            "type",
+            "--apply",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert (
+        tmp_path / ".archledger" / "archive" / "tombstones" / "al_archive_0013.adoc"
+    ).is_file()
 
 
 def test_renumber_rejects_invalid_prefix(tmp_path: Path) -> None:

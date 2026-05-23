@@ -35,10 +35,13 @@ def test_init_project_name_defaults_to_workspace_basename(tmp_path: Path) -> Non
 
     assert result.exit_code == 0
     config_text = (tmp_path / "archledger.toml").read_text(encoding="utf-8")
-    assert "config_version = 6" in config_text
+    assert "config_version = 7" in config_text
     assert "[ids]" in config_text
     assert 'prefix = "al"' in config_text
     assert "width = 4" in config_text
+    assert 'segment_mode = "none"' in config_text
+    assert 'default_segment = "content"' in config_text
+    assert "[ids.segment_map]" in config_text
     assert "[source]" in config_text
     assert 'format = "asciidoc"' in config_text
     assert "schema_version = 2" in config_text
@@ -247,7 +250,11 @@ def test_schema_json_lists_record_types_statuses_sections_and_formats(
     assert schema["sections"]
     assert schema["source_formats"]
     assert schema["output_formats"]
-    assert schema["id_format"] == {"prefix": "al", "width": 4}
+    assert schema["id_format"] == {
+        "prefix": "al",
+        "width": 4,
+        "segment_mode": "none",
+    }
     assert schema["id_pattern"] == r"^al_(?P<number>\d{4,})$"
 
 
@@ -467,6 +474,7 @@ def test_init_custom_id_format_writes_config_and_sections(tmp_path: Path) -> Non
     assert "[ids]" in config_text
     assert 'prefix = "ta"' in config_text
     assert "width = 3" in config_text
+    assert 'segment_mode = "none"' in config_text
     assert (tmp_path / ".archledger" / "sections" / "ta_001.md").is_file()
     assert (tmp_path / ".archledger" / "sections" / "ta_012.md").is_file()
 
@@ -478,3 +486,24 @@ def test_init_custom_id_format_writes_config_and_sections(tmp_path: Path) -> Non
     assert (
         tmp_path / ".archledger" / "records" / "requirements" / "ta_013.md"
     ).is_file()
+
+
+def test_init_can_enable_id_segments(tmp_path: Path) -> None:
+    result = runner.invoke(
+        app,
+        [
+            "--root",
+            str(tmp_path),
+            "init",
+            "--source-format",
+            "markdown",
+            "--id-segment-mode",
+            "type",
+        ],
+    )
+
+    assert result.exit_code == 0, result.stdout
+    assert (tmp_path / ".archledger" / "sections" / "al_content_0001.md").is_file()
+    config_text = (tmp_path / "archledger.toml").read_text(encoding="utf-8")
+    assert 'segment_mode = "type"' in config_text
+    assert "[ids.segment_map]" in config_text

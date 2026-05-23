@@ -5,6 +5,7 @@ from pathlib import Path
 from archledger.converters import BuildResult
 from archledger.ids import (
     DEFAULT_ID_PREFIX,
+    DEFAULT_ID_SEGMENT_MODE,
     DEFAULT_ID_WIDTH,
     LedgerIdFormat,
     format_ledger_id,
@@ -94,7 +95,7 @@ def schema_payload(
     config: ProjectConfig,
 ) -> dict[str, object]:
     del repo, paths
-    id_format = LedgerIdFormat(prefix=config.id_prefix, width=config.id_width)
+    id_format = config.id_format
     return {
         "schema": "archledger.schema.v1",
         "record_types": [
@@ -110,10 +111,17 @@ def schema_payload(
         "id_format": {
             "prefix": config.id_prefix,
             "width": config.id_width,
+            "segment_mode": config.id_segment_mode,
         },
         "id_pattern": id_format.pattern_text,
         "reserved_section_ids": {
-            section.key: id_format.format(section.number)
+            section.key: id_format.format(
+                section.number,
+                segment=config.id_segment_map.get(
+                    "section",
+                    config.id_default_segment,
+                ),
+            )
             for section in MAJOR_SECTION_SPECS
         },
         "statuses": sorted(VALID_STATUSES),
@@ -352,9 +360,20 @@ def archive_payload(result: ArchiveResult) -> dict[str, object]:
 def doctor_payload(
     result: DoctorResult,
     *,
+    id_format: LedgerIdFormat | None = None,
     id_prefix: str = DEFAULT_ID_PREFIX,
     id_width: int = DEFAULT_ID_WIDTH,
+    id_segment_mode: str = DEFAULT_ID_SEGMENT_MODE,
 ) -> dict[str, object]:
+    resolved_format = (
+        LedgerIdFormat(
+            prefix=id_prefix,
+            width=id_width,
+            segment_mode=id_segment_mode,
+        )
+        if id_format is None
+        else id_format
+    )
     return {
         "schema": "archledger.doctor.v1",
         "errors": [finding_payload(finding) for finding in result.errors],
@@ -374,11 +393,11 @@ def doctor_payload(
             "storage_next_number_before": result.storage_next_number_before,
             "storage_next_number_after": result.storage_next_number_after,
             "missing_ids": [
-                format_ledger_id(n, prefix=id_prefix, width=id_width)
+                _display_ledger_number(n, resolved_format)
                 for n in result.missing_numbers
             ],
             "duplicate_ids": [
-                format_ledger_id(n, prefix=id_prefix, width=id_width)
+                _display_ledger_number(n, resolved_format)
                 for n in result.duplicate_numbers
             ],
         },
@@ -392,10 +411,12 @@ def renumber_payload(result: RenumberResult) -> dict[str, object]:
         "old_format": {
             "prefix": result.old_prefix,
             "width": result.old_width,
+            "segment_mode": result.old_segment_mode,
         },
         "new_format": {
             "prefix": result.new_prefix,
             "width": result.new_width,
+            "segment_mode": result.new_segment_mode,
         },
         "renamed_count": len(result.renamed),
         "rewritten_count": len(result.rewritten),
@@ -426,6 +447,16 @@ def finding_payload(finding: CheckFinding) -> dict[str, object]:
     if finding.path is not None:
         payload["path"] = str(finding.path)
     return payload
+
+
+def _display_ledger_number(number: int, id_format: LedgerIdFormat) -> str:
+    if id_format.segment_mode == "none":
+        return format_ledger_id(
+            number,
+            prefix=id_format.prefix,
+            width=id_format.width,
+        )
+    return f"{id_format.prefix}_<segment>_{number:0{id_format.width}d}"
 
 
 def build_result_payload(result: BuildResult) -> dict[str, object]:

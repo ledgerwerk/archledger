@@ -10,7 +10,8 @@ from jinja2 import Environment, PackageLoader, select_autoescape
 from archledger import __version__
 from archledger.checks import content_warnings
 from archledger.errors import StorageError, ValidationError
-from archledger.ids import format_ledger_id, is_ledger_id, parse_ledger_id
+from archledger.id_segments import id_segment_for_metadata
+from archledger.ids import validate_id_segment
 from archledger.model import (
     CURRENT_SOURCE_SCHEMA_VERSION,
     MAJOR_SECTION_SPECS,
@@ -22,13 +23,11 @@ from archledger.model import (
     VALID_BODY_FORMATS,
     ArchitectureRecord,
     SectionSpec,
-    filename_for,
     is_visible_status,
     normalize_kind,
     record_sort_key,
     record_template_name_for_source_format,
     section_body_placeholder_for_source_format,
-    section_filename_for,
     validate_record,
 )
 from archledger.record_types import RecordContextInput
@@ -160,9 +159,12 @@ class ArchitectureRepository:
             ensure_dir(directory_path)
 
         for section_spec in MAJOR_SECTION_SPECS:
-            section_path = self.paths.sections_dir / section_filename_for(
-                section_spec,
-                self.config.section_extension,
+            section_id = self.config.id_format.format(
+                section_spec.number,
+                segment=self._id_segment_for_section(section_spec),
+            )
+            section_path = (
+                self.paths.sections_dir / f"{section_id}{self.config.section_extension}"
             )
             if not section_path.exists() or overwrite:
                 write_text_atomic(
@@ -170,6 +172,7 @@ class ArchitectureRepository:
                     _section_document(
                         section_spec,
                         self.config.source_format,
+                        record_id=section_id,
                         source_schema_version=self.config.source_schema_version,
                         created_at=created_at,
                     ),
@@ -187,6 +190,7 @@ class ArchitectureRepository:
                         self.config.section_extension,
                         self.config.record_extension,
                     ),
+                    id_format=self.config.id_format,
                 ),
             )
             write_storage_meta(self.paths.storage_meta_path, meta)
@@ -248,13 +252,17 @@ class ArchitectureRepository:
                 self.config.section_extension,
                 self.config.record_extension,
             ),
+            id_format=self.config.id_format,
         )
-        filename = filename_for(number, extension=self.config.record_extension)
+        segment = self._id_segment_for_kind(normalized_kind)
+        record_id = self.config.id_format.format(number, segment=segment)
+        filename = f"{record_id}{self.config.record_extension}"
         target_dir = self.paths.records_dir / RECORD_TYPE_TO_DIR[normalized_kind]
         target_path = target_dir / filename
         while target_path.exists():
             number += 1
-            filename = filename_for(number, extension=self.config.record_extension)
+            record_id = self.config.id_format.format(number, segment=segment)
+            filename = f"{record_id}{self.config.record_extension}"
             target_path = target_dir / filename
         order = self._next_order(normalized_kind)
         created_at = utc_now_iso()
@@ -347,7 +355,16 @@ class ArchitectureRepository:
                 findings_errors.append(CheckFinding("error", exc.message, path))
                 continue
 
-            issues = validate_record(record)
+            expected_segment = (
+                self._id_segment_for_metadata(record.metadata)
+                if self.config.id_segment_mode != "none"
+                else None
+            )
+            issues = validate_record(
+                record,
+                id_format=self.config.id_format,
+                expected_segment=expected_segment,
+            )
             for issue in issues:
                 findings_errors.append(CheckFinding("error", issue, path))
             source_errors, source_warnings = self._source_contract_findings(record)
@@ -427,7 +444,10 @@ class ArchitectureRepository:
                 )
 
         for section_spec in MAJOR_SECTION_SPECS:
-            section_id = format_ledger_id(section_spec.number)
+            section_id = self.config.id_format.format(
+                section_spec.number,
+                segment=self._id_segment_for_section(section_spec),
+            )
             section_paths = [
                 self.paths.sections_dir / f"{section_id}{extension}"
                 for extension in self._known_source_extensions()
@@ -483,7 +503,7 @@ class ArchitectureRepository:
 
     def archive_record(self, record_id: str, *, reason: str = "") -> ArchiveResult:
         self._ensure_storage_ready()
-        if not is_ledger_id(record_id):
+        if not self.config.id_format.is_id(record_id):
             raise ValidationError(f"Invalid ledger ID: {record_id}")
 
         active_path: Path | None = None
@@ -571,9 +591,13 @@ class ArchitectureRepository:
                     None,
                 )
                 if section_spec is not None:
-                    section_path = self.paths.sections_dir / section_filename_for(
-                        section_spec,
-                        self.config.section_extension,
+                    section_id = self.config.id_format.format(
+                        section_spec.number,
+                        segment=self._id_segment_for_section(section_spec),
+                    )
+                    section_path = (
+                        self.paths.sections_dir
+                        / f"{section_id}{self.config.section_extension}"
                     )
                     if not section_path.is_file():
                         write_text_atomic(
@@ -581,16 +605,14 @@ class ArchitectureRepository:
                             _section_document(
                                 section_spec,
                                 self.config.source_format,
+                                record_id=section_id,
                                 source_schema_version=self.config.source_schema_version,
                             ),
                         )
                         repairs.append(
                             DoctorRepair(
                                 kind="recreated_section",
-                                message=(
-                                    f"Recreated required section "
-                                    f"{format_ledger_id(number)}"
-                                ),
+                                message=(f"Recreated required section {section_id}"),
                                 path=section_path,
                             )
                         )
@@ -600,7 +622,8 @@ class ArchitectureRepository:
                     DoctorRepair(
                         kind="created_tombstone",
                         message=(
-                            f"Created archive tombstone {format_ledger_id(number)}"
+                            f"Created archive tombstone"
+                            f" {self._display_missing_id(number)}"
                         ),
                         path=tombstone_path,
                     )
@@ -621,6 +644,7 @@ class ArchitectureRepository:
                 self.config.section_extension,
                 self.config.record_extension,
             ),
+            id_format=self.config.id_format,
         )
         if repair and next_number_after != meta_before.next_number:
             self._write_counter(next_number_after)
@@ -674,7 +698,7 @@ class ArchitectureRepository:
                 self._known_source_extensions(),
             ):
                 try:
-                    number = parse_ledger_id(path.stem)
+                    number = self.config.id_format.parse(path.stem)
                 except ValueError:
                     continue
                 results.append(
@@ -718,7 +742,7 @@ class ArchitectureRepository:
                 CheckFinding(
                     "error",
                     (
-                        f"Missing ledger ID: {format_ledger_id(number)}. "
+                        f"Missing ledger ID: {self._display_missing_id(number)}. "
                         "Move deleted items to archive or run: "
                         "archledger doctor --repair"
                     ),
@@ -731,7 +755,7 @@ class ArchitectureRepository:
                 CheckFinding(
                     "error",
                     (
-                        f"Duplicate ledger ID {format_ledger_id(number)} "
+                        f"Duplicate ledger ID {self._display_missing_id(number)} "
                         f"appears in: {locations}"
                     ),
                     None,
@@ -752,17 +776,20 @@ class ArchitectureRepository:
         return errors, warnings, missing_numbers, duplicate_numbers, highest_seen
 
     def _write_archive_tombstone(self, number: int) -> Path:
+        record_id = self.config.id_format.format(
+            number,
+            segment=self.config.id_segment_map.get(
+                "archive_tombstone",
+                self.config.id_default_segment,
+            ),
+        )
         path = (
             self.paths.archive_dir
             / "tombstones"
-            / filename_for(
-                number,
-                extension=self.config.record_extension,
-            )
+            / f"{record_id}{self.config.record_extension}"
         )
         if path.exists():
             return path
-        record_id = format_ledger_id(number)
         now = utc_now_iso()
         metadata = {
             "schema_version": self.config.source_schema_version,
@@ -789,6 +816,29 @@ class ArchitectureRepository:
         ensure_dir(path.parent)
         write_front_matter_document(path, metadata, body)
         return path
+
+    def _id_segment_for_kind(self, kind: str) -> str:
+        return validate_id_segment(
+            self.config.id_segment_map.get(kind, self.config.id_default_segment)
+        )
+
+    def _id_segment_for_section(self, section_spec: SectionSpec) -> str:
+        del section_spec
+        return validate_id_segment(
+            self.config.id_segment_map.get("section", self.config.id_default_segment)
+        )
+
+    def _id_segment_for_metadata(self, metadata: dict[str, object]) -> str:
+        return id_segment_for_metadata(
+            metadata,
+            default_segment=self.config.id_default_segment,
+            segment_map=self.config.id_segment_map,
+        )
+
+    def _display_missing_id(self, number: int) -> str:
+        if self.config.id_segment_mode == "none":
+            return self.config.id_format.format(number)
+        return f"{self.config.id_prefix}_<segment>_{number:0{self.config.id_width}d}"
 
     def _template_context(
         self,
@@ -934,6 +984,7 @@ class ArchitectureRepository:
                             self.config.section_extension,
                             self.config.record_extension,
                         ),
+                        id_format=self.config.id_format,
                     ),
                     next_number,
                 ),
@@ -1021,6 +1072,7 @@ def _section_document(
     section_spec: SectionSpec,
     source_format: str,
     *,
+    record_id: str,
     source_schema_version: int = CURRENT_SOURCE_SCHEMA_VERSION,
     created_at: str | None = None,
 ) -> str:
@@ -1028,7 +1080,7 @@ def _section_document(
     lines = [
         "---",
         f"schema_version: {source_schema_version}",
-        f"id: {format_ledger_id(section_spec.number)}",
+        f"id: {record_id}",
         "type: section",
         f"section: {section_spec.key}",
         f"title: {section_spec.title}",

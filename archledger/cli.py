@@ -115,7 +115,7 @@ from archledger.cli_payloads import (
     where_payload as _where_payload,
 )
 from archledger.errors import ArchledgerError, StorageError
-from archledger.ids import DEFAULT_ID_PREFIX, DEFAULT_ID_WIDTH
+from archledger.ids import DEFAULT_ID_PREFIX, DEFAULT_ID_SEGMENT_MODE, DEFAULT_ID_WIDTH
 from archledger.migration import convert_sources
 from archledger.model import ArchitectureRecord
 from archledger.render import build_document
@@ -262,6 +262,13 @@ def init(
         int,
         typer.Option("--id-width", help="Minimum ledger ID digit width."),
     ] = DEFAULT_ID_WIDTH,
+    id_segment_mode: Annotated[
+        str,
+        typer.Option(
+            "--id-segment-mode",
+            help="Ledger ID segment mode (none or type).",
+        ),
+    ] = DEFAULT_ID_SEGMENT_MODE,
     # Build options
     build_default_format: Annotated[
         str | None,
@@ -425,6 +432,7 @@ def init(
             source_format=source_format,
             id_prefix=id_prefix,
             id_width=id_width,
+            id_segment_mode=id_segment_mode,
             project_name=project_name,
             project_uuid=project_uuid,
             build_default_format=build_default_format,
@@ -773,14 +781,12 @@ def doctor(
                 f"Doctor found {len(result.errors)} error(s).",
                 details=_doctor_payload(
                     result,
-                    id_prefix=config.id_prefix,
-                    id_width=config.id_width,
+                    id_format=config.id_format,
                 ),
             )
         return _doctor_payload(
             result,
-            id_prefix=config.id_prefix,
-            id_width=config.id_width,
+            id_format=config.id_format,
         )
 
     _run_configured_command(state, "doctor", build_result, _format_doctor_message)
@@ -789,8 +795,18 @@ def doctor(
 @app.command("renumber")
 def renumber(
     ctx: typer.Context,
-    prefix: Annotated[str, typer.Option("--prefix", help="New ledger ID prefix.")],
-    width: Annotated[int, typer.Option("--width", help="New ledger ID digit width.")],
+    prefix: Annotated[
+        str | None,
+        typer.Option("--prefix", help="New ledger ID prefix."),
+    ] = None,
+    width: Annotated[
+        int | None,
+        typer.Option("--width", help="New ledger ID digit width."),
+    ] = None,
+    id_segment_mode: Annotated[
+        str | None,
+        typer.Option("--id-segment-mode", help="New ID segment mode: none or type."),
+    ] = None,
     apply: Annotated[
         bool,
         typer.Option("--apply", help="Apply the renumbering plan."),
@@ -812,8 +828,7 @@ def renumber(
                 ),
                 details=_doctor_payload(
                     doctor_result,
-                    id_prefix=config.id_prefix,
-                    id_width=config.id_width,
+                    id_format=config.id_format,
                 ),
             )
         result = renumber_project(
@@ -821,6 +836,7 @@ def renumber(
             config,
             new_prefix=prefix,
             new_width=width,
+            new_segment_mode=id_segment_mode,
             apply=apply,
         )
         return _renumber_payload(result)

@@ -223,6 +223,74 @@ def test_v5_config_supports_tracking_settings(tmp_path: Path) -> None:
     )
 
 
+def test_v7_config_supports_id_segment_mode_and_map(tmp_path: Path) -> None:
+    workspace_root = tmp_path / "workspace-v7"
+    workspace_root.mkdir()
+    (workspace_root / "archledger.toml").write_text(
+        "\n".join(
+            [
+                "config_version = 7",
+                'archledger_dir = ".archledger"',
+                'project_uuid = "12345678-1234-1234-1234-123456789abc"',
+                'project_name = "demo"',
+                "",
+                "[ids]",
+                'prefix = "al"',
+                "width = 4",
+                'segment_mode = "type"',
+                'default_segment = "content"',
+                "",
+                "[ids.segment_map]",
+                'risk = "risk"',
+                'section = "content"',
+                "",
+                "[source]",
+                'format = "markdown"',
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    _, config, warnings = resolve_project_paths(workspace_root)
+
+    assert warnings == []
+    assert config.id_segment_mode == "type"
+    assert config.id_default_segment == "content"
+    assert config.id_segment_map["risk"] == "risk"
+    assert config.id_segment_map["section"] == "content"
+
+
+@pytest.mark.parametrize("bad", ["risk_item", "1risk", ""])
+def test_id_segment_rejects_invalid_values(tmp_path: Path, bad: str) -> None:
+    workspace_root = tmp_path / "workspace-bad-segment"
+    workspace_root.mkdir()
+    (workspace_root / "archledger.toml").write_text(
+        "\n".join(
+            [
+                "config_version = 7",
+                'archledger_dir = ".archledger"',
+                'project_uuid = "12345678-1234-1234-1234-123456789abc"',
+                'project_name = "demo"',
+                "",
+                "[ids]",
+                'prefix = "al"',
+                "width = 4",
+                'segment_mode = "type"',
+                f'default_segment = "{bad}"',
+                "",
+                "[source]",
+                'format = "markdown"',
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ConfigError, match="segment"):
+        resolve_project_paths(workspace_root)
+
+
 def test_project_config_fields_are_accounted_for() -> None:
     # Behavior-linked fields have dedicated tests across build/path/migration/tracking
     # coverage; metadata-only fields are kept explicit here so new parsed fields
@@ -234,6 +302,9 @@ def test_project_config_fields_are_accounted_for() -> None:
         "project_name",
         "id_prefix",
         "id_width",
+        "id_segment_mode",
+        "id_default_segment",
+        "id_segment_map",
         "source_format",
         "source_schema_version",
         "front_matter",
@@ -614,7 +685,7 @@ def test_config_version_bool_is_rejected(tmp_path: Path) -> None:
 
     with pytest.raises(ConfigError) as excinfo:
         resolve_project_paths(workspace_root)
-    assert str(excinfo.value) == "config_version must be 1, 2, 3, 4, 5, or 6."
+    assert str(excinfo.value) == "config_version must be 1, 2, 3, 4, 5, 6, or 7."
 
 
 def test_v6_config_supports_ids_table(tmp_path: Path) -> None:

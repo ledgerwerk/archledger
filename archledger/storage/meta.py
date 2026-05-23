@@ -7,7 +7,7 @@ from typing import cast
 import yaml
 
 from archledger.errors import StorageError
-from archledger.ids import DEFAULT_ID_PREFIX, DEFAULT_ID_WIDTH, parse_ledger_id
+from archledger.ids import LedgerIdFormat
 from archledger.model import SOURCE_FORMAT_EXTENSIONS
 from archledger.storage.common import read_text, utc_now_iso, write_text_atomic
 
@@ -91,9 +91,9 @@ def recompute_next_number(
     archledger_dir: Path,
     *,
     source_extensions: tuple[str, ...] = (),
-    id_prefix: str = DEFAULT_ID_PREFIX,
-    id_width: int = DEFAULT_ID_WIDTH,
+    id_format: LedgerIdFormat | None = None,
 ) -> int:
+    resolved_id_format = LedgerIdFormat() if id_format is None else id_format
     known_extensions = {
         *SOURCE_FORMAT_EXTENSIONS.values(),
         *(extension.lower() for extension in source_extensions),
@@ -110,11 +110,7 @@ def recompute_next_number(
             if not path.is_file() or path.suffix.lower() not in known_extensions:
                 continue
             try:
-                number = parse_ledger_id(
-                    path.stem,
-                    prefix=id_prefix,
-                    width=id_width,
-                )
+                number = resolved_id_format.parse(path.stem)
             except ValueError:
                 continue
             highest = max(highest, number)
@@ -126,15 +122,13 @@ def next_number_floor(
     current_next_number: int,
     *,
     source_extensions: tuple[str, ...] = (),
-    id_prefix: str = DEFAULT_ID_PREFIX,
-    id_width: int = DEFAULT_ID_WIDTH,
+    id_format: LedgerIdFormat | None = None,
 ) -> int:
     return max(
         current_next_number,
         recompute_next_number(
             archledger_dir,
             source_extensions=source_extensions,
-            id_prefix=id_prefix,
-            id_width=id_width,
+            id_format=id_format,
         ),
     )

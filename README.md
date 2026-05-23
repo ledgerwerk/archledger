@@ -71,6 +71,7 @@ Converter-backed formats are part of the supported workflow only when those tool
 ```bash
 archledger init --source-format markdown
 archledger init --source-format markdown --id-prefix ta --id-width 3
+archledger init --source-format markdown --id-segment-mode type
 archledger seed arc42-minimal
 archledger --json read --body
 archledger build --format markdown
@@ -123,9 +124,40 @@ ID format is configurable via `[ids]`:
 [ids]
 prefix = "al"
 width = 4
+segment_mode = "none"
+default_segment = "content"
 ```
 
-Use `archledger renumber --prefix ta --width 3` (dry run) and `archledger renumber --prefix ta --width 3 --apply` to migrate existing source IDs and references.
+Segmented IDs use:
+
+```text
+<prefix>_<segment>_<number>
+```
+
+Example:
+
+```text
+al_content_0013
+al_risk_0014
+```
+
+`segment_mode = "type"` resolves the segment deterministically from front matter:
+
+1. `id_segment` metadata (if present and valid)
+2. `[ids.segment_map]` lookup by `type`
+3. `default_segment`
+
+Use renumber to migrate existing IDs and references:
+
+```bash
+archledger renumber --prefix ta --width 3
+archledger renumber --prefix ta --width 3 --apply
+archledger renumber --id-segment-mode type
+archledger renumber --id-segment-mode type --apply
+archledger renumber --id-segment-mode none --apply
+```
+
+The numeric sequence is always global and unchanged (for example `0014` stays `0014`).
 
 ### Generated outputs
 

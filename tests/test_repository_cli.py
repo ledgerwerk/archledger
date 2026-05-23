@@ -243,6 +243,72 @@ def test_new_record_uses_configured_id_format(tmp_path: Path) -> None:
     assert payload["result"]["path"].endswith("records/requirements/ta_013.md")
 
 
+def test_new_requirement_uses_content_segment_when_enabled(tmp_path: Path) -> None:
+    init_result = runner.invoke(
+        app,
+        [
+            "--root",
+            str(tmp_path),
+            "init",
+            "--source-format",
+            "markdown",
+            "--id-segment-mode",
+            "type",
+        ],
+    )
+    assert init_result.exit_code == 0, init_result.stdout
+
+    result = runner.invoke(
+        app,
+        [
+            "--root",
+            str(tmp_path),
+            "--json",
+            "new",
+            "requirement",
+            "Local accounting",
+        ],
+    )
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload["result"]["id"] == "al_content_0013"
+    assert payload["result"]["path"].endswith("records/requirements/al_content_0013.md")
+
+
+def test_new_risk_uses_risk_segment_when_enabled(tmp_path: Path) -> None:
+    init_result = runner.invoke(
+        app,
+        [
+            "--root",
+            str(tmp_path),
+            "init",
+            "--source-format",
+            "markdown",
+            "--id-segment-mode",
+            "type",
+        ],
+    )
+    assert init_result.exit_code == 0, init_result.stdout
+
+    result = runner.invoke(
+        app,
+        [
+            "--root",
+            str(tmp_path),
+            "--json",
+            "new",
+            "risk",
+            "Data retention risk",
+        ],
+    )
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload["result"]["id"] == "al_risk_0013"
+    assert payload["result"]["path"].endswith("records/risks/al_risk_0013.md")
+
+
 def test_new_requirement_increments_with_custom_record_extension(
     tmp_path: Path,
 ) -> None:

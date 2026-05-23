@@ -5,9 +5,10 @@ from pathlib import Path
 
 from archledger.ids import (
     DEFAULT_ID_PREFIX,
+    DEFAULT_ID_SEGMENT_MODE,
     DEFAULT_ID_WIDTH,
+    LedgerIdFormat,
     format_ledger_id,
-    is_ledger_id,
 )
 from archledger.record_types import (
     CLI_KIND_ALIASES as _CLI_KIND_ALIASES,
@@ -217,9 +218,16 @@ def normalize_kind(kind: str) -> str:
 def validate_record(
     record: ArchitectureRecord,
     *,
+    id_format: LedgerIdFormat | None = None,
+    expected_segment: str | None = None,
     id_prefix: str = DEFAULT_ID_PREFIX,
     id_width: int = DEFAULT_ID_WIDTH,
 ) -> list[str]:
+    resolved_format = (
+        LedgerIdFormat(prefix=id_prefix, width=id_width)
+        if id_format is None
+        else id_format
+    )
     issues: list[str] = []
     if record.type not in VALID_RECORD_TYPES and record.type != "section":
         issues.append(f"Unknown record type: {record.type}")
@@ -235,10 +243,19 @@ def validate_record(
         issues.append(
             f"Record id {record.id!r} does not match filename stem {record.path.stem!r}"
         )
-    if not is_ledger_id(record.id, prefix=id_prefix, width=id_width):
+    try:
+        parsed = resolved_format.parse_parts(record.id)
+    except ValueError:
         issues.append(
-            f"Record id {record.id!r} must match {id_prefix}_N{'N' * (id_width - 1)}."
+            f"Record id {record.id!r} must match {resolved_format.pattern_text}."
         )
+    else:
+        if resolved_format.segment_mode != "none" and expected_segment is not None:
+            if parsed.segment != expected_segment:
+                issues.append(
+                    f"Record id {record.id!r} has segment {parsed.segment!r}, "
+                    f"but {expected_segment!r} is expected for type {record.type!r}."
+                )
     return issues
 
 
@@ -311,12 +328,16 @@ def section_filename_for(
     *,
     id_prefix: str = DEFAULT_ID_PREFIX,
     id_width: int = DEFAULT_ID_WIDTH,
+    segment_mode: str = DEFAULT_ID_SEGMENT_MODE,
+    segment: str | None = None,
 ) -> str:
     return filename_for(
         section_spec.number,
         extension=extension,
         id_prefix=id_prefix,
         id_width=id_width,
+        segment_mode=segment_mode,
+        segment=segment,
     )
 
 
@@ -326,8 +347,17 @@ def filename_for(
     *,
     id_prefix: str = DEFAULT_ID_PREFIX,
     id_width: int = DEFAULT_ID_WIDTH,
+    segment_mode: str = DEFAULT_ID_SEGMENT_MODE,
+    segment: str | None = None,
 ) -> str:
-    return f"{format_ledger_id(number, prefix=id_prefix, width=id_width)}{extension}"
+    record_id = format_ledger_id(
+        number,
+        prefix=id_prefix,
+        width=id_width,
+        segment_mode=segment_mode,
+        segment=segment,
+    )
+    return f"{record_id}{extension}"
 
 
 def id_from_filename(path: Path) -> str:

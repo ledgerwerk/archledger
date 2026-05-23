@@ -103,6 +103,10 @@ Core options
    Minimum digit width for generated ledger IDs.
    Default: ``4``.
 
+``--id-segment-mode MODE``
+   Ledger ID segment mode: ``none`` or ``type``.
+   Default: ``none``.
+
 Build options
 ^^^^^^^^^^^^^
 
@@ -242,6 +246,12 @@ External state directory:
 
    archledger init --archledger-dir /shared/archledger-state
 
+Segmented IDs for record-type-based naming:
+
+.. code-block:: bash
+
+   archledger init --source-format markdown --id-segment-mode type
+
 JSON output for automation:
 
 .. code-block:: bash
@@ -292,6 +302,9 @@ Renumber IDs and references:
 
    archledger renumber --prefix ta --width 3
    archledger renumber --prefix ta --width 3 --apply
+   archledger renumber --id-segment-mode type
+   archledger renumber --id-segment-mode type --apply
+   archledger renumber --id-segment-mode none --apply
 
 ``check`` is read-only. It validates numbering and integrity but does not mutate counters or source files.
 

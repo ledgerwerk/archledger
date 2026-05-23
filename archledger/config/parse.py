@@ -6,6 +6,8 @@ from typing import cast
 from uuid import UUID
 
 from archledger.config.model import (
+    DEFAULT_ID_SEGMENT,
+    DEFAULT_ID_SEGMENT_MAP,
     DEFAULT_TRACKING_EXCLUDE,
     DEFAULT_TRACKING_INCLUDE,
     VALID_BUILD_CONVERTERS,
@@ -20,13 +22,17 @@ from archledger.config.model import (
 from archledger.errors import ConfigError
 from archledger.ids import (
     DEFAULT_ID_PREFIX,
+    DEFAULT_ID_SEGMENT_MODE,
     DEFAULT_ID_WIDTH,
     validate_id_prefix,
+    validate_id_segment,
+    validate_id_segment_mode,
     validate_id_width,
 )
 from archledger.model import (
     CURRENT_SOURCE_SCHEMA_VERSION,
     VALID_OUTPUT_FORMATS,
+    VALID_RECORD_TYPES,
     VALID_SOURCE_FORMATS,
     default_document_filename_for_output_format,
     default_extension_for_source_format,
@@ -67,7 +73,13 @@ _ALLOWED_BUILD_KEYS = {
     "diagrams",
 }
 _ALLOWED_BUILD_OUTPUT_KEYS = {"enabled", "pdf_engine", "reference_docx", "tool"}
-_ALLOWED_IDS_KEYS = {"prefix", "width"}
+_ALLOWED_IDS_KEYS = {
+    "prefix",
+    "width",
+    "segment_mode",
+    "default_segment",
+    "segment_map",
+}
 _ALLOWED_ARC42_KEYS = {"template_version", "language", "title", "include_help"}
 _ALLOWED_SKILL_KEYS = {"installed", "path"}
 _ALLOWED_TRACKING_KEYS = {
@@ -160,8 +172,8 @@ def load_project_config(path: Path) -> ProjectConfig:
     )
 
     config_version = raw_data.get("config_version")
-    if isinstance(config_version, bool) or config_version not in {1, 2, 3, 4, 5, 6}:
-        raise ConfigError("config_version must be 1, 2, 3, 4, 5, or 6.")
+    if isinstance(config_version, bool) or config_version not in {1, 2, 3, 4, 5, 6, 7}:
+        raise ConfigError("config_version must be 1, 2, 3, 4, 5, 6, or 7.")
 
     archledger_dir = raw_data.get("archledger_dir")
     if not isinstance(archledger_dir, str) or not archledger_dir.strip():
@@ -196,7 +208,13 @@ def load_project_config(path: Path) -> ProjectConfig:
         build_outputs,
     ) = _parse_build_config(build_data, cast(int, config_version), source_format)
     template_version, language, title, include_help = _parse_arc42_config(arc42_data)
-    id_prefix, id_width = _parse_ids_config(ids_data)
+    (
+        id_prefix,
+        id_width,
+        id_segment_mode,
+        id_default_segment,
+        id_segment_map,
+    ) = _parse_ids_config(ids_data)
     skill_installed, skill_path = _parse_skill_config(skill_data)
     (
         tracking_enabled,
@@ -223,6 +241,9 @@ def load_project_config(path: Path) -> ProjectConfig:
         project_name=normalize_project_name(project_name),
         id_prefix=id_prefix,
         id_width=id_width,
+        id_segment_mode=id_segment_mode,
+        id_default_segment=id_default_segment,
+        id_segment_map=id_segment_map,
         source_format=source_format,
         source_schema_version=source_schema_version,
         front_matter=front_matter.strip().lower(),
@@ -261,9 +282,14 @@ def load_project_config(path: Path) -> ProjectConfig:
     )
 
 
-def _parse_ids_config(ids_data: dict[str, object]) -> tuple[str, int]:
+def _parse_ids_config(
+    ids_data: dict[str, object],
+) -> tuple[str, int, str, str, dict[str, str]]:
     prefix_value = ids_data.get("prefix", DEFAULT_ID_PREFIX)
     width_value = ids_data.get("width", DEFAULT_ID_WIDTH)
+    segment_mode_value = ids_data.get("segment_mode", DEFAULT_ID_SEGMENT_MODE)
+    default_segment_value = ids_data.get("default_segment", DEFAULT_ID_SEGMENT)
+    segment_map_value = ids_data.get("segment_map")
 
     if not isinstance(prefix_value, str):
         raise ConfigError("ids.prefix must be a string.")
@@ -277,7 +303,43 @@ def _parse_ids_config(ids_data: dict[str, object]) -> tuple[str, int]:
     except ValueError as exc:
         raise ConfigError(str(exc)) from exc
 
-    return prefix, width
+    if not isinstance(segment_mode_value, str):
+        raise ConfigError("ids.segment_mode must be a string.")
+    try:
+        segment_mode = validate_id_segment_mode(segment_mode_value)
+    except ValueError as exc:
+        raise ConfigError(str(exc)) from exc
+
+    if not isinstance(default_segment_value, str):
+        raise ConfigError("ids.default_segment must be a string.")
+    try:
+        default_segment = validate_id_segment(default_segment_value)
+    except ValueError as exc:
+        raise ConfigError(str(exc)) from exc
+
+    segment_map = dict(DEFAULT_ID_SEGMENT_MAP)
+    if segment_map_value is not None:
+        if not isinstance(segment_map_value, dict):
+            raise ConfigError("ids.segment_map must be a TOML table.")
+        allowed_segment_keys = set(VALID_RECORD_TYPES) | {
+            "section",
+            "archive_tombstone",
+        }
+        unknown_keys = sorted(set(segment_map_value) - allowed_segment_keys)
+        if unknown_keys:
+            joined = ", ".join(unknown_keys)
+            raise ConfigError(
+                "ids.segment_map contains unknown record types: " + joined
+            )
+        for key, value in segment_map_value.items():
+            if not isinstance(value, str):
+                raise ConfigError(f"ids.segment_map.{key} must be a string.")
+            try:
+                segment_map[key] = validate_id_segment(value)
+            except ValueError as exc:
+                raise ConfigError(str(exc)) from exc
+
+    return prefix, width, segment_mode, default_segment, segment_map
 
 
 def _validate_subtable(

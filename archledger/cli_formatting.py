@@ -265,8 +265,11 @@ def format_renumber_message(payload: dict[str, object]) -> str:
     action = "Renumbered" if payload.get("apply") else "Planned renumbering"
     lines = [
         (
-            f"{action}: {old_format['prefix']}/{old_format['width']} -> "
-            f"{new_format['prefix']}/{new_format['width']}"
+            f"{action}: "
+            f"{old_format['prefix']}/{old_format['width']}/"
+            f"{old_format.get('segment_mode', 'none')}"
+            f" -> {new_format['prefix']}/{new_format['width']}/"
+            f"{new_format.get('segment_mode', 'none')}"
         ),
         f"Files to rename: {payload['renamed_count']}",
         f"Files to rewrite: {payload['rewritten_count']}",

@@ -1,4 +1,6 @@
 from archledger.config import (
+    DEFAULT_ID_SEGMENT,
+    DEFAULT_ID_SEGMENT_MAP,
     DEFAULT_TRACKING_EXCLUDE,
     DEFAULT_TRACKING_INCLUDE,
     Arc42Config,
@@ -23,6 +25,8 @@ __all__ = [
     "BuildConfig",
     "BuildOutputConfig",
     "DiagramConfig",
+    "DEFAULT_ID_SEGMENT",
+    "DEFAULT_ID_SEGMENT_MAP",
     "DEFAULT_TRACKING_EXCLUDE",
     "DEFAULT_TRACKING_INCLUDE",
     "DEFAULT_ID_PREFIX",

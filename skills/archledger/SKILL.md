@@ -55,6 +55,9 @@ Then:
 4. Use `archledger build --format markdown` or `archledger build --format asciidoc` for native validation.
 5. Do not read generated build output from the configured build output directory as source of truth.
 6. Read `archledger.toml` `[ids]` settings before creating, validating, or rewriting ledger ID references.
+7. Respect `[ids].segment_mode`:
+   - `none`: `<prefix>_<number>`
+   - `type`: `<prefix>_<segment>_<number>` with segment from `id_segment`, `ids.segment_map[type]`, or `ids.default_segment`.
 
 If storage is missing and the user asked to create architecture docs in this repository:
 
@@ -99,7 +102,7 @@ updated_at: "2026-05-20T00:00:00Z"
 ```
 
 `body_format` must match the project source format (`markdown` or `asciidoc`).
-Ledger IDs must match the configured `[ids]` prefix/width in `archledger.toml`; do not hardcode `al_` in automation.
+Ledger IDs must match the configured `[ids]` format in `archledger.toml`; do not hardcode `al_` in automation.
 
 When a fragment documents concrete implementation artifacts, add optional `source_refs` metadata:
 
@@ -163,6 +166,7 @@ Prefer sections:
 - Update section files and record files directly; never patch generated complete documents as the source of truth.
 - Never edit generated build output in the configured build output directory; it is derived output only.
 - Never delete numbered fragments; use `archledger archive <id> --reason "..."` and repair structural gaps with `archledger doctor --repair`.
+- Use `archledger renumber --id-segment-mode type|none --apply` to switch ID shell format while preserving numeric sequence.
 - Use `source_refs` when a record or section describes concrete files, symbols, or directories.
 - Prefer `proposed` for newly inferred records unless the user explicitly says the content is accepted.
 - Run `archledger check` after record edits.

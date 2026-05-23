@@ -4,7 +4,12 @@ import re
 from dataclasses import dataclass, field
 
 from archledger.errors import ConfigError
-from archledger.ids import DEFAULT_ID_PREFIX, DEFAULT_ID_WIDTH, LedgerIdFormat
+from archledger.ids import (
+    DEFAULT_ID_PREFIX,
+    DEFAULT_ID_SEGMENT_MODE,
+    DEFAULT_ID_WIDTH,
+    LedgerIdFormat,
+)
 from archledger.model import CURRENT_SOURCE_SCHEMA_VERSION
 
 # --- Public allowed-value constants ---
@@ -45,6 +50,30 @@ DEFAULT_TRACKING_EXCLUDE = tuple(
         )
     )
 )
+
+DEFAULT_ID_SEGMENT = "content"
+DEFAULT_ID_SEGMENT_MAP: dict[str, str] = {
+    "section": "content",
+    "requirement": "content",
+    "stakeholder": "content",
+    "quality_goal": "quality",
+    "constraint": "constraint",
+    "context_interface": "context",
+    "strategy_item": "strategy",
+    "white_box": "block",
+    "black_box": "block",
+    "interface": "block",
+    "runtime_scenario": "runtime",
+    "infrastructure": "deploy",
+    "concept": "concept",
+    "adr": "adr",
+    "quality_requirement": "quality",
+    "quality_scenario": "quality",
+    "risk": "risk",
+    "diagram": "diagram",
+    "glossary_term": "glossary",
+    "archive_tombstone": "archive",
+}
 
 
 @dataclass(frozen=True, slots=True)
@@ -97,6 +126,9 @@ class SkillConfig:
 class IdConfig:
     prefix: str
     width: int
+    segment_mode: str
+    default_segment: str
+    segment_map: dict[str, str]
 
 
 @dataclass(frozen=True, slots=True)
@@ -128,6 +160,11 @@ class ProjectConfig:
     project_name: str
     id_prefix: str = DEFAULT_ID_PREFIX
     id_width: int = DEFAULT_ID_WIDTH
+    id_segment_mode: str = DEFAULT_ID_SEGMENT_MODE
+    id_default_segment: str = DEFAULT_ID_SEGMENT
+    id_segment_map: dict[str, str] = field(
+        default_factory=lambda: dict(DEFAULT_ID_SEGMENT_MAP)
+    )
     source_format: str = "markdown"
     source_schema_version: int = CURRENT_SOURCE_SCHEMA_VERSION
     front_matter: str = "yaml"
@@ -211,11 +248,21 @@ class ProjectConfig:
 
     @property
     def ids(self) -> IdConfig:
-        return IdConfig(prefix=self.id_prefix, width=self.id_width)
+        return IdConfig(
+            prefix=self.id_prefix,
+            width=self.id_width,
+            segment_mode=self.id_segment_mode,
+            default_segment=self.id_default_segment,
+            segment_map=dict(self.id_segment_map),
+        )
 
     @property
     def id_format(self) -> LedgerIdFormat:
-        return LedgerIdFormat(prefix=self.id_prefix, width=self.id_width)
+        return LedgerIdFormat(
+            prefix=self.id_prefix,
+            width=self.id_width,
+            segment_mode=self.id_segment_mode,
+        )
 
     @property
     def tracking(self) -> TrackingConfig:

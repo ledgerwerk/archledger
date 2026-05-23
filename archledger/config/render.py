@@ -5,6 +5,8 @@ from pathlib import Path
 from uuid import UUID, uuid4
 
 from archledger.config.model import (
+    DEFAULT_ID_SEGMENT,
+    DEFAULT_ID_SEGMENT_MAP,
     DEFAULT_TRACKING_EXCLUDE,
     DEFAULT_TRACKING_INCLUDE,
     VALID_BUILD_CONVERTERS,
@@ -18,8 +20,11 @@ from archledger.config.model import (
 from archledger.errors import ConfigError
 from archledger.ids import (
     DEFAULT_ID_PREFIX,
+    DEFAULT_ID_SEGMENT_MODE,
     DEFAULT_ID_WIDTH,
     validate_id_prefix,
+    validate_id_segment,
+    validate_id_segment_mode,
     validate_id_width,
 )
 from archledger.model import (
@@ -37,6 +42,9 @@ def build_default_project_config(
     source_format: str = "asciidoc",
     id_prefix: str = DEFAULT_ID_PREFIX,
     id_width: int = DEFAULT_ID_WIDTH,
+    id_segment_mode: str = DEFAULT_ID_SEGMENT_MODE,
+    id_default_segment: str = DEFAULT_ID_SEGMENT,
+    id_segment_map: dict[str, str] | None = None,
     project_name: str | None = None,
     project_uuid: str | None = None,
     # Build options
@@ -87,6 +95,12 @@ def build_default_project_config(
     _validate_enum(tracking_scanner, VALID_TRACKING_SCANNERS, "tracking.scanner")
     validated_id_prefix = validate_id_prefix(id_prefix)
     validated_id_width = validate_id_width(id_width)
+    validated_id_segment_mode = validate_id_segment_mode(id_segment_mode)
+    validated_id_default_segment = validate_id_segment(id_default_segment)
+    resolved_segment_map = dict(DEFAULT_ID_SEGMENT_MAP)
+    if id_segment_map is not None:
+        for key, value in id_segment_map.items():
+            resolved_segment_map[key] = validate_id_segment(value)
 
     default_extension = default_extension_for_source_format(normalized_source_format)
     native_format = native_output_format_for_source_format(normalized_source_format)
@@ -102,12 +116,15 @@ def build_default_project_config(
         str(uuid4()) if project_uuid is None else _validate_uuid(project_uuid)
     )
     return ProjectConfig(
-        config_version=6,
+        config_version=7,
         archledger_dir=archledger_dir,
         project_uuid=normalized_uuid,
         project_name=normalized_project_name,
         id_prefix=validated_id_prefix,
         id_width=validated_id_width,
+        id_segment_mode=validated_id_segment_mode,
+        id_default_segment=validated_id_default_segment,
+        id_segment_map=resolved_segment_map,
         source_format=normalized_source_format,
         front_matter="yaml",
         section_extension=default_extension,
@@ -175,29 +192,41 @@ def render_project_config(config: ProjectConfig) -> str:
         "[ids]",
         f"prefix = {_toml_string(config.id_prefix)}",
         f"width = {config.id_width}",
+        f"segment_mode = {_toml_string(config.id_segment_mode)}",
+        f"default_segment = {_toml_string(config.id_default_segment)}",
         "",
-        "[source]",
-        f"format = {_toml_string(config.source_format)}",
-        f"front_matter = {_toml_string(config.front_matter)}",
-        f"section_extension = {_toml_string(config.section_extension)}",
-        f"record_extension = {_toml_string(config.record_extension)}",
-        f"schema_version = {config.source_schema_version}",
-        "",
-        "[build]",
-        f"default_output = {_toml_string(config.build_default_output)}",
-        f"default_format = {_toml_string(config.build_default_format)}",
-        "# [build].default_output_dir is relative to the directory containing",
-        "# archledger.toml or .archledger.toml.",
-        f"default_output_dir = {_toml_string(config.build_output_dir)}",
-        f"include_draft = {_toml_bool(config.build_include_draft)}",
-        f"include_superseded = {_toml_bool(config.build_include_superseded)}",
-        f"strict = {_toml_bool(config.build_strict)}",
-        f"keep_intermediate = {_toml_bool(config.build_keep_intermediate)}",
-        f"converter = {_toml_string(config.build_converter)}",
-        f"pdf_engine = {_toml_string(config.build_pdf_engine)}",
-        f"reference_docx = {_toml_string(config.build_reference_docx)}",
-        "",
+        "[ids.segment_map]",
     ]
+    lines.extend(
+        f"{segment_key} = {_toml_string(config.id_segment_map[segment_key])}"
+        for segment_key in sorted(config.id_segment_map)
+    )
+    lines.extend(
+        [
+            "",
+            "[source]",
+            f"format = {_toml_string(config.source_format)}",
+            f"front_matter = {_toml_string(config.front_matter)}",
+            f"section_extension = {_toml_string(config.section_extension)}",
+            f"record_extension = {_toml_string(config.record_extension)}",
+            f"schema_version = {config.source_schema_version}",
+            "",
+            "[build]",
+            f"default_output = {_toml_string(config.build_default_output)}",
+            f"default_format = {_toml_string(config.build_default_format)}",
+            "# [build].default_output_dir is relative to the directory containing",
+            "# archledger.toml or .archledger.toml.",
+            f"default_output_dir = {_toml_string(config.build_output_dir)}",
+            f"include_draft = {_toml_bool(config.build_include_draft)}",
+            f"include_superseded = {_toml_bool(config.build_include_superseded)}",
+            f"strict = {_toml_bool(config.build_strict)}",
+            f"keep_intermediate = {_toml_bool(config.build_keep_intermediate)}",
+            f"converter = {_toml_string(config.build_converter)}",
+            f"pdf_engine = {_toml_string(config.build_pdf_engine)}",
+            f"reference_docx = {_toml_string(config.build_reference_docx)}",
+            "",
+        ]
+    )
     lines.extend(_render_build_output_tables(config.build_outputs))
     lines.extend(
         [
