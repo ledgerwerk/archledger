@@ -1,6 +1,6 @@
 ---
 title: "archledger Architecture Documentation"
-date: "2026-05-22"
+date: "2026-05-23"
 generator: "archledger 0.1.1.dev1+g15fa163cd"
 arc42_template_version: "9.0-EN"
 ---
@@ -237,11 +237,13 @@ The primary interface is the CLI (`archledger` console script). The CLI delegate
 **Interfaces:** archledger console script (stdin/stdout)
 **Location:** archledger/cli.py, archledger/cli_formatting.py, archledger/cli_payloads.py, archledger/launcher.py
 
-The Typer-based CLI exposes top-level commands: `init`, `status`, `paths`, `schema`, `new`, `seed`, `list`, `show`, `read`, `check`, `build`, and the `source` subgroup. The `source` subgroup contains `snapshot`, `changed`, and `convert` for source tracking and dialect migration. Each command resolves the project config, constructs a Repository, and delegates to it. Two output modes are supported: human-readable text (default) and structured JSON (`--json` flag). Error handling maps domain exceptions (`ArchledgerError` subclasses) to appropriate exit codes and error output.
+The Typer-based CLI exposes top-level commands: `init`, `status`, `paths`, `schema`, `new`, `seed`, `list`, `show`, `read`, `check`, `build`, `renumber`, and the `source` subgroup. The `source` subgroup contains `snapshot`, `changed`, and `convert` for source tracking and dialect migration. Each command resolves the project config, constructs a Repository, and delegates to it. Two output modes are supported: human-readable text (default) and structured JSON (`--json` flag). Error handling maps domain exceptions (`ArchledgerError` subclasses) to appropriate exit codes and error output.
 
 Output is split across three modules: `cli.py` defines Typer commands and dispatches to the Repository, `cli_payloads.py` constructs structured JSON dictionaries from domain result types, and `cli_formatting.py` renders human-readable messages from those payloads. This separation keeps the command definitions thin and testable.
 
-The `init` command accepts comprehensive CLI options covering all configuration domains: build defaults (`--build-default-format`, `--build-converter`, `--build-pdf-engine`, etc.), diagrams (`--diagrams`, `--diagram-renderer`, `--diagram-default-type`), arc42 metadata (`--arc42-title`, `--arc42-language`, `--arc42-template-version`), and source tracking (`--tracking/--no-tracking`, `--tracking-scanner`, `--tracking-include`, `--tracking-exclude`). Options are validated against shared constants from `config/model.py` before config generation.
+The `init` command accepts comprehensive CLI options covering all configuration domains: build defaults (`--build-default-format`, `--build-converter`, `--build-pdf-engine`, etc.), diagrams (`--diagrams`, `--diagram-renderer`, `--diagram-default-type`), arc42 metadata (`--arc42-title`, `--arc42-language`, `--arc42-template-version`), source tracking (`--tracking/--no-tracking`, `--tracking-scanner`, `--tracking-include`, `--tracking-exclude`), and ID format (`--id-prefix`, `--id-width`, `--id-segment-mode`). Options are validated against shared constants from `config/model.py` before config generation.
+
+The `renumber` command delegates to the Renumber Service (`renumber.py`) to replan and optionally apply ID format changes. It is dry-run by default; `--apply` is required to execute mutations. It accepts `--id-prefix`, `--id-width`, and `--id-segment-mode` to specify the target format.
 
 The `source snapshot` and `source changed` commands integrate the source tracking subsystem. The `source convert` command delegates to the migration module for Markdown-to-AsciiDoc source conversion.
 
@@ -251,7 +253,9 @@ The `source snapshot` and `source changed` commands integrate the source trackin
 **Interfaces:** create_record(), list_records(), get_record(), load_all_records(), check(), init(), status()
 **Location:** archledger/repository.py
 
-The `ArchitectureRepository` class is the central business logic layer. It orchestrates record creation (allocating IDs via the Record Type Registry, rendering templates, writing files), record loading (parsing front matter, validating fields, normalizing source refs via the Source Ref Validation layer), integrity checks (delegating per-record-type content warnings to the Check Layer, plus cross-reference validation and source contract validation), and initialization (directory scaffolding, section file generation). It holds a Jinja2 environment for template rendering.
+The `ArchitectureRepository` class is the central business logic layer. It orchestrates record creation (allocating IDs via the Record Type Registry using the configured `LedgerIdFormat` and segment resolution from `id_segments.py`, rendering templates, writing files), record loading (parsing front matter, validating fields including ID syntax and segment expectations, normalizing source refs via the Source Ref Validation layer), integrity checks (delegating per-record-type content warnings to the Check Layer, plus cross-reference validation and source contract validation), and initialization (directory scaffolding, section file generation with init-time ID format options). It holds a Jinja2 environment for template rendering.
+
+Record ID allocation uses `ProjectConfig.id_format` to format the next number with the configured prefix, width, and segment. In segmented mode, the segment is resolved via `id_segment_for_new_record()` from the record kind and config `segment_map`.
 
 #### Render Layer
 
@@ -327,7 +331,7 @@ The storage sub-module (`storage/source_state.py`) handles JSON serialization an
 **Interfaces:** convert_sources()
 **Location:** archledger/migration.py
 
-The migration module converts source fragments from one dialect to another. Currently supports Markdown-to-AsciiDoc conversion. It iterates over all section and record files, converts the body using pandoc (falling back to keeping the original body if pandoc is unavailable), updates the YAML front matter to reflect the new body format, and optionally replaces the original files. It also rewrites the project config to target the new source format.
+The migration module converts source fragments from one dialect to another. Currently supports Markdown-to-AsciiDoc conversion. It iterates over all section and record files, converts the body using pandoc (falling back to keeping the original body if pandoc is unavailable), updates the YAML front matter to reflect the new body format, and optionally replaces the original files. It also rewrites the project config to target the new source format. Migration was updated to handle configurable ID format fields during config rewriting.
 
 #### Config Layer
 
@@ -337,9 +341,13 @@ The migration module converts source fragments from one dialect to another. Curr
 
 The `config` subpackage owns all project configuration concerns. `config/model.py` defines frozen dataclasses for each configuration domain: `SourceConfig`, `BuildConfig` (with nested `BuildOutputConfig`), `Arc42Config`, `SkillConfig`, `TrackingConfig`, and the unified `ProjectConfig` facade that composes them via properties. It also exports public allowed-value constants (`VALID_BUILD_CONVERTERS`, `VALID_DIAGRAM_RENDERERS`, `VALID_DIAGRAM_TYPES`, `VALID_DIAGRAM_IMAGE_FORMATS`, `VALID_TRACKING_SCANNERS`) shared by `parse.py`, `render.py`, and `cli.py`.
 
-`config/parse.py` loads and validates `archledger.toml` using `tomllib` (or `tomli` for Python < 3.11), with strict key validation and environment variable expansion. `config/render.py` generates default configuration files for `archledger init` via a two-stage pipeline: `build_default_project_config()` constructs a validated `ProjectConfig` dataclass from init parameters (including build, diagram, arc42, and tracking options), and `render_project_config()` serializes it to TOML.
+`ProjectConfig` includes ID format fields: `id_prefix` (default `al`), `id_width` (default `4`), `id_segment_mode` (default `none`), `id_default_segment`, and `id_segment_map`. The `id_format` property constructs a `LedgerIdFormat` instance from these fields, providing the canonical ID formatting object used throughout the repository, check, and renumber layers.
+
+`config/parse.py` loads and validates `archledger.toml` using `tomllib` (or `tomli` for Python < 3.11), with strict key validation and environment variable expansion. It parses the `[ids]` section, validating prefix, width, segment mode, and segment map using validators from `ids.py`. `config/render.py` generates default configuration files for `archledger init` via a two-stage pipeline: `build_default_project_config()` constructs a validated `ProjectConfig` dataclass from init parameters (including build, diagram, arc42, tracking, and ID format options), and `render_project_config()` serializes it to TOML.
 
 The `[diagrams]` section supports five diagram types (`text`, `ascii`, `unicode`, `svgbob`, `mermaid`) and three renderers (`pass-through`, `mermaid-cli`, `asciidoctor-diagram`). The default diagram type is `text`, ensuring that new diagram records produce readable text-based diagrams in native builds without any external tooling.
+
+The `[ids]` section (config version 7+) configures the ledger ID format: `prefix`, `width`, `segment_mode`, `default_segment`, and `segment_map`. Projects created without this section fall back to `al` prefix, width 4, and `none` segment mode, preserving backward compatibility.
 
 #### Record Type Registry
 
@@ -376,10 +384,50 @@ The `source_refs.py` module handles validation and normalization of source trace
 #### ID Utilities
 
 **Parent:** al_block_0041
-**Interfaces:** format_ledger_id(), parse_ledger_id(), is_ledger_id(), filename_for_ledger_id(), ledger_id_from_filename()
+**Interfaces:** LedgerIdFormat.format(), LedgerIdFormat.parse(), LedgerIdFormat.parse_parts(), LedgerIdFormat.is_id(), LedgerIdFormat.pattern(), LedgerIdFormat.reference_pattern(), format_ledger_id(), parse_ledger_id(), parse_ledger_id_parts(), is_ledger_id(), filename_for_ledger_id(), ledger_id_from_filename(), validate_id_prefix(), validate_id_width(), validate_id_segment_mode(), validate_id_segment()
 **Location:** archledger/ids.py
 
-The `ids` module provides centralized ledger ID handling functions: `format_ledger_id()` converts an integer to the `al_NNNN` string format, `parse_ledger_id()` extracts the numeric part, `is_ledger_id()` validates a string, and `filename_for_ledger_id()` / `ledger_id_from_filename()` convert between IDs and filenames. These utilities were extracted from `storage/meta.py` and `storage/paths.py` to provide a single source of truth for ID format rules (`al_` prefix, 4-digit zero-padded number).
+The `ids` module provides centralized ledger ID handling with configurable prefix, width, and segment mode. The core abstraction is `LedgerIdFormat`, a frozen dataclass that encapsulates the three ID format parameters and exposes methods for formatting, parsing, pattern generation, and validation.
+
+**Unsegmented mode** (`segment_mode=none`, default): IDs follow `<prefix>_<number>` (e.g., `al_0001`). `format(number)` produces the zero-padded string, `parse(id)` extracts the number, and `pattern()`/`reference_pattern()` produce regexes for exact matching and cross-reference detection respectively.
+
+**Segmented mode** (`segment_mode=type`): IDs follow `<prefix>_<segment>_<number>` (e.g., `al_adr_0077`). `format(number, segment=...)` includes the validated segment token, and `parse_parts()` returns a `ParsedLedgerId` with both `number` and `segment` fields.
+
+Module-level convenience functions (`format_ledger_id`, `parse_ledger_id`, `is_ledger_id`, etc.) accept optional `prefix`, `width`, and `segment_mode` parameters for callers that need ad-hoc format handling. Validators (`validate_id_prefix`, `validate_id_width`, `validate_id_segment_mode`, `validate_id_segment`) enforce format constraints shared across config parsing, CLI validation, and record checks.
+
+The `LedgerIdFormat` instance is constructed from `ProjectConfig.id_format` and threaded through repository, renumber, and check operations as the single source of truth for ID syntax rules.
+
+#### Renumber Service
+
+**Parent:** al_block_0041
+**Interfaces:** renumber_project()
+**Location:** archledger/renumber.py
+
+The `renumber` module provides the `renumber_project()` service that replans and optionally applies changes to the ledger ID format across all source files. It supports changing the ID prefix, width, and segment mode.
+
+The renumber workflow operates in two phases: first it builds a rename plan (collecting numbered paths, computing new IDs via the configured `LedgerIdFormat` and segment resolution) and a rewrite plan (finding and replacing all ID references in source files). Then, if `apply=True`, it atomically rewrites file contents, renames files via a two-phase temp-file strategy to avoid collisions, updates `archledger.toml` with the new ID format settings, and recomputes `storage.yaml` counters.
+
+When `apply=False` (dry-run, the default), it validates the plan and returns the computed changes without modifying any files. The CLI `renumber` command delegates to this service and formats the result for human or JSON output.
+
+Key data structures: `RenumberResult` (top-level result with old/new format, renamed paths, rewritten files), `RenumberedPath` (old/new ID and path pair), and `RewrittenFile` (path with replacement count).
+
+#### ID Segment Resolution
+
+**Parent:** al_block_0041
+**Interfaces:** id_segment_for_metadata(), id_segment_for_record(), id_segment_for_new_record()
+**Location:** archledger/id_segments.py
+
+The `id_segments` module resolves content-derived ID segments for segmented ledger IDs. When `segment_mode` is `type`, each record ID includes a segment token derived from the record's type metadata.
+
+Resolution priority:
+
+1. Explicit `id_segment` in the record's front matter metadata.
+2. Mapped segment from the configured `segment_map` keyed by record `type`.
+3. The configured `default_segment` as fallback.
+
+Three entry points serve different callers: `id_segment_for_metadata()` for raw metadata dicts (used by renumber), `id_segment_for_record()` for loaded `ArchitectureRecord` objects (used by repository), and `id_segment_for_new_record()` for record creation where the kind is known but no record exists yet. All three validate the resolved segment against the `ID_SEGMENT_PATTERN` regex via `validate_id_segment()`.
+
+This module is intentionally thin — it isolates the resolution policy so that `renumber.py` and `repository.py` share the same logic without coupling to each other.
 
 # Runtime View
 
@@ -444,14 +492,14 @@ delegate to pandoc or asciidoctor.
 ## Initialize a new project
 
 1. CLI checks that `archledger.toml` does not already exist.
-2. CLI collects init options for all configuration domains: build defaults (`--build-default-format`, `--build-default-output`, `--build-converter`, etc.), diagrams (`--diagrams`, `--diagram-renderer`, `--diagram-default-type`), arc42 metadata (`--arc42-title`, `--arc42-language`, `--arc42-template-version`), and source tracking (`--tracking/--no-tracking`, `--tracking-scanner`, `--tracking-include`, `--tracking-exclude`). Each option maps directly to a field in `archledger.toml`.
+2. CLI collects init options for all configuration domains: build defaults (`--build-default-format`, `--build-default-output`, `--build-converter`, etc.), diagrams (`--diagrams`, `--diagram-renderer`, `--diagram-default-type`), arc42 metadata (`--arc42-title`, `--arc42-language`, `--arc42-template-version`), source tracking (`--tracking/--no-tracking`, `--tracking-scanner`, `--tracking-include`, `--tracking-exclude`), and ID format (`--id-prefix`, `--id-width`, `--id-segment-mode`). Each option maps directly to a field in `archledger.toml`.
 3. CLI calls `build_default_project_config()` to construct a validated `ProjectConfig` dataclass, then renders it to TOML via `render_project_config()`.
 4. CLI writes the config file and resolves project paths.
 5. Repository creates the archledger_dir, sections_dir, records_dir, and build_dir.
 6. Repository creates 15 record subdirectories (one per record type directory).
 7. Repository writes 12 section Markdown files (01_introduction_and_goals through 12_glossary) with section extensions matching the configured source format.
 8. Repository writes the storage.yaml metadata file.
-9. The project is ready for `archledger new` commands.
+9. The project is ready for `archledger new` commands. Record creation will use the configured ID format (prefix, width, segment mode).
 
 ## Build multi-format output
 
@@ -472,6 +520,18 @@ delegate to pandoc or asciidoctor.
 5. Source tracking resolves impacts by matching changed file paths against record `source_refs`.
 6. Results include: impacted records (with matched refs), impacted sections, and unlinked changed files.
 7. If no baseline exists, all files are reported as unbaselined.
+
+## Renumber ledger IDs
+
+1. User invokes `archledger renumber --id-prefix <new>` and/or `--id-width <n>` and/or `--id-segment-mode <mode>`.
+2. CLI validates options and delegates to `renumber_project()` in `renumber.py`.
+3. The renumber service collects all numbered source files from sections, records, and archive directories, parsing each with the current `LedgerIdFormat`.
+4. For each file, it computes the new ID using the new format and segment resolution from `id_segments.py`.
+5. It builds a rename plan and a rewrite plan (finding all ID references across all source files).
+6. It validates no duplicate source IDs and no target collisions.
+7. Without `--apply`: returns the plan as JSON or formatted text and exits.
+8. With `--apply`: rewrites file contents, renames files via two-phase temp strategy, updates `archledger.toml`, and recomputes `storage.yaml`.
+9. CLI outputs the summary of renamed files and rewritten references.
 
 # Deployment View
 
@@ -602,7 +662,7 @@ Every record has a status field that controls its lifecycle: `draft` (incomplete
 
 archledger discovers its project configuration by walking up from the current directory looking for `archledger.toml` or `.archledger.toml`. The `archledger_dir` setting in the config can be relative (resolved from the config file's directory) or absolute (used as-is). This allows the storage directory to live outside the source tree, for example in a separate state repository.
 
-Config parsing is handled by the Config Layer (`config/` subpackage): `config/parse.py` loads and validates the TOML file, `config/model.py` defines typed dataclasses for each configuration domain (source, build, arc42, skill, tracking) and exports shared validation constants, and `config/render.py` generates configuration files via `build_default_project_config()` + `render_project_config()`. Path resolution happens in `storage/paths.py`.
+Config parsing is handled by the Config Layer (`config/` subpackage): `config/parse.py` loads and validates the TOML file, `config/model.py` defines typed dataclasses for each configuration domain (source, build, arc42, skill, tracking, ids) and exports shared validation constants, and `config/render.py` generates configuration files via `build_default_project_config()` + `render_project_config()`. Path resolution happens in `storage/paths.py`. The `[ids]` section (config v7+) configures ledger ID prefix, width, segment mode, default segment, and segment map.
 
 ## Dialect abstraction for dual-source support
 
@@ -623,6 +683,33 @@ Text-based types (`text`, `ascii`, `unicode`) store diagram content as plain tex
 `svgbob` uses the svgbob markup syntax in dedicated fenced/literal blocks. `mermaid` uses Mermaid syntax in dedicated fenced/literal blocks and requires an external renderer (`mermaid-cli` or `asciidoctor-diagram`) for image output. Three diagram renderers are supported: `pass-through` (default, embeds source as-is), `mermaid-cli`, and `asciidoctor-diagram`.
 
 The Check Layer validates diagram type against the allowed set, verifies that the body contains the correct block syntax for the declared type and dialect, checks for empty blocks, and enforces line-length limits on text diagrams. Templates produce type-appropriate scaffolding when creating new diagram records.
+
+## Configurable ledger ID format
+
+## Concept
+
+Ledger IDs identify architecture records throughout the system. The ID format is configurable per project via the `[ids]` section in `archledger.toml`, but the single global numeric sequence is always preserved.
+
+### Unsegmented mode (default)
+
+Format: `<prefix>_<number>` (e.g., `al_0001`). The prefix defaults to `al` and width to 4 digits. IDs like `al_0042` are valid for any record type.
+
+### Segmented mode (`segment_mode=type`)
+
+Format: `<prefix>_<segment>_<number>` (e.g., `al_adr_0077`, `al_block_0042`). The segment is derived from the record's `type` field via the configured `segment_map`, with an explicit `id_segment` override in front matter, falling back to `default_segment`.
+
+### Resolution chain
+
+1. `LedgerIdFormat` in `ids.py` — parses and formats IDs, provides regex patterns for both exact match and cross-reference detection.
+2. `id_segments.py` — resolves the segment token for a record, used by repository (record creation) and renumber (migration).
+3. `ProjectConfig.id_format` property — exposes the configured `LedgerIdFormat` to all callers.
+
+### Invariants
+
+- Every record has exactly one numeric ID in the global sequence.
+- ID numbers are stable across renumber operations (only prefix/width/segment change).
+- File names are derived from the full ID string plus the configured source format extension.
+- Cross-references in record bodies are rewritten by the renumber service using the `reference_pattern` regex.
 
 # Architecture Decisions
 
@@ -738,7 +825,7 @@ Improves determinism and avoids unstable file-size/mtime dependence; requires co
 
 - Keep legacy behavior unchanged: rejected because it leaves release-critical ambiguity.
 
-## Config v5 and source schema v2 are the release baseline
+## Config v7 and source schema v2 are the release baseline
 
 **Status:** accepted
 **Date:** 2026-05-21
@@ -752,15 +839,16 @@ Repository-local architecture sources must use one supported baseline schema to 
 
 ## Decision
 
-Use config v5 and source schema v2 as the release baseline for this project and generated projects.
+Use config v7 (with `[ids]` section for configurable prefix, width, and segment mode) and source schema v2 as the release baseline for this project and generated projects.
 
 ## Consequences
 
-Strict checks are consistent; migration effort is required for older local records.
+Strict checks are consistent; migration effort is required for older local records. The `[ids]` section is optional — projects created with config v5/v6 continue to work with default `al` prefix and width 4.
 
 ## Alternatives considered
 
 - Keep legacy behavior unchanged: rejected because it leaves release-critical ambiguity.
+- Separate config version for each new field: rejected because it would proliferate minor versions; bundling ID format changes into v7 is cleaner.
 
 ## Native builds require no external tools
 
@@ -907,6 +995,111 @@ Text diagrams are immediately readable in source, Git diffs, terminal output, an
 - Keep Mermaid as sole diagram type: rejected because it prevents readable text-based diagrams that work without a renderer.
 - Support only text diagrams: rejected because Mermaid is better suited for certain diagram categories (sequence, state).
 - Make `unicode` the default: rejected because `text` has broader terminal and font compatibility.
+
+## Config v7 adds configurable ID prefix, width, and segment mode
+
+**Status:** proposed
+**Date:** 2026-05-23
+**Deciders:** archledger maintainers
+**Supersedes:**
+**Related:**
+
+## Context
+
+Config v5 hardcoded the ID format as `al_` prefix with 4-digit zero-padded numbers. Projects that manage multiple architecture ledgers (e.g., monorepos with independent sub-project docs) need distinct ID prefixes to avoid confusion when records from different projects appear in the same search or review. Some projects also want wider numbers or a different prefix.
+
+Task-0019 (flexible IDs renumbering) introduced configurable prefix and width. Task-0020 (content segment IDs) added segment mode support. The config schema needed to evolve to persist these settings.
+
+## Decision
+
+Config version 7 adds an `[ids]` section with:
+
+- `prefix` (default: `al`) — 2–16 lowercase alphanumeric characters, must start with a letter.
+- `width` (default: `4`) — minimum digit count, range 2–12.
+- `segment_mode` (default: `none`) — either `none` for unsegmented `al_NNNN` IDs or `type` for segmented `al_<segment>_NNNN` IDs.
+- `default_segment` (default: empty) — fallback segment token when `segment_mode=type`.
+- `segment_map` (default: empty dict) — maps record types to segment tokens.
+
+The `init` command accepts `--id-prefix`, `--id-width`, and `--id-segment-mode` options to set these at project creation. `LedgerIdFormat` in `ids.py` is the single source of truth for parsing and formatting IDs according to the configured settings.
+
+## Consequences
+
+- Projects can now use distinct ID prefixes and widths. The `renumber` command migrates existing projects.
+- Default behavior is unchanged: new projects still get `al_0001`-style IDs.
+- Config files with no `[ids]` section fall back to defaults, so existing projects are forward-compatible.
+- Bumping config version to 7 signals the new fields; migration layer handles older configs.
+
+## Alternatives considered
+
+- Separate ID format file: rejected because it would add a new file for a small set of fields that belong alongside other project configuration.
+- Hardcoded prefix/width only: rejected because it would not support multi-project disambiguation or type-derived segments.
+
+## Renumber command is dry-run by default
+
+**Status:** proposed
+**Date:** 2026-05-23
+**Deciders:** archledger maintainers
+**Supersedes:**
+**Related:**
+
+## Context
+
+Changing ledger ID format (prefix, width, or segment mode) is a destructive operation that touches every source file in the `.archledger/` directory. File renames, reference rewrites, and config mutations cannot be trivially undone. Users need a safe way to preview changes before committing.
+
+## Decision
+
+The `archledger renumber` command is dry-run by default. It computes the full rename and rewrite plan and reports what would change, without modifying any files. The `--apply` flag is required to execute the plan.
+
+When `--apply` is used, the renumber service:
+
+1. Validates the plan (no duplicate source IDs, no target collisions).
+2. Rewrites file contents (replacing all ID references).
+3. Renames files via a two-phase temp-file strategy to avoid overwriting in-place.
+4. Updates `archledger.toml` with the new format settings.
+5. Recomputes `storage.yaml` counter.
+
+## Consequences
+
+- Users can safely experiment with `archledger renumber --id-prefix foo` and review the plan.
+- The `--apply` flag makes the destructive nature of the operation explicit.
+- JSON output includes full details of planned renames and rewrites for programmatic review.
+
+## Alternatives considered
+
+- Apply by default with `--dry-run`: rejected because the safer convention (default no-op) reduces accident risk.
+- Interactive confirmation: rejected because the CLI is designed for both human and agent use; a flag is more machine-friendly.
+
+## Segmented IDs embed type-derived tokens in the ID string
+
+**Status:** proposed
+**Date:** 2026-05-23
+**Deciders:** archledger maintainers
+**Supersedes:**
+**Related:**
+
+## Context
+
+In projects with many records (50+), flat `al_NNNN` numbering makes it hard to identify a record's type from its ID alone. Scanning `al_0042` gives no hint whether it is an ADR, building block, or runtime scenario. This hurts navigation in large ledgers and in cross-references between records.
+
+## Decision
+
+When `segment_mode=type`, ledger IDs include a type-derived segment token: `<prefix>_<segment>_<number>` (e.g., `al_adr_0077`, `al_block_0042`). The segment is resolved deterministically from the record's `type` metadata via the configured `segment_map`, with an explicit `id_segment` front-matter field as an override, and `default_segment` as fallback.
+
+Segment tokens are validated against `^[a-z][a-z0-9-]{1,31}$`. The default segment map maps each record type to a short token (e.g., `adr` → `adr`, `white_box` → `block`, `runtime_scenario` → `runtime`).
+
+The global numeric sequence is preserved: numbering remains sequential across all types regardless of segment. Renumber can toggle segment mode on or off while keeping numbers stable.
+
+## Consequences
+
+- IDs become self-describing: `al_adr_0077` is clearly an architecture decision.
+- File names sort predictably within type directories (e.g., `.archledger/records/decisions/al_adr_0077.md`).
+- Cross-references in record bodies update correctly during renumber.
+- The `none` segment mode preserves backward compatibility for projects that prefer flat numbering.
+
+## Alternatives considered
+
+- Per-type counters: rejected because it would break the single global sequence invariant and complicate renumbering.
+- Opaque hash segments: rejected because they would not be human-readable.
 
 # Quality Requirements
 
