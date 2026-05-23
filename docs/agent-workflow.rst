@@ -16,5 +16,5 @@ Rules
 -----
 
 - Treat the fragment tree as the source of truth.
-- Do not edit ``.archledger/build`` output as source.
+- Do not edit generated build output as source; determine its location from ``archledger --json paths`` and ``[build].default_output_dir``.
 - Add ``source_refs`` when a fragment describes concrete implementation artifacts.

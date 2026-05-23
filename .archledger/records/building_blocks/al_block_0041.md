@@ -22,13 +22,13 @@ source_refs:
 
 ## Motivation
 
-archledger is decomposed into fifteen black boxes organized as a layered pipeline: the CLI accepts user input and delegates output formatting, the Config layer parses and renders project configuration, the Repository orchestrates business logic, the Model layer defines core data structures, the Record Type Registry maps record types to templates and defaults, the Check layer validates record content per type, the Source Ref Validation layer normalizes traceability links, the Storage layer handles file I/O, the Assembly layer renders the document, the Dialect layer abstracts format-specific markup, the Section Rendering layer handles per-record-type output, the Render layer orchestrates the build pipeline, the Converter layer handles multi-format export, the Source Tracking layer detects changes and impacts, and the Migration layer converts between source dialects.
+archledger is decomposed into focused black-box building blocks within one white-box system. The current Building Block View includes CLI, Config, Repository, Render, Storage, Model, Assembly, Dialect, Section Rendering, Converter, Source Tracking, Migration, Record Type Registry, Check, Source Ref Validation, ID Utilities, Renumber Service, and ID Segment Resolution.
 
 ## Contained building blocks
 
-- **CLI Layer** (`cli.py`, `cli_formatting.py`, `cli_payloads.py`, `launcher.py`): Typer-based command-line interface with 11 top-level commands and a `source` subgroup (snapshot, changed, convert), JSON payload construction, and human-readable output formatting
+- **CLI Layer** (`cli.py`, `cli_formatting.py`, `cli_payloads.py`, `launcher.py`): Typer-based command-line interface with 14 top-level commands plus the `source` subgroup (`snapshot`, `changed`, `convert`), JSON payload construction, and human-readable output formatting
 - **Config Layer** (`config/`): Project configuration model, TOML parsing, default config rendering
-- **Repository Layer** (`repository.py`): Business logic orchestration for init, create, list, check, status
+- **Repository Layer** (`repository.py`): Business logic orchestration for init, create, list/show/read, check, archive, doctor, and status workflows
 - **Model Layer** (`model.py`, `errors.py`): Core data structures, validation constants, record lifecycle
 - **Record Type Registry** (`record_types.py`): Record type specifications, directory/template/section mappings, CLI kind aliases
 - **Check Layer** (`checks.py`): Per-record-type content validation including multi-type diagram validation (text/ascii/unicode/svgbob/mermaid) with dialect-specific block detection and line-length checks
@@ -41,6 +41,9 @@ archledger is decomposed into fifteen black boxes organized as a layered pipelin
 - **Converter Layer** (`converters.py`, `conversion_plan.py`, `formats.py`): Multi-format export planning and execution via pandoc/asciidoctor
 - **Source Tracking Layer** (`source_tracking.py`, `storage/source_state.py`): Change detection and impact analysis
 - **Migration Layer** (`migration.py`): Source dialect conversion (Markdown to AsciiDoc)
+- **ID Utilities** (`ids.py`): ID parsing and formatting helpers for ledger-prefixed IDs
+- **Renumber Service** (`renumber.py`): ID migration planning and apply operations across records and links
+- **ID Segment Resolution** (`id_segments.py`): Segment-aware ID routing and section scoping logic
 
 ## Important interfaces
 

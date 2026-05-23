@@ -10,11 +10,12 @@ section: glossary
 order: 70
 term: Source State
 definition:
-  A persisted snapshot of all tracked workspace files with their SHA-256
-  hashes, sizes, and modification times. Used as the baseline for change detection.
+  A persisted source-tracking baseline with SHA-256 content hashes for tracked
+  files plus derived directory hashes. Used by `archledger source changed`
+  to detect modified, added, deleted, and possibly renamed files.
 source_refs:
   - README.md
   - docs/agent-workflow.rst
 ---
 
-A persisted snapshot of all tracked workspace files with their SHA-256 hashes, sizes, and modification times. Created by `archledger snapshot` and used by `archledger changed` as the baseline for change detection. Stored as JSON in the build directory.
+A source state is the JSON baseline written by `archledger source snapshot`. It is stored at `[tracking].state_file` inside `archledger_dir` (default: `.archledger/source-state.json`). File entries persist normalized SHA-256 content hashes only; mtimes and file sizes are deliberately not stored. Directory hashes are derived from child file hashes.

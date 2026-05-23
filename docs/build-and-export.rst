@@ -10,8 +10,8 @@ Native builds
    archledger build --format asciidoc
 
 ``[build].default_output_dir`` is relative to the directory containing
-``archledger.toml`` or ``.archledger.toml``. The default generated output
-location remains ``.archledger/build/``.
+``archledger.toml`` or ``.archledger.toml``. New projects default to ``build/``
+under the workspace root, and projects may override this path.
 
 Converter-backed exports
 ------------------------
@@ -56,7 +56,7 @@ Notes:
 - ``renderer = "pass-through"`` keeps diagram blocks unchanged (default).
 - ``renderer = "mermaid-cli"`` requires ``mmdc`` on ``PATH`` and only processes Mermaid blocks.
 - ``renderer = "asciidoctor-diagram"`` is intended for direct Asciidoctor flows.
-- ``renderer = "kroki"`` requires an explicit ``kroki_url``.
+- Kroki is not currently supported by config validation.
 
 Source migration
 ----------------

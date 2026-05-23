@@ -205,13 +205,13 @@ through assembly to the build output.
 
 ## Motivation
 
-archledger is decomposed into fifteen black boxes organized as a layered pipeline: the CLI accepts user input and delegates output formatting, the Config layer parses and renders project configuration, the Repository orchestrates business logic, the Model layer defines core data structures, the Record Type Registry maps record types to templates and defaults, the Check layer validates record content per type, the Source Ref Validation layer normalizes traceability links, the Storage layer handles file I/O, the Assembly layer renders the document, the Dialect layer abstracts format-specific markup, the Section Rendering layer handles per-record-type output, the Render layer orchestrates the build pipeline, the Converter layer handles multi-format export, the Source Tracking layer detects changes and impacts, and the Migration layer converts between source dialects.
+archledger is decomposed into focused black-box building blocks within one white-box system. The current Building Block View includes CLI, Config, Repository, Render, Storage, Model, Assembly, Dialect, Section Rendering, Converter, Source Tracking, Migration, Record Type Registry, Check, Source Ref Validation, ID Utilities, Renumber Service, and ID Segment Resolution.
 
 ## Contained building blocks
 
-- **CLI Layer** (`cli.py`, `cli_formatting.py`, `cli_payloads.py`, `launcher.py`): Typer-based command-line interface with 11 top-level commands and a `source` subgroup (snapshot, changed, convert), JSON payload construction, and human-readable output formatting
+- **CLI Layer** (`cli.py`, `cli_formatting.py`, `cli_payloads.py`, `launcher.py`): Typer-based command-line interface with 14 top-level commands plus the `source` subgroup (`snapshot`, `changed`, `convert`), JSON payload construction, and human-readable output formatting
 - **Config Layer** (`config/`): Project configuration model, TOML parsing, default config rendering
-- **Repository Layer** (`repository.py`): Business logic orchestration for init, create, list, check, status
+- **Repository Layer** (`repository.py`): Business logic orchestration for init, create, list/show/read, check, archive, doctor, and status workflows
 - **Model Layer** (`model.py`, `errors.py`): Core data structures, validation constants, record lifecycle
 - **Record Type Registry** (`record_types.py`): Record type specifications, directory/template/section mappings, CLI kind aliases
 - **Check Layer** (`checks.py`): Per-record-type content validation including multi-type diagram validation (text/ascii/unicode/svgbob/mermaid) with dialect-specific block detection and line-length checks
@@ -224,6 +224,9 @@ archledger is decomposed into fifteen black boxes organized as a layered pipelin
 - **Converter Layer** (`converters.py`, `conversion_plan.py`, `formats.py`): Multi-format export planning and execution via pandoc/asciidoctor
 - **Source Tracking Layer** (`source_tracking.py`, `storage/source_state.py`): Change detection and impact analysis
 - **Migration Layer** (`migration.py`): Source dialect conversion (Markdown to AsciiDoc)
+- **ID Utilities** (`ids.py`): ID parsing and formatting helpers for ledger-prefixed IDs
+- **Renumber Service** (`renumber.py`): ID migration planning and apply operations across records and links
+- **ID Segment Resolution** (`id_segments.py`): Segment-aware ID routing and section scoping logic
 
 ## Important interfaces
 
@@ -237,7 +240,7 @@ The primary interface is the CLI (`archledger` console script). The CLI delegate
 **Interfaces:** archledger console script (stdin/stdout)
 **Location:** archledger/cli.py, archledger/cli_formatting.py, archledger/cli_payloads.py, archledger/launcher.py
 
-The Typer-based CLI exposes top-level commands: `init`, `status`, `paths`, `schema`, `new`, `seed`, `list`, `show`, `read`, `check`, `build`, `renumber`, and the `source` subgroup. The `source` subgroup contains `snapshot`, `changed`, and `convert` for source tracking and dialect migration. Each command resolves the project config, constructs a Repository, and delegates to it. Two output modes are supported: human-readable text (default) and structured JSON (`--json` flag). Error handling maps domain exceptions (`ArchledgerError` subclasses) to appropriate exit codes and error output.
+The Typer-based CLI exposes top-level commands: `init`, `status`, `paths`, `schema`, `new`, `seed`, `list`, `show`, `read`, `check`, `archive`, `doctor`, `renumber`, `build`, and the `source` subgroup. The `source` subgroup contains `snapshot`, `changed`, and `convert` for source tracking and dialect migration. `archive` preserves obsolete records without reusing ledger numbers, and `doctor` validates or repairs ledger numbering invariants. Each command resolves the project config, constructs a Repository, and delegates to it. Two output modes are supported: human-readable text (default) and structured JSON (`--json` flag). Error handling maps domain exceptions (`ArchledgerError` subclasses) to appropriate exit codes and error output.
 
 Output is split across three modules: `cli.py` defines Typer commands and dispatches to the Repository, `cli_payloads.py` constructs structured JSON dictionaries from domain result types, and `cli_formatting.py` renders human-readable messages from those payloads. This separation keeps the command definitions thin and testable.
 
@@ -429,6 +432,34 @@ Three entry points serve different callers: `id_segment_for_metadata()` for raw 
 
 This module is intentionally thin — it isolates the resolution policy so that `renumber.py` and `repository.py` share the same logic without coupling to each other.
 
+## Interfaces
+
+### CLI stdout JSON contract
+
+**Providers:** CLI Layer
+**Consumers:** Automation scripts, JSON-mode CLI users
+**Protocol:** JSON over stdout
+This interface defines the stable stdout contract for CLI commands when users opt into `--json` mode.
+
+- **Provider**: CLI Layer (`archledger/cli.py`) with payload shaping in `archledger/cli_payloads.py`.
+- **Consumers**: automation scripts, coding-agent loops, CI checks, and tests that parse JSON output.
+- **Protocol**: JSON object payloads emitted to stdout on success and JSON error payloads on handled failures.
+
+The contract guarantees machine-readable top-level fields (`ok`, `command`, and command-specific result payloads) so tooling can branch on command outcomes without scraping human text output.
+
+### Front matter record file contract
+
+**Providers:** Storage layer, Repository layer
+**Consumers:** Check/read/build pipelines, Migration flows
+**Protocol:** YAML front matter + Markdown/AsciiDoc body
+This interface defines the record-file contract used by source fragments under `.archledger/records/`.
+
+- **Provider**: storage/front matter parser/writer and repository record creation flows.
+- **Consumers**: check/read/build pipelines, migration flows, and tooling that edits architecture records directly.
+- **Protocol**: record files contain YAML front matter plus a body in the configured dialect (`body_format`) with required metadata fields validated by schema and checks.
+
+The contract preserves deterministic parsing, explicit status/lifecycle metadata, and compatibility with source-schema v2 validation.
+
 # Runtime View
 
 Key runtime scenarios: initializing a new project (scaffolding directories and section files), creating and rendering records (the primary authoring flow), validating records with check (ensuring consistency and completeness), building multi-format output (assembly plus optional conversion), taking source snapshots and detecting changes (source tracking), and converting source dialects (Markdown to AsciiDoc migration).
@@ -496,8 +527,8 @@ delegate to pandoc or asciidoctor.
 3. CLI calls `build_default_project_config()` to construct a validated `ProjectConfig` dataclass, then renders it to TOML via `render_project_config()`.
 4. CLI writes the config file and resolves project paths.
 5. Repository creates the archledger_dir, sections_dir, records_dir, and build_dir.
-6. Repository creates 15 record subdirectories (one per record type directory).
-7. Repository writes 12 section Markdown files (01_introduction_and_goals through 12_glossary) with section extensions matching the configured source format.
+6. Repository creates one subdirectory for each unique record type directory from `RECORD_TYPE_TO_DIR` (currently 16 directories).
+7. Repository writes 12 section files named with the configured ledger ID format and section extension, for example `al_0001.adoc` in unsegmented AsciiDoc projects or `al_content_0001.md` in segmented Markdown projects.
 8. Repository writes the storage.yaml metadata file.
 9. The project is ready for `archledger new` commands. Record creation will use the configured ID format (prefix, width, segment mode).
 
@@ -1118,16 +1149,16 @@ The top quality scenarios address deterministic builds and agent-friendly CLI in
 
 ## Quality Scenarios
 
-| Title                                                | Quality         | Stimulus                                                                        | Response measure                                                                                               |
-| ---------------------------------------------------- | --------------- | ------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| Build produces identical output for identical inputs | reliability     | Runs archledger build twice on the same set of accepted records                 | Zero lines of diff between the two output files                                                                |
-| Agent can create and validate records via CLI        | usability       | Agent creates a new black-box record and validates it via check --json          | Zero human interventions required; all operations complete via CLI invocations with exit code 0                |
-| Native build does not require converters             | portability     | User runs native markdown/asciidoc build on a clean Python environment.         | Exit code 0 and no converter invocation.                                                                       |
-| Missing converter fails clearly                      | operability     | User requests PDF/DOCX without required converter installed.                    | Exit code non-zero with actionable diagnostic.                                                                 |
-| Source tracking detects rename                       | traceability    | A tracked file is renamed with unchanged contents.                              | `source changed --json` includes at least one rename candidate with source/target paths and confidence >= 0.5. |
-| Output path cannot escape build directory            | safety          | Config or CLI sets an escaping output path such as ../architecture.md.          | Invalid escaping output path causes non-zero exit and an error mentioning root-bound path validation.          |
-| Agent can read model without build                   | usability       | Agent runs archledger read --json --body after source edits.                    | `archledger read --json --body` exits 0 and creates 0 build output files.                                      |
-| Config v5 records validate strictly                  | maintainability | Repository records include schema_version/date/body_format in source schema v2. | archledger check --strict exits 0.                                                                             |
+| Title                                                    | Quality         | Stimulus                                                                        | Response measure                                                                                               |
+| -------------------------------------------------------- | --------------- | ------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Build produces identical output for identical inputs     | reliability     | Runs archledger build twice on the same set of accepted records                 | Zero lines of diff between the two output files                                                                |
+| Agent can create and validate records via CLI            | usability       | Agent creates a new black-box record and validates it via check --json          | Zero human interventions required; all operations complete via CLI invocations with exit code 0                |
+| Native build does not require converters                 | portability     | User runs native markdown/asciidoc build on a clean Python environment.         | Exit code 0 and no converter invocation.                                                                       |
+| Missing converter fails clearly                          | operability     | User requests PDF/DOCX without required converter installed.                    | Exit code non-zero with actionable diagnostic.                                                                 |
+| Source tracking detects rename                           | traceability    | A tracked file is renamed with unchanged contents.                              | `source changed --json` includes at least one rename candidate with source/target paths and confidence >= 0.5. |
+| Output path cannot escape build directory                | safety          | Config or CLI sets an escaping output path such as ../architecture.md.          | Invalid escaping output path causes non-zero exit and an error mentioning root-bound path validation.          |
+| Agent can read model without build                       | usability       | Agent runs archledger read --json --body after source edits.                    | `archledger read --json --body` exits 0 and creates 0 build output files.                                      |
+| Config v7 and source schema v2 records validate strictly | maintainability | Repository records include schema_version/date/body_format in source schema v2. | archledger check --strict exits 0.                                                                             |
 
 # Risks and Technical Debt
 
@@ -1153,4 +1184,4 @@ Domain and technical terms used throughout the architecture documentation.
 | Storage Directory   | The directory (configured as archledger_dir in archledger.toml) that holds the sections/, records/, build/ subdirectories and storage.yaml metadata file. Can be relative to the project root or an absolute external path.                                                                                                                                                     |
 | Dialect             | A source format abstraction that defines how to render markup elements (headings, tables, bullets, strong text). archledger provides MarkdownDialect and AsciiDocDialect.                                                                                                                                                                                                       |
 | Source Ref          | A traceability link from an architecture record to a source code artifact. Source refs have a path (relative to workspace root), optional symbols, and an optional reason. They enable change impact analysis.                                                                                                                                                                  |
-| Source State        | A persisted snapshot of all tracked workspace files with their SHA-256 hashes, sizes, and modification times. Used as the baseline for change detection.                                                                                                                                                                                                                        |
+| Source State        | A persisted source-tracking baseline with SHA-256 content hashes for tracked files plus derived directory hashes. Used by `archledger source changed` to detect modified, added, deleted, and possibly renamed files.                                                                                                                                                           |

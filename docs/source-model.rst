@@ -38,5 +38,5 @@ Generated output
 ----------------
 
 Generated build outputs are derived artifacts and should not be edited as
-source. The default location is ``.archledger/build/``, but
-``[build].default_output_dir`` may place them elsewhere under the project root.
+source. New projects default to ``build/`` under the workspace root, and
+``[build].default_output_dir`` may place outputs elsewhere.

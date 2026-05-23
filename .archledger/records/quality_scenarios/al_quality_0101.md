@@ -2,7 +2,7 @@
 schema_version: 2
 id: al_quality_0101
 type: quality_scenario
-title: Config v5 records validate strictly
+title: Config v7 and source schema v2 records validate strictly
 status: accepted
 section: quality_requirements
 order: 80
@@ -24,4 +24,4 @@ source_refs:
   - tests/test_source_tracking.py
 ---
 
-Config v5 + schema v2 records validate in strict mode.
+Config v7 plus source schema v2 records validate in strict mode.

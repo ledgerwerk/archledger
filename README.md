@@ -1,4 +1,4 @@
-[![PyPI - Version](https://img.shields.io/pypi/v/archledger)](https://pypi.org/project/archedger/)
+[![PyPI - Version](https://img.shields.io/pypi/v/archledger)](https://pypi.org/project/archledger/)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/archledger)
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/archledger)
 [![codecov](https://codecov.io/gh/holgern/archledger/graph/badge.svg?token=HdtZhZi9li)](https://codecov.io/gh/holgern/archledger)
@@ -161,7 +161,7 @@ The numeric sequence is always global and unchanged (for example `0014` stays `0
 
 ### Generated outputs
 
-Generated output files are not canonical source. By default they live under `.archledger/build/`, but `[build].default_output_dir` can move them elsewhere under the project root.
+Generated build outputs are derived artifacts and should not be edited as source. New projects default to `build/` under the workspace root, and `[build].default_output_dir` can place outputs elsewhere. This repository intentionally sets `[build].default_output_dir = "."` and writes `ARCHITECTURE.md` at the repository root.
 
 ### What to commit
 
@@ -173,7 +173,7 @@ For a project that uses `archledger`, commit the canonical source and config:
 - optionally `.archledger/storage.yaml` if you want deterministic id allocation across machines
 - optionally `.archledger/source-state.json` if your team wants a shared drift baseline
 
-Do **not** treat generated build output as canonical source. The default location is `.archledger/build/**`, but the configured build output directory may be elsewhere under the project root. Generated build output and converter intermediates are disposable unless you are intentionally debugging an export issue.
+Do **not** treat generated build output as canonical source. Determine its location from `[build].default_output_dir` (or `archledger --json paths`). Generated build output and converter intermediates are disposable unless you are intentionally debugging an export issue.
 
 ## Record types
 
@@ -323,15 +323,16 @@ formats is optional and disabled by default:
 ```toml
 [diagrams]
 enabled = true
-renderer = "mermaid-cli"  # pass-through | mermaid-cli | svgbob | asciidoctor-diagram | kroki
+renderer = "mermaid-cli"  # pass-through | mermaid-cli | asciidoctor-diagram
 default_type = "text"
 output_dir = "diagrams"
 image_format = "svg"
 kroki_url = ""
 ```
 
-`renderer = "kroki"` requires an explicit `kroki_url`. No public Kroki URL is used
-implicitly.
+`svgbob` is a `diagram_type`, not a renderer. Supported renderer values are
+`pass-through`, `mermaid-cli`, and `asciidoctor-diagram`. Kroki is not currently
+accepted by config validation.
 
 ## Migrating source dialects
 

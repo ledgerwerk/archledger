@@ -16,7 +16,7 @@ participants:
 trigger: User invokes `archledger init` in a project directory
 result:
   Config file created with full init options (build, diagrams, arc42, tracking),
-  directory scaffold initialized with 12 section files and 15 record subdirectories.
+  directory scaffold initialized with 12 section files and 16 record subdirectories.
 source_refs:
   - archledger/cli.py
   - archledger/config/render.py
@@ -28,7 +28,7 @@ source_refs:
 3. CLI calls `build_default_project_config()` to construct a validated `ProjectConfig` dataclass, then renders it to TOML via `render_project_config()`.
 4. CLI writes the config file and resolves project paths.
 5. Repository creates the archledger_dir, sections_dir, records_dir, and build_dir.
-6. Repository creates 15 record subdirectories (one per record type directory).
-7. Repository writes 12 section Markdown files (01_introduction_and_goals through 12_glossary) with section extensions matching the configured source format.
+6. Repository creates one subdirectory for each unique record type directory from `RECORD_TYPE_TO_DIR` (currently 16 directories).
+7. Repository writes 12 section files named with the configured ledger ID format and section extension, for example `al_0001.adoc` in unsegmented AsciiDoc projects or `al_content_0001.md` in segmented Markdown projects.
 8. Repository writes the storage.yaml metadata file.
 9. The project is ready for `archledger new` commands. Record creation will use the configured ID format (prefix, width, segment mode).

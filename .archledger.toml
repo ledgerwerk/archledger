@@ -100,6 +100,7 @@ exclude = [
   ".ruff_cache/**",
   "dist/**",
   "build/**",
+  "archledger/_version.py",
 ]
 max_file_bytes = 1000000
 hash_algorithm = "sha256"
