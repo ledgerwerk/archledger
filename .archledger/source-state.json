@@ -3,7 +3,7 @@
   "directories": {
     ".": {
       "file_count": 118,
-      "sha256": "5663b62309da5e8cf7d6e92d1d55c4db24dfc7769288aca2549978bb4d9bd393"
+      "sha256": "d306a4dd2d4319be2dec36985656df9dd93f32114d7cef03fb1e31a1bd8f9130"
     },
     ".github": {
       "file_count": 4,
@@ -35,7 +35,7 @@
     },
     "docs": {
       "file_count": 10,
-      "sha256": "7eb4055d68efe5ef6cf98406b5fffb5f288b5d63d5616355dd2a63a2b8de77bd"
+      "sha256": "e1290bdaf6a8dd206514e89da0b10c624fa35086968e41095c47f58ffd3accf9"
     },
     "skills": {
       "file_count": 1,
@@ -56,7 +56,7 @@
   },
   "files": {
     ".archledger.toml": {
-      "sha256": "db93e720f27bfd85ce4075c3f6b015dca679de1c3e54ffa5c0ba757f890030b4"
+      "sha256": "407f0e6dfbb6b41b6a8be5199d68eb1cb09756fa66230f7b0205efb528fa0c3c"
     },
     ".codecrate.toml": {
       "sha256": "98a874b313ad3920b213cd56540c625a480c46b7a3d99b5cfd948f4bea35b2e1"
@@ -83,13 +83,13 @@
       "sha256": "a2772615e41d74ec62417cea55b13a2b371822b0ce7f02552198f33822f184b1"
     },
     ".taskledger.toml": {
-      "sha256": "200f4ac5e075599952189e0cbc682ecbc21b650e0065a5dceb8613d3615e35b8"
+      "sha256": "a3a3577e51d96351d03c1f462f44040ec0a02550dc0a23875ed5727e04de659c"
     },
     "CHANGELOG.md": {
       "sha256": "7f3ad301345fa4ec8b88113811276077f65ee5f071b6482bc66cc6e3e1b45177"
     },
     "README.md": {
-      "sha256": "c80b3eb1e3772e6af69665e6d33638b83f0b08027df60c8b3912327e8583b21f"
+      "sha256": "b23dad879a1116786645e04b44bdbfab0de0173913611c3a7243d7e1259cbb71"
     },
     "archledger/__init__.py": {
       "sha256": "c442496577c6ee3d7260f799fa229c81f0b3fa94eb372fbd88797cc37f8de242"
@@ -314,13 +314,13 @@
       "sha256": "e553426a8427b1ece256792fdd9cabd767528615fbe1b71577c16409320c1274"
     },
     "docs/agent-workflow.rst": {
-      "sha256": "3b139c2c82c9f16b5621c6f2d6a0640c7eee16dcafaf606386b12de2790cd4b3"
+      "sha256": "0ff78393d7997822ea5784d5f433ea8b8b83d845b790a90da5c92e209764d082"
     },
     "docs/api.rst": {
       "sha256": "01ab36282bb4d887526f2d583cd607c6465cf69adfcbb4b56f932a33f99c30cc"
     },
     "docs/build-and-export.rst": {
-      "sha256": "d11305ff8afe7900241271af93cd092bc66ab8071c7473a83db9fa9d4cbb8c19"
+      "sha256": "102f73579740696145fcdea9a4575e151372c550dade37ae4bd0a2d5975ca7a6"
     },
     "docs/cli.rst": {
       "sha256": "6d0769213bca56e467ab1d2da80d55f56d4b0d395aadd5a0443033f20e80c5b8"
@@ -338,7 +338,7 @@
       "sha256": "18253c5166704b2fb98e7d26050e48a9417d0af2372cb321bc95530341a7be06"
     },
     "docs/source-model.rst": {
-      "sha256": "c3d2df1688575d134ea045b6a3bc824354a14d56c6ef6c0914397c57fa0537d5"
+      "sha256": "859fbcb7145a7ced912f3f051e9e28c3d734739b4b6ff4b2448e6ee943922bf4"
     },
     "docs/source-tracking.rst": {
       "sha256": "947a12a99c93654d06c22e2c5487e760b0acd987c3fabdf6e31d292987a4d673"
@@ -412,7 +412,7 @@
   },
   "project_name": "archledger",
   "project_uuid": "6bddbb56-b273-4aae-9860-bfa4de93f115",
-  "reason": "after-renumber-segment-ids-arch-update",
+  "reason": "after-archledger-repair",
   "scanner": {
     "exclude": [
       ".git/**",
@@ -422,7 +422,8 @@
       ".pytest_cache/**",
       ".ruff_cache/**",
       "dist/**",
-      "build/**"
+      "build/**",
+      "archledger/_version.py"
     ],
     "hash_algorithm": "sha256",
     "hash_content": "utf8-surrogateescape-lf-normalized",
@@ -441,5 +442,5 @@
     "used": "git"
   },
   "schema": "archledger.source-state.v2",
-  "updated_at": "2026-05-23T11:36:15Z"
+  "updated_at": "2026-05-25T16:31:03Z"
 }

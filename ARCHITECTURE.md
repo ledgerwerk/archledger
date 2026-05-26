@@ -1,7 +1,7 @@
 ---
 title: "archledger Architecture Documentation"
 date: "2026-05-23"
-generator: "archledger 0.1.1.dev1+g15fa163cd"
+generator: "archledger 0.1.1.dev9+gd859d2276"
 arc42_template_version: "9.0-EN"
 ---
 
