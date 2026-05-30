@@ -324,10 +324,6 @@ def source_format_spec(source_format: str) -> SourceFormatSpec:
 
 def default_extension_for_source_format(source_format: str) -> str:
     return source_format_spec(source_format).extension
-    try:
-        return SOURCE_FORMAT_EXTENSIONS[source_format]
-    except KeyError as exc:
-        raise ValueError(f"Unsupported source format: {source_format}") from exc
 
 
 def native_output_format_for_source_format(source_format: str) -> str:

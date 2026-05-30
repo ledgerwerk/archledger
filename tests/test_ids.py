@@ -31,9 +31,11 @@ def test_format_ledger_id_uses_configurable_prefix_and_width() -> None:
 
 
 def test_format_ledger_id_rejects_invalid_numbers() -> None:
-    for value in (0, -1, True):
+    for value in (0, -1):
         with pytest.raises(ValueError, match="positive integer"):
-            format_ledger_id(value)  # type: ignore[arg-type]
+            format_ledger_id(value)
+    with pytest.raises(ValueError, match="positive integer"):
+        format_ledger_id(True)
 
 
 def test_parse_ledger_id_roundtrip() -> None:

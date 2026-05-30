@@ -7,6 +7,7 @@ to keep sequence validation testable in isolation.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -75,7 +76,7 @@ def analyze_ledger_sequence(
     config: ProjectConfig,
     source_extensions: tuple[str, ...],
     *,
-    display_missing_id: callable,
+    display_missing_id: Callable[[int], str],
 ) -> SequenceFindings:
     """Analyze ledger sequence for gaps, duplicates, and counter issues."""
     meta = read_storage_meta(paths.storage_meta_path)

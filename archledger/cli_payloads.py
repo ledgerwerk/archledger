@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Sequence
 from pathlib import Path
+from typing import TypeVar
 
 from archledger.converters import BuildResult
 from archledger.ids import (
@@ -41,6 +42,7 @@ from archledger.source_tracking import (
 from archledger.storage.paths import ProjectPaths
 from archledger.storage.project_config import ProjectConfig
 
+T = TypeVar("T")
 # --- Shared payload helpers ---
 
 
@@ -73,10 +75,10 @@ def _record_detail(
 
 
 def _findings_payload(
-    errors: Sequence[object],
-    warnings: Sequence[object],
+    errors: Sequence[T],
+    warnings: Sequence[T],
     *,
-    serializer: Callable[[object], dict[str, object]] | None = None,
+    serializer: Callable[[T], dict[str, object]] | None = None,
 ) -> dict[str, object]:
     """Standard errors/warnings findings payload."""
     if serializer is not None:

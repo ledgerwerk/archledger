@@ -13,7 +13,7 @@ Run the standard quality gates from a clean checkout:
    python -m pip install -e ".[dev,docs]"
    python -m pytest -q
    python -m ruff check .
-   python -m mypy archledger
+   python -m mypy archledger tests
    python -m sphinx -b html docs docs/_build/html
 
 Build and metadata validation

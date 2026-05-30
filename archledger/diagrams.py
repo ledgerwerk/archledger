@@ -45,7 +45,7 @@ def materialize_diagrams_for_conversion(
     build_dir: Path,
     assembly: AssemblyResult,
     requested_format: OutputFormat,
-    tool_resolver: callable | None = None,
+    tool_resolver: Callable[[str], str | None] | None = None,
 ) -> MaterializedDiagramDocument | None:
     if not config.diagram_enabled:
         return None
@@ -103,7 +103,7 @@ def _materialize_blocks(
     *,
     image_format: str,
     requested_format: OutputFormat,
-    tool_resolver: callable | None,
+    tool_resolver: Callable[[str], str | None] | None,
     replacement_for_asset: Callable[[str], str],
 ) -> tuple[str, tuple[Path, ...]]:
     cleanup_paths: list[Path] = []
@@ -134,7 +134,7 @@ def _materialize_markdown_blocks(
     *,
     image_format: str,
     requested_format: OutputFormat,
-    tool_resolver: callable | None,
+    tool_resolver: Callable[[str], str | None] | None,
 ) -> tuple[str, tuple[Path, ...]]:
     return _materialize_blocks(
         text,
@@ -153,7 +153,7 @@ def _materialize_asciidoc_blocks(
     *,
     image_format: str,
     requested_format: OutputFormat,
-    tool_resolver: callable | None,
+    tool_resolver: Callable[[str], str | None] | None,
 ) -> tuple[str, tuple[Path, ...]]:
     return _materialize_blocks(
         text,
@@ -172,7 +172,7 @@ def _render_mermaid_asset(
     *,
     image_format: str,
     requested_format: OutputFormat,
-    tool_resolver: callable | None,
+    tool_resolver: Callable[[str], str | None] | None,
 ) -> tuple[Path, Path]:
     source_hash = _diagram_hash(source)
     source_path = diagram_output_dir / f"mermaid-{source_hash}.mmd"
@@ -197,7 +197,9 @@ def _render_mermaid_asset(
     return asset_path, source_path
 
 
-def _resolve_tool(tool_resolver: callable | None, executable: str) -> str:
+def _resolve_tool(
+    tool_resolver: Callable[[str], str | None] | None, executable: str
+) -> str:
     resolver = tool_resolver if tool_resolver is not None else _default_tool_resolver
     resolved = resolver(executable)
     if resolved is None:

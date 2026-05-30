@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
 from typer.testing import CliRunner
 
 from archledger.cli import app
@@ -276,7 +277,7 @@ def test_build_uses_source_date_epoch_for_document_date(tmp_path: Path) -> None:
 
 def test_build_uses_latest_record_metadata_date_when_epoch_not_set(
     tmp_path: Path,
-    monkeypatch,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     init_project(tmp_path)
     monkeypatch.delenv("SOURCE_DATE_EPOCH", raising=False)

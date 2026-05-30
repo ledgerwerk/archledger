@@ -147,14 +147,14 @@ def _parse_tracking_hash_algorithm(raw: object, field_name: str) -> str:
 
 
 def _make_tracking(
-    enabled,
-    state_file,
-    scanner,
-    include,
-    exclude,
-    max_file_bytes,
-    hash_algorithm,
-) -> tuple:
+    enabled: bool,
+    state_file: str,
+    scanner: str,
+    include: tuple[str, ...],
+    exclude: tuple[str, ...],
+    max_file_bytes: int,
+    hash_algorithm: str,
+) -> tuple[bool, str, str, tuple[str, ...], tuple[str, ...], int, str]:
     """Factory for the tracking table row."""
     return (
         enabled,
@@ -625,7 +625,10 @@ def _parse_tracking_config(
     tracking_data: dict[str, object],
 ) -> tuple[bool, str, str, tuple[str, ...], tuple[str, ...], int, str]:
     parsed = parse_table_from_spec(tracking_data, _TRACKING_TABLE)
-    return _TRACKING_TABLE.factory(**parsed)
+    return cast(
+        tuple[bool, str, str, tuple[str, ...], tuple[str, ...], int, str],
+        _TRACKING_TABLE.factory(**parsed),
+    )
 
 
 def _parse_diagram_config(
