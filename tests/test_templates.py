@@ -107,7 +107,7 @@ def test_all_markdown_templates_include_schema_version_date_body_format() -> Non
         term="test",
     )
     for path in sorted(template_root.glob("*.md.j2")):
-        tmpl_name = str(path).replace("archledger/templates/", "", 1)
+        tmpl_name = path.relative_to("archledger/templates").as_posix()
         tmpl = env.get_template(tmpl_name)
         rendered = tmpl.render(type=path.stem.split(".")[0], **common_vars)
         assert "schema_version: 2" in rendered, path.name
@@ -142,7 +142,7 @@ def test_all_asciidoc_templates_include_schema_version_date_body_format() -> Non
         term="test",
     )
     for path in sorted(template_root.glob("*.adoc.j2")):
-        tmpl_name = str(path).replace("archledger/templates/", "", 1)
+        tmpl_name = path.relative_to("archledger/templates").as_posix()
         tmpl = env.get_template(tmpl_name)
         rendered = tmpl.render(type=path.stem.split(".")[0], **common_vars)
         assert "schema_version: 2" in rendered, path.name
