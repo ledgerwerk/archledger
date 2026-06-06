@@ -388,6 +388,83 @@ def _sha256_for_path(path: Path) -> str:
     ).hexdigest()
 
 
+def scan_git_revision(
+    paths: ProjectPaths,
+    config: ProjectConfig,
+    revision: str,
+    *,
+    reason: str,
+) -> SourceState:
+    """Build a SourceState from a git revision using ls-tree and show."""
+    timestamp = utc_now_iso()
+    workspace = str(paths.workspace_root)
+    # Get file list at revision
+    result = subprocess.run(
+        ["git", "-C", workspace, "ls-tree", "-r", "--name-only", revision],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    files: dict[str, TrackedFile] = {}
+    for line in result.stdout.splitlines():
+        relative_path = line.strip()
+        if not relative_path:
+            continue
+        if not _matches_any_pattern(relative_path, config.tracking_include):
+            continue
+        if _matches_any_pattern(relative_path, config.tracking_exclude):
+            continue
+        try:
+            content_result = subprocess.run(
+                ["git", "-C", workspace, "show", f"{revision}:{relative_path}"],
+                capture_output=True,
+                check=True,
+            )
+        except subprocess.CalledProcessError:
+            continue
+        text = content_result.stdout.decode("utf-8", errors="surrogateescape")
+        normalized = text.replace("\r\n", "\n").replace("\r", "\n")
+        sha = hashlib.sha256(
+            normalized.encode("utf-8", errors="surrogateescape")
+        ).hexdigest()
+        files[relative_path] = TrackedFile(path=relative_path, sha256=sha)
+    sorted_files = dict(sorted(files.items()))
+    return SourceState(
+        schema=SOURCE_STATE_SCHEMA,
+        project_uuid=config.project_uuid,
+        project_name=config.project_name,
+        created_at=timestamp,
+        updated_at=timestamp,
+        reason=reason,
+        scanner={"mode": "git", "used": "git", "revision": revision},
+        files=sorted_files,
+        directories=_build_directory_tree(sorted_files),
+    )
+
+
+def scan_since_merge_base(
+    paths: ProjectPaths,
+    config: ProjectConfig,
+    revision: str,
+    *,
+    reason: str = "merge-base",
+) -> tuple[SourceState, SourceState]:
+    """Return (base_state, current_state) for merge-base comparison."""
+    workspace = str(paths.workspace_root)
+    base_result = subprocess.run(
+        ["git", "-C", workspace, "merge-base", "HEAD", revision],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    merge_base = base_result.stdout.strip()
+    base_state = scan_git_revision(
+        paths, config, merge_base, reason=f"merge-base:{merge_base[:8]}"
+    )
+    current_state = scan_workspace(paths, config, reason=reason)
+    return base_state, current_state
+
+
 def _matches_any_pattern(path: str, patterns: tuple[str, ...]) -> bool:
     return any(_matches_pattern(path, pattern) for pattern in patterns)
 

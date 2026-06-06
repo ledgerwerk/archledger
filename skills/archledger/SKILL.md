@@ -32,6 +32,21 @@ Use this skill when a coding agent needs to create, inspect, enrich, repair, or 
 
 ## Fresh-context entry protocol
 
+For SDD-enabled projects, prefer these compact entry points:
+
+```text
+archledger context --for-file PATH
+archledger context --for-record RECORD_ID
+archledger context --changed
+archledger trace RECORD_ID
+archledger sdd status
+archledger sdd check --strict
+```
+
+Use `record set`, `record meta set`, `record body append`, `refs add`,
+`links add`, and `ac add` instead of hand-editing front matter when the
+requested mutation maps to one of those commands.
+
 When the user asks to update existing archledger content, detect source drift first:
 
 ```bash

@@ -13,6 +13,7 @@ archledger = [
     "templates/*.md.j2",
     "templates/records/*.adoc.j2",
     "templates/records/*.md.j2",
+    "schemas/*.json",
 ]
 
 [tool.pytest.ini_options]

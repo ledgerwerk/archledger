@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import cast
 
 from archledger.config.model import (
+    DEFAULT_ARC42_SECTIONS_DIR,
     DEFAULT_ID_SEGMENT,
     DEFAULT_ID_SEGMENT_MAP,
     DEFAULT_TRACKING_EXCLUDE,
@@ -13,9 +14,15 @@ from archledger.config.model import (
     VALID_DIAGRAM_IMAGE_FORMATS,
     VALID_DIAGRAM_RENDERERS,
     VALID_DIAGRAM_TYPES,
+    VALID_PROFILE_KINDS,
+    VALID_PROFILES,
     VALID_TRACKING_HASH_ALGORITHMS,
     VALID_TRACKING_SCANNERS,
+    Arc42ProfileConfig,
+    ProfilesConfig,
     ProjectConfig,
+    ProjectProfilesConfig,
+    SddProfileConfig,
     normalize_project_name,
     validate_uuid,
 )
@@ -58,6 +65,7 @@ _ALLOWED_TOP_LEVEL_KEYS = {
     "skill",
     "tracking",
     "diagrams",
+    "profiles",
 }
 _ALLOWED_BUILD_KEYS = {
     "default_output",
@@ -82,6 +90,20 @@ _ALLOWED_IDS_KEYS = {
     "segment_map",
 }
 _ALLOWED_ARC42_KEYS = {"template_version", "language", "title", "include_help"}
+_ALLOWED_PROFILES_KEYS = {"enabled", "default", "arc42", "sdd"}
+_ALLOWED_PROFILES_ARC42_KEYS = {
+    "kind",
+    "template",
+    "sections_dir",
+    "build_template",
+    "include_help",
+}
+_ALLOWED_PROFILES_SDD_KEYS = {
+    "kind",
+    "require_acceptance_criteria",
+    "require_implementation_refs",
+    "require_test_refs",
+}
 _ALLOWED_SKILL_KEYS = {"installed", "path"}
 _ALLOWED_TRACKING_KEYS = {
     "enabled",
@@ -238,10 +260,25 @@ def load_project_config(path: Path) -> ProjectConfig:
         _ALLOWED_DIAGRAM_KEYS,
         "diagrams",
     )
+    profiles_top_data = _validate_subtable(
+        path,
+        raw_data.get("profiles"),
+        _ALLOWED_PROFILES_KEYS,
+        "profiles",
+    )
 
     config_version = raw_data.get("config_version")
-    if isinstance(config_version, bool) or config_version not in {1, 2, 3, 4, 5, 6, 7}:
-        raise ConfigError("config_version must be 1, 2, 3, 4, 5, 6, or 7.")
+    if isinstance(config_version, bool) or config_version not in {
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+    }:
+        raise ConfigError("config_version must be 1, 2, 3, 4, 5, 6, 7, or 8.")
 
     archledger_dir = raw_data.get("archledger_dir")
     if not isinstance(archledger_dir, str) or not archledger_dir.strip():
@@ -301,6 +338,13 @@ def load_project_config(path: Path) -> ProjectConfig:
         diagram_image_format,
         diagram_kroki_url,
     ) = _parse_diagram_config(diagrams_data, build_data)
+    profiles_present = "profiles" in raw_data and raw_data["profiles"] is not None
+    profiles_config = _parse_profiles_config(
+        profiles_top_data,
+        raw_data,
+        config_version=cast(int, config_version),
+        archledger_dir=archledger_dir,
+    )
 
     return ProjectConfig(
         config_version=cast(int, config_version),
@@ -347,6 +391,8 @@ def load_project_config(path: Path) -> ProjectConfig:
         diagram_output_dir=diagram_output_dir,
         diagram_image_format=diagram_image_format,
         diagram_kroki_url=diagram_kroki_url,
+        profiles=profiles_config,
+        profiles_present=profiles_present,
     )
 
 
@@ -619,6 +665,159 @@ def _parse_skill_config(skill_data: dict[str, object]) -> tuple[bool, str]:
         "skill.path",
     )
     return skill_installed, skill_path
+
+
+def _parse_profiles_config(
+    profiles_data: dict[str, object],
+    raw_data: dict[str, object],
+    *,
+    config_version: int,
+    archledger_dir: str,
+) -> ProjectProfilesConfig:
+    """Parse the optional [profiles] table.
+
+    For legacy projects (config_version < 8 with no [profiles] table),
+    returns arc42-only defaults with the legacy sections_dir location so
+    existing on-disk layouts keep working.
+    """
+    has_profiles_table = bool(profiles_data)
+    if not has_profiles_table:
+        # Legacy project: keep sections at the old <archledger_dir>/sections location.
+        legacy_sections_dir = archledger_dir.rstrip("/") + "/sections"
+        return ProjectProfilesConfig(
+            profiles=ProfilesConfig(enabled=("arc42",), default="arc42"),
+            arc42=Arc42ProfileConfig(sections_dir=legacy_sections_dir),
+            sdd=SddProfileConfig(),
+        )
+
+    enabled_raw = profiles_data.get("enabled", ["arc42"])
+    if not isinstance(enabled_raw, (list, tuple)):
+        raise ConfigError("profiles.enabled must be a list of strings.")
+    enabled_list: list[str] = []
+    for item in enabled_raw:
+        if not isinstance(item, str) or not item.strip():
+            raise ConfigError("profiles.enabled must contain only non-empty strings.")
+        enabled_list.append(item.strip())
+    enabled = tuple(dict.fromkeys(enabled_list))
+    unknown_enabled = sorted(set(enabled) - VALID_PROFILES)
+    if unknown_enabled:
+        raise ConfigError(
+            "profiles.enabled contains unknown profiles: " + ", ".join(unknown_enabled)
+        )
+    if not enabled:
+        raise ConfigError("profiles.enabled must contain at least one profile.")
+
+    default_raw = profiles_data.get("default", enabled[0])
+    if not isinstance(default_raw, str) or not default_raw.strip():
+        raise ConfigError("profiles.default must be a non-empty string.")
+    default_profile = default_raw.strip()
+    if default_profile not in enabled:
+        raise ConfigError(
+            f"profiles.default ({default_profile}) must be listed in profiles.enabled."
+        )
+
+    arc42_sub = _extract_subtable(
+        raw_data, "profiles.arc42", _ALLOWED_PROFILES_ARC42_KEYS
+    )
+    sdd_sub = _extract_subtable(raw_data, "profiles.sdd", _ALLOWED_PROFILES_SDD_KEYS)
+
+    arc42_cfg = _parse_arc42_profile(arc42_sub)
+    sdd_cfg = _parse_sdd_profile(sdd_sub)
+
+    # Validate sections_dir stays inside the archledger directory.
+    _validate_profile_sections_dir(arc42_cfg.sections_dir, archledger_dir)
+
+    return ProjectProfilesConfig(
+        profiles=ProfilesConfig(enabled=enabled, default=default_profile),
+        arc42=arc42_cfg,
+        sdd=sdd_cfg,
+    )
+
+
+def _extract_subtable(
+    raw_data: dict[str, object], dotted: str, allowed_keys: set[str]
+) -> dict[str, object]:
+    """Pull a dotted subtable (profiles.arc42) out of raw TOML data."""
+    parts = dotted.split(".")
+    current: object = raw_data
+    for part in parts:
+        if not isinstance(current, dict) or part not in current:
+            return {}
+        current = current[part]
+    if current is None:
+        return {}
+    if not isinstance(current, dict):
+        raise ConfigError(f"{dotted} must be a TOML table.")
+    unknown = sorted(set(current) - allowed_keys)
+    if unknown:
+        raise ConfigError(f"Unknown keys in {dotted}: " + ", ".join(unknown))
+    return dict(current)
+
+
+def _parse_arc42_profile(data: dict[str, object]) -> Arc42ProfileConfig:
+    kind = _require_choice(
+        data.get("kind", "documentation"), "profiles.arc42.kind", VALID_PROFILE_KINDS
+    )
+    template = _require_non_empty_string(
+        data.get("template", "arc42"), "profiles.arc42.template"
+    )
+    sections_dir = _require_non_empty_string(
+        data.get("sections_dir", DEFAULT_ARC42_SECTIONS_DIR),
+        "profiles.arc42.sections_dir",
+    )
+    build_template = _require_non_empty_string(
+        data.get("build_template", "arc42_document"),
+        "profiles.arc42.build_template",
+    )
+    include_help = _require_bool(
+        data.get("include_help", False), "profiles.arc42.include_help"
+    )
+    return Arc42ProfileConfig(
+        kind=kind,
+        template=template,
+        sections_dir=sections_dir,
+        build_template=build_template,
+        include_help=include_help,
+    )
+
+
+def _parse_sdd_profile(data: dict[str, object]) -> SddProfileConfig:
+    kind = _require_choice(
+        data.get("kind", "contract"), "profiles.sdd.kind", VALID_PROFILE_KINDS
+    )
+    require_acceptance_criteria = _require_bool(
+        data.get("require_acceptance_criteria", True),
+        "profiles.sdd.require_acceptance_criteria",
+    )
+    require_implementation_refs = _require_bool(
+        data.get("require_implementation_refs", True),
+        "profiles.sdd.require_implementation_refs",
+    )
+    require_test_refs = _require_bool(
+        data.get("require_test_refs", True), "profiles.sdd.require_test_refs"
+    )
+    return SddProfileConfig(
+        kind=kind,
+        require_acceptance_criteria=require_acceptance_criteria,
+        require_implementation_refs=require_implementation_refs,
+        require_test_refs=require_test_refs,
+    )
+
+
+def _validate_profile_sections_dir(sections_dir: str, archledger_dir: str) -> None:
+    """Validate the arc42 profile sections_dir path syntax.
+
+    Containment against archledger_dir is enforced later by the path resolver.
+    """
+    from pathlib import Path
+
+    candidate = Path(sections_dir)
+    if candidate.is_absolute():
+        raise ConfigError("profiles.arc42.sections_dir must be relative.")
+    if "\\" in sections_dir:
+        raise ConfigError("profiles.arc42.sections_dir must use POSIX separators.")
+    if ".." in candidate.parts:
+        raise ConfigError("profiles.arc42.sections_dir must not contain '..'.")
 
 
 def _parse_tracking_config(

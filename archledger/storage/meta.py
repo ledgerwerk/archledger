@@ -99,14 +99,11 @@ def recompute_next_number(
         *(extension.lower() for extension in source_extensions),
     }
     highest = 0
-    for root in (
-        archledger_dir / "sections",
-        archledger_dir / "records",
-        archledger_dir / "archive",
-    ):
-        if not root.is_dir():
-            continue
-        for path in root.rglob("*"):
+    # Scan the whole archledger directory tree so that section files are
+    # found whether they live at the legacy <archledger_dir>/sections/ location
+    # or the profile-owned <archledger_dir>/profiles/arc42/sections/ location.
+    if archledger_dir.is_dir():
+        for path in archledger_dir.rglob("*"):
             if not path.is_file() or path.suffix.lower() not in known_extensions:
                 continue
             try:

@@ -21,6 +21,7 @@ from archledger.ledger_sequence import (
 from archledger.ledger_sequence import (
     collect_numbered_source_paths as _collect_numbered_source_paths,
 )
+from archledger.links import normalize_links
 from archledger.model import (
     CURRENT_SOURCE_SCHEMA_VERSION,
     MAJOR_SECTION_SPECS,
@@ -56,6 +57,7 @@ from archledger.storage.meta import (
 )
 from archledger.storage.paths import ProjectPaths, is_relative_to
 from archledger.storage.project_config import ProjectConfig
+from archledger.test_refs import normalize_test_refs
 
 
 @dataclass(frozen=True, slots=True)
@@ -146,13 +148,16 @@ class ArchitectureRepository:
     def init(self, *, overwrite: bool = False) -> InitResult:
         created_paths: list[Path] = []
         created_at = utc_now_iso()
-        for path in (
+        dirs_to_create: list[Path] = [
             self.paths.archledger_dir,
-            self.paths.sections_dir,
             self.paths.records_dir,
             self.paths.archive_dir,
             self.paths.build_dir,
-        ):
+        ]
+        # Only create sections directory when the arc42 profile is enabled.
+        if self._arc42_enabled():
+            dirs_to_create.append(self.paths.sections_dir)
+        for path in dirs_to_create:
             if not path.exists():
                 created_paths.append(path)
             ensure_dir(path)
@@ -163,26 +168,28 @@ class ArchitectureRepository:
                 created_paths.append(directory_path)
             ensure_dir(directory_path)
 
-        for section_spec in MAJOR_SECTION_SPECS:
-            section_id = self.config.id_format.format(
-                section_spec.number,
-                segment=self._id_segment_for_section(section_spec),
-            )
-            section_path = (
-                self.paths.sections_dir / f"{section_id}{self.config.section_extension}"
-            )
-            if not section_path.exists() or overwrite:
-                write_text_atomic(
-                    section_path,
-                    _section_document(
-                        section_spec,
-                        self.config.source_format,
-                        record_id=section_id,
-                        source_schema_version=self.config.source_schema_version,
-                        created_at=created_at,
-                    ),
+        if self._arc42_enabled():
+            for section_spec in MAJOR_SECTION_SPECS:
+                section_id = self.config.id_format.format(
+                    section_spec.number,
+                    segment=self._id_segment_for_section(section_spec),
                 )
-                created_paths.append(section_path)
+                section_path = (
+                    self.paths.sections_dir
+                    / f"{section_id}{self.config.section_extension}"
+                )
+                if not section_path.exists() or overwrite:
+                    write_text_atomic(
+                        section_path,
+                        _section_document(
+                            section_spec,
+                            self.config.source_format,
+                            record_id=section_id,
+                            source_schema_version=self.config.source_schema_version,
+                            created_at=created_at,
+                        ),
+                    )
+                    created_paths.append(section_path)
 
         if not self.paths.storage_meta_path.exists() or overwrite:
             meta = default_storage_meta(self.config.project_uuid, __version__)
@@ -339,7 +346,7 @@ class ArchitectureRepository:
             return self._load_record_from_path(path)
         raise ValidationError(f"Record not found: {record_id}")
 
-    def check(
+    def check(  # noqa: C901
         self,
         *,
         strict: bool = False,
@@ -429,6 +436,17 @@ class ArchitectureRepository:
                         record.path,
                     )
                 )
+            # Validate link targets after all records are loaded.
+            for link in record.links:
+                if link.target not in loaded_ids:
+                    findings_warnings.append(
+                        CheckFinding(
+                            "warning",
+                            f"Record {record.id} links entry target {link.target!r} "
+                            f"does not match any loaded record ID.",
+                            record.path,
+                        )
+                    )
             if record.status == "draft":
                 findings_warnings.append(
                     CheckFinding(
@@ -448,54 +466,55 @@ class ArchitectureRepository:
                     )
                 )
 
-        for section_spec in MAJOR_SECTION_SPECS:
-            section_id = self.config.id_format.format(
-                section_spec.number,
-                segment=self._id_segment_for_section(section_spec),
-            )
-            section_paths = [
-                self.paths.sections_dir / f"{section_id}{extension}"
-                for extension in self._known_source_extensions()
-            ]
-            archived_section_paths = [
-                self.paths.archive_dir / "sections" / f"{section_id}{extension}"
-                for extension in self._known_source_extensions()
-            ]
-            if not any(path.is_file() for path in section_paths):
-                findings_errors.append(
+        if self._arc42_enabled():
+            for section_spec in MAJOR_SECTION_SPECS:
+                section_id = self.config.id_format.format(
+                    section_spec.number,
+                    segment=self._id_segment_for_section(section_spec),
+                )
+                section_paths = [
+                    self.paths.sections_dir / f"{section_id}{extension}"
+                    for extension in self._known_source_extensions()
+                ]
+                archived_section_paths = [
+                    self.paths.archive_dir / "sections" / f"{section_id}{extension}"
+                    for extension in self._known_source_extensions()
+                ]
+                if not any(path.is_file() for path in section_paths):
+                    findings_errors.append(
+                        CheckFinding(
+                            "error",
+                            f"Required section file is missing: {section_spec.key}",
+                            section_paths[0],
+                        )
+                    )
+                archived_section = next(
+                    (path for path in archived_section_paths if path.is_file()),
+                    None,
+                )
+                if archived_section is not None:
+                    findings_errors.append(
+                        CheckFinding(
+                            "error",
+                            f"Required section file is archived: {section_spec.key}",
+                            archived_section,
+                        )
+                    )
+                if any(
+                    record.type != "section"
+                    and record.section == section_spec.key
+                    and record.status in {"accepted", "proposed"}
+                    and not path_in_archive(record.path, self.paths.archive_dir)
+                    for record in loaded_records
+                ):
+                    continue
+                findings_warnings.append(
                     CheckFinding(
-                        "error",
-                        f"Required section file is missing: {section_spec.key}",
+                        "warning",
+                        f"Section {section_spec.key} has no accepted/proposed records.",
                         section_paths[0],
                     )
                 )
-            archived_section = next(
-                (path for path in archived_section_paths if path.is_file()),
-                None,
-            )
-            if archived_section is not None:
-                findings_errors.append(
-                    CheckFinding(
-                        "error",
-                        f"Required section file is archived: {section_spec.key}",
-                        archived_section,
-                    )
-                )
-            if any(
-                record.type != "section"
-                and record.section == section_spec.key
-                and record.status in {"accepted", "proposed"}
-                and not path_in_archive(record.path, self.paths.archive_dir)
-                for record in loaded_records
-            ):
-                continue
-            findings_warnings.append(
-                CheckFinding(
-                    "warning",
-                    f"Section {section_spec.key} has no accepted/proposed records.",
-                    section_paths[0],
-                )
-            )
 
         sequence_errors, sequence_warnings, _, _, _ = self._ledger_sequence_findings()
         findings_errors.extend(sequence_errors)
@@ -904,6 +923,15 @@ class ArchitectureRepository:
                 metadata.get("source_refs"),
                 workspace_root=self.paths.workspace_root,
             )[0],
+            links=normalize_links(
+                cast(str, record_id),
+                metadata.get("links"),
+            )[0],
+            test_refs=normalize_test_refs(
+                cast(str, record_id),
+                metadata.get("test_refs"),
+                workspace_root=self.paths.workspace_root,
+            )[0],
         )
         return record
 
@@ -913,10 +941,17 @@ class ArchitectureRepository:
                 "Missing storage metadata file: "
                 f"{self.paths.storage_meta_path}. Run: archledger init"
             )
-        if not self.paths.sections_dir.is_dir() or not self.paths.records_dir.is_dir():
+        if self._arc42_enabled() and not self.paths.sections_dir.is_dir():
             raise StorageError(
                 "archledger storage layout is incomplete. Run: archledger init"
             )
+        if not self.paths.records_dir.is_dir():
+            raise StorageError(
+                "archledger storage layout is incomplete. Run: archledger init"
+            )
+
+    def _arc42_enabled(self) -> bool:
+        return "arc42" in self.config.profiles.profiles.enabled
 
     def _write_counter(self, next_number: int) -> None:
         current_meta = read_storage_meta(self.paths.storage_meta_path)

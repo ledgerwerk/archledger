@@ -172,6 +172,15 @@ def _diagram_context(input_data: RecordContextInput) -> dict[str, object]:
     }
 
 
+def _acceptance_criterion_context(_input: RecordContextInput) -> dict[str, object]:
+    return {
+        "requirement": "",
+        "validation": {"command": "", "expected": "passes"},
+        "test_refs": [],
+        "links": [],
+    }
+
+
 RECORD_TYPE_SPECS = (
     RecordTypeSpec(
         kind="requirement",
@@ -308,6 +317,14 @@ RECORD_TYPE_SPECS = (
         default_section="cross_cutting_concepts",
         template_basename="diagram",
         context_factory=_diagram_context,
+    ),
+    RecordTypeSpec(
+        kind="acceptance_criterion",
+        aliases=("acceptance-criterion", "acceptance_criterion", "ac"),
+        directory="acceptance_criteria",
+        default_section="requirements_overview",
+        template_basename="acceptance_criterion",
+        context_factory=_acceptance_criterion_context,
     ),
     RecordTypeSpec(
         kind="glossary_term",

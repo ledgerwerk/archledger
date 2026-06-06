@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://archledger.dev/schemas/archledger.sdd.v1.schema.json",
+  "title": "Archledger SDD check result",
+  "type": "object",
+  "required": ["schema", "summary", "errors", "warnings"],
+  "properties": {
+    "schema": { "const": "archledger.sdd-check.v1" },
+    "profile": { "type": "string" },
+    "summary": { "type": "object" },
+    "errors": { "type": "array", "items": { "$ref": "#/$defs/finding" } },
+    "warnings": { "type": "array", "items": { "$ref": "#/$defs/finding" } }
+  },
+  "$defs": {
+    "finding": {
+      "type": "object",
+      "required": ["level", "code", "message"],
+      "properties": {
+        "level": { "enum": ["error", "warning"] },
+        "code": { "type": "string" },
+        "message": { "type": "string" }
+      }
+    }
+  }
+}

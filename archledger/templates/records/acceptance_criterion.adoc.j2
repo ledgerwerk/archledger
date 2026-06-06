@@ -1,0 +1,28 @@
+---
+schema_version: {{ schema_version | default(2, true) }}
+id: {{ id }}
+type: acceptance_criterion
+title: {{ title | tojson }}
+status: {{ status }}
+section: {{ section }}
+order: {{ order }}
+date: {{ date | tojson }}
+requirement: ""
+validation:
+  command: ""
+  expected: "passes"
+test_refs: []
+links: []
+body_format: asciidoc
+created_at: {{ created_at | tojson }}
+updated_at: {{ updated_at | tojson }}
+---
+
+== Acceptance Criterion
+
+State the externally observable condition that must be true.
+
+== Validation
+
+* Command: TBD
+* Expected: passes

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path, PurePosixPath
 
-from archledger.model import SourceRef
+from archledger.model import VALID_SOURCE_REF_ROLES, SourceRef
 
 
 class RelativePosixPathError(ValueError):
@@ -95,6 +95,7 @@ def _normalize_source_ref_entry(
     raw_path = entry.get("path")
     raw_symbols = entry.get("symbols", ())
     raw_reason = entry.get("reason", "")
+    raw_role = entry.get("role", "")
     if not isinstance(raw_symbols, list) and not isinstance(raw_symbols, tuple):
         return (
             None,
@@ -119,11 +120,22 @@ def _normalize_source_ref_entry(
             None,
             [f"Record {record_id} source_refs entry {index} reason must be a string."],
         )
+    if not isinstance(raw_role, str):
+        return (
+            None,
+            [f"Record {record_id} source_refs entry {index} role must be a string."],
+        )
+    role = raw_role.strip()
+    if role and role not in VALID_SOURCE_REF_ROLES:
+        # Invalid role is a warning (normal check) or error (sdd check).
+        # Return the role as-is for now; sdd.py will validate.
+        pass
     return _build_source_ref(
         record_id,
         raw_path,
         tuple(symbol_list),
         raw_reason.strip(),
+        role,
         index=index,
         workspace_root=workspace_root,
     )
@@ -134,6 +146,7 @@ def _build_source_ref(
     raw_path: object,
     symbols: tuple[str, ...],
     reason: str,
+    role: str = "",
     *,
     index: int,
     workspace_root: Path,
@@ -178,7 +191,10 @@ def _build_source_ref(
                 f"path does not exist: {normalized_path}"
             ],
         )
-    return (SourceRef(path=normalized_path, symbols=symbols, reason=reason), [])
+    return (
+        SourceRef(path=normalized_path, symbols=symbols, reason=reason, role=role),
+        [],
+    )
 
 
 def _format_source_ref_path_error(

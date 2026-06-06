@@ -40,6 +40,12 @@ from archledger.cli_formatting import (
     format_paths_message as _format_paths_message,
 )
 from archledger.cli_formatting import (
+    format_profile_list_message as _format_profile_list_message,
+)
+from archledger.cli_formatting import (
+    format_profile_migration_message as _format_profile_migration_message,
+)
+from archledger.cli_formatting import (
     format_read_message as _format_read_message,
 )
 from archledger.cli_formatting import (
@@ -47,6 +53,12 @@ from archledger.cli_formatting import (
 )
 from archledger.cli_formatting import (
     format_schema_message as _format_schema_message,
+)
+from archledger.cli_formatting import (
+    format_sdd_check_message as _format_sdd_check_message,
+)
+from archledger.cli_formatting import (
+    format_sdd_status_message as _format_sdd_status_message,
 )
 from archledger.cli_formatting import (
     format_seed_message as _format_seed_message,
@@ -91,6 +103,9 @@ from archledger.cli_payloads import (
     new_record_payload as _new_payload,
 )
 from archledger.cli_payloads import (
+    profile_migration_payload as _profile_migration_payload,
+)
+from archledger.cli_payloads import (
     read_payload as _read_payload,
 )
 from archledger.cli_payloads import (
@@ -98,6 +113,12 @@ from archledger.cli_payloads import (
 )
 from archledger.cli_payloads import (
     schema_payload as _schema_payload,
+)
+from archledger.cli_payloads import (
+    sdd_check_payload as _sdd_check_payload,
+)
+from archledger.cli_payloads import (
+    sdd_status_payload as _sdd_status_payload,
 )
 from archledger.cli_payloads import (
     seed_payload as _seed_payload,
@@ -150,6 +171,30 @@ app.add_typer(
     name="source",
     help="Inspect implementation drift and convert source dialects.",
 )
+profile_app = typer.Typer(add_completion=False, no_args_is_help=True)
+app.add_typer(
+    profile_app,
+    name="profile",
+    help="Manage archledger profiles (arc42, sdd).",
+)
+sdd_app = typer.Typer(add_completion=False, no_args_is_help=True)
+app.add_typer(
+    sdd_app,
+    name="sdd",
+    help="Validate SDD traceability contracts.",
+)
+record_app = typer.Typer(add_completion=False, no_args_is_help=True)
+app.add_typer(record_app, name="record", help="Safely mutate records.")
+record_meta_app = typer.Typer(add_completion=False, no_args_is_help=True)
+record_app.add_typer(record_meta_app, name="meta", help="Mutate record metadata.")
+record_body_app = typer.Typer(add_completion=False, no_args_is_help=True)
+record_app.add_typer(record_body_app, name="body", help="Mutate record bodies.")
+refs_app = typer.Typer(add_completion=False, no_args_is_help=True)
+app.add_typer(refs_app, name="refs", help="Manage source references.")
+links_app = typer.Typer(add_completion=False, no_args_is_help=True)
+app.add_typer(links_app, name="links", help="Manage record links.")
+ac_app = typer.Typer(add_completion=False, no_args_is_help=True)
+app.add_typer(ac_app, name="ac", help="Manage inline acceptance criteria.")
 
 
 @dataclass(frozen=True, slots=True)
@@ -415,6 +460,13 @@ def init(
             "--tracking-exclude", help="Glob pattern for tracking excludes. Repeatable."
         ),
     ] = None,
+    profile: Annotated[
+        str,
+        typer.Option(
+            "--profile",
+            help="Initial project profile (arc42 or sdd).",
+        ),
+    ] = "arc42",
 ) -> None:
     from archledger.cli_options import (
         InitArc42Options,
@@ -442,6 +494,7 @@ def init(
             id_prefix=id_prefix,
             id_width=id_width,
             id_segment_mode=id_segment_mode,
+            profile=profile,
             build=InitBuildOptions(
                 default_format=build_default_format,
                 default_output=build_default_output,
@@ -484,6 +537,8 @@ def init(
             id_prefix=opts.id_prefix,
             id_width=opts.id_width,
             id_segment_mode=opts.id_segment_mode,
+            profile=opts.profile,
+            extra_profiles=opts.extra_profiles,
             project_name=opts.project_name,
             project_uuid=opts.project_uuid,
             build_default_format=opts.build.default_format,
@@ -543,8 +598,32 @@ def paths(ctx: typer.Context) -> None:
 
 
 @app.command("schema")
-def schema(ctx: typer.Context) -> None:
-    _run_simple_command(ctx, "schema", _schema_payload, _format_schema_message)
+def schema(
+    ctx: typer.Context,
+    output_format: Annotated[str, typer.Option("--format")] = "summary",
+    target: Annotated[str | None, typer.Option("--target")] = None,
+) -> None:
+    if output_format == "summary":
+        _run_simple_command(ctx, "schema", _schema_payload, _format_schema_message)
+        return
+    if output_format != "jsonschema" or target is None:
+        raise ArchledgerError(
+            "--format must be summary or jsonschema; jsonschema requires --target."
+        )
+    from archledger.jsonschemas import load_json_schema
+
+    state = _state(ctx)
+    try:
+        payload = load_json_schema(target)
+        _emit_success(
+            state,
+            command="schema",
+            result=payload,
+            warnings=[],
+            human_message=json.dumps(payload, indent=2, sort_keys=True),
+        )
+    except ArchledgerError as exc:
+        _emit_error(state, "schema", exc)
 
 
 @app.command("new")
@@ -661,9 +740,12 @@ def seed(
         config: ProjectConfig,
     ) -> dict[str, object]:
         del paths, config
-        if preset != "arc42-minimal":
+        if preset == "arc42-minimal":
+            records = _seed_arc42_minimal(repo)
+        elif preset == "sdd-minimal":
+            records = _seed_sdd_minimal(repo)
+        else:
             raise ArchledgerError(f"Unsupported seed preset: {preset}")
-        records = _seed_arc42_minimal(repo)
         return _seed_payload(preset, records)
 
     _run_configured_command(state, "seed", _build_seed_result, _format_seed_message)
@@ -926,6 +1008,27 @@ def changed(
     include_drafts: Annotated[bool, typer.Option("--include-drafts")] = False,
     include_superseded: Annotated[bool, typer.Option("--include-superseded")] = False,
     all_statuses: Annotated[bool, typer.Option("--all-statuses")] = False,
+    against: Annotated[
+        str | None,
+        typer.Option(
+            "--against",
+            help="Compare against a git revision (e.g. origin/main).",
+        ),
+    ] = None,
+    since_merge_base: Annotated[
+        str | None,
+        typer.Option(
+            "--since-merge-base",
+            help="Compare against merge-base with revision (e.g. origin/main).",
+        ),
+    ] = None,
+    fail_on_unlinked: Annotated[
+        bool,
+        typer.Option(
+            "--fail-on-unlinked",
+            help="Exit non-zero when unlinked changed files exist.",
+        ),
+    ] = False,
 ) -> None:
     state = _state(ctx)
     visibility = _resolve_visibility(
@@ -944,17 +1047,37 @@ def changed(
             raise StorageError(
                 "Source tracking is disabled by [tracking].enabled = false."
             )
-        baseline = _load_tracking_baseline(paths, config)
-        current = scan_workspace(paths, config, reason="current-scan")
-        changes = diff_source_states(baseline, current)
-        if baseline is not None:
-            changes = resolve_impacts(
-                repo.load_all_records(include_sections=True),
-                changes,
-                include_draft=visibility.include_drafts,
-                include_superseded=visibility.include_superseded,
+        from archledger.source_tracking import (
+            scan_git_revision,
+            scan_since_merge_base,
+        )
+
+        if since_merge_base is not None:
+            base_state, current = scan_since_merge_base(paths, config, since_merge_base)
+            changes = diff_source_states(base_state, current)
+        elif against is not None:
+            base_state = scan_git_revision(
+                paths, config, against, reason=f"git:{against}"
             )
-        return _changed_payload(paths, changes)
+            current = scan_workspace(paths, config, reason="current-scan")
+            changes = diff_source_states(base_state, current)
+        else:
+            baseline = _load_tracking_baseline(paths, config)
+            current = scan_workspace(paths, config, reason="current-scan")
+            changes = diff_source_states(baseline, current)
+        changes = resolve_impacts(
+            repo.load_all_records(include_sections=True),
+            changes,
+            include_draft=visibility.include_drafts,
+            include_superseded=visibility.include_superseded,
+        )
+        payload = _changed_payload(paths, changes)
+        if fail_on_unlinked and changes.unlinked_changed_files:
+            raise ArchledgerError(
+                f"{len(changes.unlinked_changed_files)} unlinked changed file(s).",
+                details=payload,
+            )
+        return payload
 
     _run_configured_command(
         state,
@@ -1042,6 +1165,593 @@ def convert_sources_command(
         "source convert",
         _build_convert_sources_command_result,
         _format_convert_sources_message,
+    )
+
+
+@app.command("context")
+def context_cmd(
+    ctx: typer.Context,
+    for_file: Annotated[str | None, typer.Option("--for-file")] = None,
+    for_record: Annotated[str | None, typer.Option("--for-record")] = None,
+    changed: Annotated[bool, typer.Option("--changed")] = False,
+    include_body: Annotated[bool, typer.Option("--include-body")] = False,
+    max_records: Annotated[int, typer.Option("--max-records")] = 20,
+) -> None:
+    state = _state(ctx)
+
+    def _build_context(
+        repo: ArchitectureRepository,
+        paths: ProjectPaths,
+        config: ProjectConfig,
+    ) -> dict[str, object]:
+        from archledger.context import (
+            build_context_for_changed,
+            build_context_for_file,
+            build_context_for_record,
+        )
+
+        if for_file is not None:
+            return build_context_for_file(
+                repo, for_file, include_body=include_body, max_records=max_records
+            )
+        if for_record is not None:
+            return build_context_for_record(
+                repo, for_record, include_body=include_body, max_records=max_records
+            )
+        if changed:
+            from archledger.source_tracking import (
+                diff_source_states,
+                resolve_impacts,
+                scan_workspace,
+            )
+            from archledger.storage.source_state import read_source_state
+
+            baseline = read_source_state(paths.source_state_path)
+            if baseline is None:
+                raise ArchledgerError(
+                    "No source baseline. Run: archledger source snapshot"
+                )
+            current = scan_workspace(paths, config, reason="context-changed")
+            changes = diff_source_states(baseline, current)
+            changes = resolve_impacts(
+                repo.load_all_records(include_sections=True),
+                changes,
+                include_draft=False,
+                include_superseded=False,
+            )
+            return build_context_for_changed(
+                repo, changes, include_body=include_body, max_records=max_records
+            )
+        raise ArchledgerError("Specify --for-file, --for-record, or --changed.")
+
+    def _format_context(payload: dict[str, object]) -> str:
+        records = payload.get("records", [])
+        if isinstance(records, list):
+            return f"Context: {len(records)} record(s)."
+        return "Context: no records."
+
+    _run_configured_command(state, "context", _build_context, _format_context)
+
+
+@app.command("trace")
+def trace_cmd(
+    ctx: typer.Context,
+    record_id: Annotated[str, typer.Argument()],
+) -> None:
+    state = _state(ctx)
+
+    def _build_trace(
+        repo: ArchitectureRepository,
+        paths: ProjectPaths,
+        config: ProjectConfig,
+    ) -> dict[str, object]:
+        del paths, config
+        from archledger.trace import build_trace
+
+        return build_trace(repo, record_id)
+
+    def _format_trace(payload: dict[str, object]) -> str:
+        root = payload.get("root")
+        if root is None:
+            return payload.get("error", "Record not found.")
+        if isinstance(root, dict):
+            return f"Trace for {root.get('id')}: {root.get('title')}"
+        return "Trace complete."
+
+    _run_configured_command(state, "trace", _build_trace, _format_trace)
+
+
+@record_app.command("set")
+def record_set_status(
+    ctx: typer.Context,
+    record_id: Annotated[str, typer.Argument()],
+    set_status: Annotated[str, typer.Option("--status", help="New status.")] = "",
+) -> None:
+    state = _state(ctx)
+    if not set_status:
+        raise ArchledgerError("--status is required.")
+
+    def _build(
+        repo: ArchitectureRepository,
+        paths: ProjectPaths,
+        config: ProjectConfig,
+    ) -> dict[str, object]:
+        del config
+        from archledger.mutations import set_record_status as _set_status
+
+        target_path = _find_record_path(repo, record_id)
+        _set_status(
+            target_path,
+            record_id,
+            set_status,
+            workspace_root=paths.workspace_root,
+        )
+        _validate_mutation(repo, target_path)
+        return {"id": record_id, "path": str(target_path), "status": set_status}
+
+    def _fmt(p: dict[str, object]) -> str:
+        return f"Set {p.get('id')} status to {p.get('status')}."
+
+    _run_configured_command(state, "record set", _build, _fmt)
+
+
+@record_meta_app.command("set")
+def record_meta_set(
+    ctx: typer.Context,
+    record_id: Annotated[str, typer.Argument()],
+    key: Annotated[str, typer.Argument()],
+    value: Annotated[str, typer.Argument()],
+) -> None:
+    state = _state(ctx)
+
+    def _build(
+        repo: ArchitectureRepository,
+        paths: ProjectPaths,
+        config: ProjectConfig,
+    ) -> dict[str, object]:
+        del config
+        from archledger.mutations import set_record_meta
+
+        target_path = _find_record_path(repo, record_id)
+        set_record_meta(
+            target_path,
+            record_id,
+            key,
+            _parse_cli_value(value),
+            workspace_root=paths.workspace_root,
+        )
+        _validate_mutation(repo, target_path)
+        return {"id": record_id, "path": str(target_path), "key": key}
+
+    _run_configured_command(
+        state,
+        "record meta set",
+        _build,
+        lambda payload: f"Set {payload.get('id')} metadata {payload.get('key')}.",
+    )
+
+
+@record_body_app.command("append")
+def record_body_append(
+    ctx: typer.Context,
+    record_id: Annotated[str, typer.Argument()],
+    file: Annotated[Path, typer.Option("--file", exists=True, dir_okay=False)],
+) -> None:
+    state = _state(ctx)
+
+    def _build(
+        repo: ArchitectureRepository,
+        paths: ProjectPaths,
+        config: ProjectConfig,
+    ) -> dict[str, object]:
+        del config
+        from archledger.mutations import append_record_body
+
+        target_path = _find_record_path(repo, record_id)
+        append_record_body(
+            target_path,
+            record_id,
+            file.read_text(encoding="utf-8"),
+            workspace_root=paths.workspace_root,
+        )
+        _validate_mutation(repo, target_path)
+        return {"id": record_id, "path": str(target_path)}
+
+    _run_configured_command(
+        state,
+        "record body append",
+        _build,
+        lambda payload: f"Appended body content to {payload.get('id')}.",
+    )
+
+
+@refs_app.command("add")
+def refs_add(
+    ctx: typer.Context,
+    record_id: Annotated[str, typer.Argument()],
+    path: Annotated[str, typer.Option("--path", help="Source file path.")] = "",
+    role: Annotated[str, typer.Option("--role", help="Source ref role.")] = "",
+    reason: Annotated[str, typer.Option("--reason", help="Reason.")] = "",
+) -> None:
+    state = _state(ctx)
+    if not path:
+        raise ArchledgerError("--path is required.")
+
+    def _build(
+        repo: ArchitectureRepository,
+        paths: ProjectPaths,
+        config: ProjectConfig,
+    ) -> dict[str, object]:
+        del config
+        from archledger.mutations import add_source_ref as _add_ref
+
+        target_path = _find_record_path(repo, record_id)
+        _add_ref(
+            target_path,
+            record_id,
+            path,
+            role=role,
+            reason=reason,
+            workspace_root=paths.workspace_root,
+        )
+        _validate_mutation(repo, target_path)
+        return {"id": record_id, "path": str(target_path), "ref": path}
+
+    def _fmt(p: dict[str, object]) -> str:
+        return f"Added source_ref to {p.get('id')}: {p.get('ref')}."
+
+    _run_configured_command(state, "refs add", _build, _fmt)
+
+
+@links_app.command("add")
+def links_add(
+    ctx: typer.Context,
+    record_id: Annotated[str, typer.Argument()],
+    rel: Annotated[str, typer.Option("--rel", help="Link relationship.")] = "",
+    target: Annotated[str, typer.Option("--target", help="Target record ID.")] = "",
+    reason: Annotated[str, typer.Option("--reason", help="Reason.")] = "",
+) -> None:
+    state = _state(ctx)
+    if not rel or not target:
+        raise ArchledgerError("--rel and --target are required.")
+
+    def _build(
+        repo: ArchitectureRepository,
+        paths: ProjectPaths,
+        config: ProjectConfig,
+    ) -> dict[str, object]:
+        del config
+        from archledger.mutations import add_link as _add_link
+
+        target_path = _find_record_path(repo, record_id)
+        _add_link(
+            target_path,
+            record_id,
+            rel,
+            target,
+            reason=reason,
+            workspace_root=paths.workspace_root,
+        )
+        _validate_mutation(repo, target_path)
+        return {
+            "id": record_id,
+            "path": str(target_path),
+            "rel": rel,
+            "target": target,
+        }
+
+    def _fmt(p: dict[str, object]) -> str:
+        return f"Added link {p.get('rel')} -> {p.get('target')} to {p.get('id')}."
+
+    _run_configured_command(state, "links add", _build, _fmt)
+
+
+@ac_app.command("add")
+def acceptance_criterion_add(
+    ctx: typer.Context,
+    record_id: Annotated[str, typer.Argument()],
+    statement: Annotated[str, typer.Option("--statement")],
+    command: Annotated[str, typer.Option("--command")] = "",
+    expected: Annotated[str, typer.Option("--expected")] = "passes",
+) -> None:
+    state = _state(ctx)
+
+    def _build(
+        repo: ArchitectureRepository,
+        paths: ProjectPaths,
+        config: ProjectConfig,
+    ) -> dict[str, object]:
+        del config
+        from archledger.mutations import add_acceptance_criterion
+
+        target_path = _find_record_path(repo, record_id)
+        add_acceptance_criterion(
+            target_path,
+            record_id,
+            statement,
+            validation_command=command,
+            expected=expected,
+            workspace_root=paths.workspace_root,
+        )
+        _validate_mutation(repo, target_path)
+        return {"id": record_id, "path": str(target_path)}
+
+    _run_configured_command(
+        state,
+        "ac add",
+        _build,
+        lambda payload: f"Added acceptance criterion to {payload.get('id')}.",
+    )
+
+
+def _find_record_path(repo: ArchitectureRepository, record_id: str) -> Path:
+    record = repo.get_record(record_id)
+    return record.path
+
+
+def _parse_cli_value(value: str) -> object:
+    try:
+        return json.loads(value)
+    except json.JSONDecodeError:
+        return value
+
+
+def _validate_mutation(repo: ArchitectureRepository, path: Path) -> None:
+    result = repo.check()
+    errors = [
+        finding.message
+        for finding in result.errors
+        if finding.path is not None and finding.path.resolve() == path.resolve()
+    ]
+    if errors:
+        raise ArchledgerError(
+            "Mutation produced an invalid record: " + "; ".join(errors)
+        )
+
+
+@app.command("install")
+def install_scaffold_command(
+    ctx: typer.Context,
+    target: Annotated[str, typer.Argument()],
+    force: Annotated[bool, typer.Option("--force")] = False,
+) -> None:
+    state = _state(ctx)
+    try:
+        from archledger.installers import install_scaffold
+
+        result = install_scaffold(state.root, target, force=force)
+        payload = {
+            "target": result.target,
+            "path": str(result.path),
+            "overwritten": result.overwritten,
+        }
+        _emit_success(
+            state,
+            command="install",
+            result=payload,
+            warnings=[],
+            human_message=f"Installed {result.target}: {result.path}",
+        )
+    except ArchledgerError as exc:
+        _emit_error(state, "install", exc)
+
+
+@profile_app.command("list")
+def profile_list(ctx: typer.Context) -> None:
+    state = _state(ctx)
+
+    def _build_result(
+        repo: ArchitectureRepository,
+        paths: ProjectPaths,
+        config: ProjectConfig,
+    ) -> dict[str, object]:
+        del repo, config
+        from archledger.profiles import list_profiles as _list_profiles
+
+        return _list_profiles(paths.config_path, paths.archledger_dir)
+
+    _run_configured_command(
+        state, "profile list", _build_result, _format_profile_list_message
+    )
+
+
+@profile_app.command("enable")
+def profile_enable(
+    ctx: typer.Context,
+    profile: Annotated[str, typer.Argument()],
+    write: Annotated[bool, typer.Option("--write")] = True,
+) -> None:
+    state = _state(ctx)
+
+    def _build_result(
+        repo: ArchitectureRepository,
+        paths: ProjectPaths,
+        config: ProjectConfig,
+    ) -> dict[str, object]:
+        del repo, config
+        from archledger.profiles import enable_profile as _enable_profile
+
+        result = _enable_profile(
+            paths.config_path, paths.archledger_dir, profile, write=write
+        )
+        return _profile_migration_payload(result)
+
+    _run_configured_command(
+        state, "profile enable", _build_result, _format_profile_migration_message
+    )
+
+
+@profile_app.command("disable")
+def profile_disable(
+    ctx: typer.Context,
+    profile: Annotated[str, typer.Argument()],
+    write: Annotated[bool, typer.Option("--write")] = True,
+) -> None:
+    state = _state(ctx)
+
+    def _build_result(
+        repo: ArchitectureRepository,
+        paths: ProjectPaths,
+        config: ProjectConfig,
+    ) -> dict[str, object]:
+        del repo, config
+        from archledger.profiles import disable_profile as _disable_profile
+
+        result = _disable_profile(paths.config_path, profile, write=write)
+        return _profile_migration_payload(result)
+
+    _run_configured_command(
+        state, "profile disable", _build_result, _format_profile_migration_message
+    )
+
+
+@profile_app.command("migrate")
+def profile_migrate(
+    ctx: typer.Context,
+    profile: Annotated[str, typer.Argument()],
+    write: Annotated[bool, typer.Option("--write")] = False,
+) -> None:
+    state = _state(ctx)
+
+    def _build_result(
+        repo: ArchitectureRepository,
+        paths: ProjectPaths,
+        config: ProjectConfig,
+    ) -> dict[str, object]:
+        del repo, config
+        if profile != "arc42":
+            raise ArchledgerError("Only arc42 profile migration is supported.")
+        from archledger.profiles import migrate_arc42_profile as _migrate
+
+        result = _migrate(paths.config_path, paths.archledger_dir, write=write)
+        return _profile_migration_payload(result)
+
+    _run_configured_command(
+        state, "profile migrate", _build_result, _format_profile_migration_message
+    )
+
+
+@sdd_app.command("status")
+def sdd_status(ctx: typer.Context) -> None:
+    state = _state(ctx)
+
+    def _build_sdd_status(
+        repo: ArchitectureRepository,
+        paths: ProjectPaths,
+        config: ProjectConfig,
+    ) -> dict[str, object]:
+        del paths
+        from archledger.sdd import check_sdd_status
+
+        result = check_sdd_status(repo)
+        return _sdd_status_payload(result)
+
+    _run_configured_command(
+        state, "sdd status", _build_sdd_status, _format_sdd_status_message
+    )
+
+
+@sdd_app.command("check")
+def sdd_check(
+    ctx: typer.Context,
+    strict: Annotated[bool, typer.Option("--strict")] = False,
+    require_implementation_refs: Annotated[
+        bool,
+        typer.Option(
+            "--require-implementation-refs/--no-require-implementation-refs",
+            help="Require implementation source_refs for accepted requirements.",
+        ),
+    ] = True,
+    require_test_refs: Annotated[
+        bool,
+        typer.Option(
+            "--require-test-refs/--no-require-test-refs",
+            help="Require validation/test refs for accepted requirements.",
+        ),
+    ] = True,
+) -> None:
+    state = _state(ctx)
+
+    def _build_sdd_check(
+        repo: ArchitectureRepository,
+        paths: ProjectPaths,
+        config: ProjectConfig,
+    ) -> dict[str, object]:
+        del paths
+        from archledger.sdd import SddOptions, check_sdd
+
+        options = SddOptions(
+            strict=strict,
+            require_implementation_refs=require_implementation_refs,
+            require_test_refs=require_test_refs,
+        )
+        result = check_sdd(repo, options=options)
+        if result.has_failures(strict=strict):
+            raise ArchledgerError(
+                f"SDD check failed with {len(result.errors)} error(s) "
+                f"and {len(result.warnings)} warning(s).",
+                details=_sdd_check_payload(result, config),
+            )
+        return _sdd_check_payload(result, config)
+
+    _run_configured_command(
+        state, "sdd check", _build_sdd_check, _format_sdd_check_message
+    )
+
+
+@sdd_app.command("check-pr")
+def sdd_check_pr(
+    ctx: typer.Context,
+    against: Annotated[str, typer.Option("--against")],
+    strict: Annotated[bool, typer.Option("--strict")] = False,
+) -> None:
+    state = _state(ctx)
+
+    def _build(
+        repo: ArchitectureRepository,
+        paths: ProjectPaths,
+        config: ProjectConfig,
+    ) -> dict[str, object]:
+        from archledger.sdd import SddOptions, check_sdd
+        from archledger.source_tracking import scan_git_revision
+
+        baseline = scan_git_revision(
+            paths,
+            config,
+            against,
+            reason=f"git:{against}",
+        )
+        current = scan_workspace(paths, config, reason="sdd-check-pr")
+        changes = resolve_impacts(
+            repo.load_all_records(include_sections=True),
+            diff_source_states(baseline, current),
+            include_draft=True,
+            include_superseded=False,
+        )
+        result = check_sdd(repo, options=SddOptions(strict=strict))
+        payload = {
+            "schema": "archledger.sdd-pr.v1",
+            "against": against,
+            "changes": _changed_payload(paths, changes),
+            "sdd": _sdd_check_payload(result, config),
+        }
+        if result.has_failures(strict=strict):
+            raise ArchledgerError(
+                "SDD PR check failed.",
+                details=payload,
+            )
+        return payload
+
+    _run_configured_command(
+        state,
+        "sdd check-pr",
+        _build,
+        lambda payload: (
+            f"SDD PR check against {payload.get('against')}: "
+            f"{len(payload.get('changes', {}).get('changed_files', []))} changed."
+            if isinstance(payload.get("changes"), dict)
+            else "SDD PR check complete."
+        ),
     )
 
 
@@ -1248,5 +1958,37 @@ def _seed_arc42_minimal(repo: ArchitectureRepository) -> list[ArchitectureRecord
             status="proposed",
         ),
         repo.create_record("glossary-term", "Architecture Record", status="proposed"),
+    ]
+    return created_records
+
+
+def _seed_sdd_minimal(repo: ArchitectureRepository) -> list[ArchitectureRecord]:
+    created_records = [
+        repo.create_record("requirement", "Example requirement", status="draft"),
+        repo.create_record(
+            "acceptance-criterion",
+            "Example requirement is validated",
+            status="draft",
+        ),
+        repo.create_record(
+            "quality-scenario",
+            "Agent context remains bounded",
+            status="draft",
+        ),
+        repo.create_record(
+            "adr",
+            "Use archledger as the SDD contract",
+            status="draft",
+        ),
+        repo.create_record(
+            "risk",
+            "Specification drift between source and records",
+            status="draft",
+        ),
+        repo.create_record(
+            "glossary-term",
+            "Acceptance criterion",
+            status="draft",
+        ),
     ]
     return created_records

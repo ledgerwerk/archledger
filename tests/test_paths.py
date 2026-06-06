@@ -340,6 +340,9 @@ def test_project_config_fields_are_accounted_for() -> None:
         "diagram_output_dir",
         "diagram_image_format",
         "diagram_kroki_url",
+        "profiles",
+        "profiles_present",
+        "legacy_sections_warned",
     }
     assert {item.name for item in fields(ProjectConfig)} == behavior_or_metadata_fields
 
@@ -685,7 +688,7 @@ def test_config_version_bool_is_rejected(tmp_path: Path) -> None:
 
     with pytest.raises(ConfigError) as excinfo:
         resolve_project_paths(workspace_root)
-    assert str(excinfo.value) == "config_version must be 1, 2, 3, 4, 5, 6, or 7."
+    assert str(excinfo.value) == "config_version must be 1, 2, 3, 4, 5, 6, 7, or 8."
 
 
 def test_v6_config_supports_ids_table(tmp_path: Path) -> None:

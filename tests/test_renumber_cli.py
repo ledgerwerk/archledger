@@ -139,7 +139,14 @@ def test_renumber_can_enable_content_segments_without_changing_numbers(
     assert renamed["al_0013"] == "al_content_0013"
     assert renamed["al_0014"] == "al_risk_0014"
 
-    assert (tmp_path / ".archledger" / "sections" / "al_content_0004.md").is_file()
+    assert (
+        tmp_path
+        / ".archledger"
+        / "profiles"
+        / "arc42"
+        / "sections"
+        / "al_content_0004.md"
+    ).is_file()
     assert (
         tmp_path / ".archledger" / "records" / "requirements" / "al_content_0013.md"
     ).is_file()
@@ -297,7 +304,9 @@ def test_renumber_rejects_invalid_prefix(tmp_path: Path) -> None:
 
 def test_renumber_rejects_existing_target_file(tmp_path: Path) -> None:
     init_project(tmp_path)
-    target = tmp_path / ".archledger" / "sections" / "ta_001.adoc"
+    target = (
+        tmp_path / ".archledger" / "profiles" / "arc42" / "sections" / "ta_001.adoc"
+    )
     target.write_text("do not overwrite\n", encoding="utf-8")
 
     result = runner.invoke(

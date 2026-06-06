@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://archledger.dev/schemas/archledger.trace.v1.schema.json",
+  "title": "Archledger trace result",
+  "type": "object",
+  "required": ["schema", "root"],
+  "properties": {
+    "schema": { "const": "archledger.trace.v1" },
+    "root": { "type": ["object", "null"] },
+    "incoming_links": { "type": "array" },
+    "outgoing_links": { "type": "array" }
+  }
+}

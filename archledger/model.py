@@ -55,6 +55,19 @@ VALID_STATUSES = frozenset(
 )
 VISIBLE_BY_DEFAULT_STATUSES = frozenset({"proposed", "accepted", "deprecated"})
 REQUIRED_RECORD_FIELDS = ("id", "type", "title", "status", "section", "order")
+VALID_SOURCE_REF_ROLES = frozenset(
+    {
+        "implements",
+        "validates",
+        "documents",
+        "configures",
+        "migrates",
+        "operates",
+        "depends_on",
+        "generates",
+        "references",  # default / unspecified
+    }
+)
 PLACEHOLDER_SNIPPETS = (
     "Describe this requirement.",
     "Describe the purpose and responsibility of this black box.",
@@ -211,6 +224,7 @@ class SourceRef:
     path: str
     symbols: tuple[str, ...]
     reason: str = ""
+    role: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -225,6 +239,8 @@ class ArchitectureRecord:
     metadata: dict[str, object]
     body: str
     source_refs: tuple[SourceRef, ...] = ()
+    links: tuple = ()  # tuple[RecordLink, ...] — forward ref to links module
+    test_refs: tuple = ()  # tuple[TestRef, ...] — forward ref to test_refs module
 
 
 def normalize_kind(kind: str) -> str:

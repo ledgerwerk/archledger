@@ -170,10 +170,15 @@ def test_section_templates_include_schema_version_date_body_format(
     )
 
     markdown_section = (
-        markdown_root / ".archledger" / "sections" / "al_0001.md"
+        markdown_root / ".archledger" / "profiles" / "arc42" / "sections" / "al_0001.md"
     ).read_text(encoding="utf-8")
     asciidoc_section = (
-        asciidoc_root / ".archledger" / "sections" / "al_0001.adoc"
+        asciidoc_root
+        / ".archledger"
+        / "profiles"
+        / "arc42"
+        / "sections"
+        / "al_0001.adoc"
     ).read_text(encoding="utf-8")
 
     for text, body_format in (

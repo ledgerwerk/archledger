@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -237,7 +238,7 @@ def test_convert_sources_preserves_v5_tracking_and_build_config(
 
     assert result.exit_code == 0
     migrated_config = config_path.read_text(encoding="utf-8")
-    assert "config_version = 7" in migrated_config
+    assert "config_version = 8" in migrated_config
     assert 'format = "asciidoc"' in migrated_config
     assert 'section_extension = ".adoc"' in migrated_config
     assert 'record_extension = ".adoc"' in migrated_config
@@ -313,8 +314,26 @@ def test_convert_sources_replace_removes_markdown_files(
 
 
 def init_legacy_project(tmp_path: Path) -> None:
+    """Create a legacy project as it existed before profile architecture.
+
+    Runs archledger init, then downgrades the config to config_version 2
+    and moves sections from the profile-owned location to the legacy
+    <archledger_dir>/sections/ layout.
+    """
     result = runner.invoke(app, ["--root", str(tmp_path), "init"])
     assert result.exit_code == 0
+
+    # Move sections from profile location to legacy location.
+    profile_sections = tmp_path / ".archledger" / "profiles" / "arc42" / "sections"
+    legacy_sections = tmp_path / ".archledger" / "sections"
+    if profile_sections.is_dir() and not legacy_sections.is_dir():
+        shutil.move(str(profile_sections), str(legacy_sections))
+        profile_arc42 = tmp_path / ".archledger" / "profiles" / "arc42"
+        if profile_arc42.is_dir():
+            shutil.rmtree(str(profile_arc42))
+        profiles_root = tmp_path / ".archledger" / "profiles"
+        if profiles_root.is_dir() and not any(profiles_root.iterdir()):
+            profiles_root.rmdir()
 
     (tmp_path / "archledger.toml").write_text(
         "\n".join(

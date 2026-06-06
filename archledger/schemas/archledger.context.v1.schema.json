@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://archledger.dev/schemas/archledger.context.v1.schema.json",
+  "title": "Archledger context pack",
+  "type": "object",
+  "required": ["schema", "query", "records"],
+  "properties": {
+    "schema": { "const": "archledger.context.v1" },
+    "query": { "type": "object" },
+    "records": { "type": "array", "items": { "type": "object" } }
+  }
+}

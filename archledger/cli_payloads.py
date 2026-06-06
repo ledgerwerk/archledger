@@ -468,6 +468,44 @@ def finding_payload(finding: CheckFinding) -> dict[str, object]:
     return payload
 
 
+def sdd_finding_payload(finding: object) -> dict[str, object]:
+    payload: dict[str, object] = {
+        "level": finding.level,
+        "code": finding.code,
+        "message": finding.message,
+    }
+    if getattr(finding, "record_id", None) is not None:
+        payload["record_id"] = finding.record_id
+    if getattr(finding, "path", None) is not None:
+        payload["path"] = str(finding.path)
+    return payload
+
+
+def sdd_check_payload(result: object, config: object) -> dict[str, object]:
+    return {
+        "schema": "archledger.sdd-check.v1",
+        "profile": config.profile,
+        "policy": {
+            "require_implementation_refs": (
+                config.profiles.sdd.require_implementation_refs
+            ),
+            "require_test_refs": config.profiles.sdd.require_test_refs,
+        },
+        "summary": result.summary,
+        "errors": [sdd_finding_payload(f) for f in result.errors],
+        "warnings": [sdd_finding_payload(f) for f in result.warnings],
+    }
+
+
+def sdd_status_payload(result: object) -> dict[str, object]:
+    return {
+        "schema": "archledger.sdd-status.v1",
+        "profile": result.profile,
+        "counts": result.counts,
+        "coverage": result.coverage,
+    }
+
+
 def _display_ledger_number(number: int, id_format: LedgerIdFormat) -> str:
     if id_format.segment_mode == "none":
         return format_ledger_id(
@@ -514,3 +552,31 @@ def display_path(workspace_root: Path, path: Path) -> str:
         return str(path.relative_to(workspace_root))
     except ValueError:
         return str(path)
+
+
+def profile_migration_payload(result: object) -> dict[str, object]:
+    """Payload for profile migrate/enable/disable commands."""
+    return {
+        "schema": "archledger.profile-migration.v1",
+        "profile": result.profile,
+        "write": result.write,
+        "changed": result.changed,
+        "steps": [
+            {
+                "action": step.action,
+                **({"source": step.source} if step.source else {}),
+                **({"target": step.target} if step.target else {}),
+                "message": step.message,
+            }
+            for step in result.steps
+        ],
+        "warnings": list(getattr(result, "warnings", ()) or ()),
+    }
+
+
+def profile_list_payload(summary: dict[str, object]) -> dict[str, object]:
+    """Payload for profile list command."""
+    return {
+        "schema": "archledger.profile-list.v1",
+        **summary,
+    }

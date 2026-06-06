@@ -1,6 +1,21 @@
 Agent workflow
 ==============
 
+SDD workflow
+------------
+
+Before editing architecture-sensitive code:
+
+1. Run ``archledger context --for-file PATH`` or
+   ``archledger context --changed``.
+2. Run ``archledger trace RECORD_ID`` for affected requirements or decisions.
+3. Keep source-ref roles, test refs, acceptance criteria, and links current.
+4. Run ``archledger source changed --fail-on-unlinked``.
+5. Run ``archledger sdd check --strict``.
+
+In pull-request automation, compare with the target branch using
+``archledger sdd check-pr --against origin/main``.
+
 Recommended loop
 ----------------
 

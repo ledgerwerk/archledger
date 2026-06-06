@@ -454,7 +454,20 @@ def test_build_json_output(tmp_path: Path) -> None:
 
 
 def test_legacy_markdown_project_still_builds_markdown(tmp_path: Path) -> None:
+    import shutil
+
     init_project(tmp_path)
+    # Move sections from profile location to legacy location for v2 config.
+    profile_sections = tmp_path / ".archledger" / "profiles" / "arc42" / "sections"
+    legacy_sections = tmp_path / ".archledger" / "sections"
+    if profile_sections.is_dir() and not legacy_sections.is_dir():
+        shutil.move(str(profile_sections), str(legacy_sections))
+        profile_arc42 = tmp_path / ".archledger" / "profiles" / "arc42"
+        if profile_arc42.is_dir():
+            shutil.rmtree(str(profile_arc42))
+        profiles_root = tmp_path / ".archledger" / "profiles"
+        if profiles_root.is_dir() and not any(profiles_root.iterdir()):
+            profiles_root.rmdir()
     (tmp_path / "archledger.toml").write_text(
         "\n".join(
             [

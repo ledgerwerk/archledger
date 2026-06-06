@@ -66,6 +66,8 @@ class InitOptions:
     id_prefix: str = "al"
     id_width: int = 4
     id_segment_mode: str = "none"
+    profile: str = "arc42"
+    extra_profiles: tuple[str, ...] = ()
     build: InitBuildOptions = field(default_factory=InitBuildOptions)
     diagrams: InitDiagramOptions = field(default_factory=InitDiagramOptions)
     arc42: InitArc42Options = field(default_factory=InitArc42Options)

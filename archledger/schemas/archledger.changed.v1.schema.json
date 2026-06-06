@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://archledger.dev/schemas/archledger.changed.v1.schema.json",
+  "title": "Archledger changed source result",
+  "type": "object",
+  "required": ["schema", "changed_files"],
+  "properties": {
+    "schema": { "const": "archledger.changed.v1" },
+    "changed_files": { "type": "array" },
+    "impacted_records": { "type": "array" },
+    "unlinked_changed_files": { "type": "array" }
+  }
+}

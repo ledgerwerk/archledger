@@ -277,3 +277,77 @@ def format_renumber_message(payload: dict[str, object]) -> str:
     if not payload.get("apply"):
         lines.append("Re-run with --apply to apply the renumbering.")
     return "\n".join(lines)
+
+
+def format_profile_list_message(payload: dict[str, object]) -> str:
+    enabled = payload.get("enabled", [])
+    default = payload.get("default", "arc42")
+    available = payload.get("available", [])
+    enabled_str = ", ".join(enabled) if isinstance(enabled, list) else str(enabled)
+    available_str = (
+        ", ".join(available) if isinstance(available, list) else str(available)
+    )
+    return "\n".join(
+        [
+            f"Default profile: {default}",
+            f"Enabled: {enabled_str}",
+            f"Available to enable: {available_str or '(none)'}",
+        ]
+    )
+
+
+def format_profile_migration_message(payload: dict[str, object]) -> str:
+    profile = payload.get("profile", "")
+    write = payload.get("write", False)
+    changed = payload.get("changed", False)
+    steps = payload.get("steps", [])
+    action = "Applied" if write else "Planned"
+    lines = [f"{action} profile '{profile}' migration (changed: {bool(changed)})."]
+    if not write:
+        lines.append("Re-run with --write to apply.")
+    if isinstance(steps, list):
+        for step in steps:
+            if isinstance(step, dict):
+                lines.append(f"- {step.get('action')}: {step.get('message')}")
+    return "\n".join(lines)
+
+
+def format_sdd_check_message(payload: dict[str, object]) -> str:
+    errors = payload.get("errors", [])
+    warnings = payload.get("warnings", [])
+    summary = payload.get("summary", {})
+    parts = [
+        f"SDD check: {summary.get('errors', 0)} error(s), "
+        f"{summary.get('warnings', 0)} warning(s)."
+    ]
+    if isinstance(errors, list):
+        for e in errors:
+            if isinstance(e, dict):
+                parts.append(f"  error [{e.get('code')}]: {e.get('message')}")
+    if isinstance(warnings, list):
+        for w in warnings:
+            if isinstance(w, dict):
+                parts.append(f"  warning [{w.get('code')}]: {w.get('message')}")
+    return "\n".join(parts)
+
+
+def format_sdd_status_message(payload: dict[str, object]) -> str:
+    profile = payload.get("profile", "unknown")
+    counts = payload.get("counts", {})
+    coverage = payload.get("coverage", {})
+    if not isinstance(counts, dict) or not isinstance(coverage, dict):
+        return "SDD status payload malformed."
+    lines = [
+        f"SDD profile: {profile}",
+        f"Accepted requirements: {counts.get('accepted_requirements', 0)}",
+        "Accepted requirements with AC: "
+        f"{coverage.get('accepted_requirements_with_ac', 0)}"
+        f"/{counts.get('accepted_requirements', 0)}",
+        f"Accepted requirements with impl refs: "
+        f"{coverage.get('accepted_requirements_with_implementation_refs', 0)}"
+        f"/{counts.get('accepted_requirements', 0)}",
+        f"Accepted requirements with validation: "
+        f"{coverage.get('accepted_requirements_with_validation', 0)}"
+        f"/{counts.get('accepted_requirements', 0)}",
+    ]
+    return "\n".join(lines)

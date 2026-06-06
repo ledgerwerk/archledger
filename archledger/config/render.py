@@ -13,8 +13,13 @@ from archledger.config.model import (
     VALID_DIAGRAM_IMAGE_FORMATS,
     VALID_DIAGRAM_RENDERERS,
     VALID_DIAGRAM_TYPES,
+    VALID_PROFILES,
     VALID_TRACKING_SCANNERS,
+    Arc42ProfileConfig,
+    ProfilesConfig,
     ProjectConfig,
+    ProjectProfilesConfig,
+    SddProfileConfig,
     normalize_project_name,
     validate_uuid,
 )
@@ -79,8 +84,21 @@ def build_default_project_config(
     tracking_max_file_bytes: int = 1_000_000,
     tracking_include: tuple[str, ...] | None = None,
     tracking_exclude: tuple[str, ...] | None = None,
+    # Profile options
+    profile: str = "arc42",
+    extra_profiles: tuple[str, ...] = (),
 ) -> ProjectConfig:
     normalized_source_format = source_format.strip().lower()
+    normalized_profile = profile.strip().lower()
+    if normalized_profile not in VALID_PROFILES:
+        raise ConfigError(
+            "profile must be one of: " + ", ".join(sorted(VALID_PROFILES)) + "."
+        )
+    unknown_extra = sorted(set(extra_profiles) - VALID_PROFILES)
+    if unknown_extra:
+        raise ConfigError(
+            "extra_profiles contains unknown profiles: " + ", ".join(unknown_extra)
+        )
     if normalized_source_format not in VALID_SOURCE_FORMATS:
         raise ConfigError(
             "source_format must be one of: "
@@ -117,8 +135,21 @@ def build_default_project_config(
     normalized_uuid = (
         str(uuid4()) if project_uuid is None else validate_uuid(project_uuid)
     )
+    enabled_profiles_list = [normalized_profile]
+    for extra in extra_profiles:
+        if extra not in enabled_profiles_list:
+            enabled_profiles_list.append(extra)
+    enabled_profiles = tuple(enabled_profiles_list)
+    profiles_config = ProjectProfilesConfig(
+        profiles=ProfilesConfig(enabled=enabled_profiles, default=normalized_profile),
+        arc42=Arc42ProfileConfig(
+            sections_dir=_default_sections_dir_for(archledger_dir)
+        ),
+        sdd=SddProfileConfig(),
+    )
+
     return ProjectConfig(
-        config_version=7,
+        config_version=8,
         archledger_dir=archledger_dir,
         project_uuid=normalized_uuid,
         project_name=normalized_project_name,
@@ -159,6 +190,8 @@ def build_default_project_config(
         diagram_output_dir=diagram_output_dir,
         diagram_image_format=diagram_image_format,
         diagram_kroki_url=diagram_kroki_url,
+        profiles=profiles_config,
+        profiles_present=True,
     )
 
 
@@ -257,6 +290,7 @@ def render_project_config(config: ProjectConfig) -> str:
         ]
     )
     lines.extend(_render_build_output_tables(config.build_outputs))
+    lines.extend(_render_profiles_tables(config))
     lines.extend(
         [
             "[diagrams]",
@@ -322,6 +356,56 @@ def _render_build_output_tables(
             )
         lines.append("")
     return lines
+
+
+def _render_profiles_tables(config: ProjectConfig) -> list[str]:
+    """Render [profiles] and per-profile subtables.
+
+    Only emitted for new/migrated projects (config_version >= 8 with a
+    profiles table). Legacy configs round-trip without this block.
+    """
+    if config.config_version < 8 or not config.profiles_present:
+        return []
+    profiles = config.profiles
+    lines: list[str] = [
+        "[profiles]",
+        "enabled = [",
+    ]
+    for name in profiles.profiles.enabled:
+        lines.append(f"  {_toml_string(name)},")
+    lines.extend(
+        [
+            "]",
+            f"default = {_toml_string(profiles.profiles.default)}",
+            "",
+            "[profiles.arc42]",
+            f"kind = {_toml_string(profiles.arc42.kind)}",
+            f"template = {_toml_string(profiles.arc42.template)}",
+            f"sections_dir = {_toml_string(profiles.arc42.sections_dir)}",
+            f"build_template = {_toml_string(profiles.arc42.build_template)}",
+            f"include_help = {_toml_bool(profiles.arc42.include_help)}",
+            "",
+        ]
+    )
+    if "sdd" in profiles.profiles.enabled or profiles.profiles.default == "sdd":
+        lines.extend(
+            [
+                "[profiles.sdd]",
+                f"kind = {_toml_string(profiles.sdd.kind)}",
+                "require_acceptance_criteria = "
+                f"{_toml_bool(profiles.sdd.require_acceptance_criteria)}",
+                "require_implementation_refs = "
+                f"{_toml_bool(profiles.sdd.require_implementation_refs)}",
+                f"require_test_refs = {_toml_bool(profiles.sdd.require_test_refs)}",
+                "",
+            ]
+        )
+    return lines
+
+
+def _default_sections_dir_for(archledger_dir: str) -> str:
+    """Default arc42 sections_dir relative to archledger_dir."""
+    return "profiles/arc42/sections"
 
 
 def _toml_bool(value: bool) -> str:

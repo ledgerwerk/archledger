@@ -4,6 +4,24 @@ CLI guide
 ``--json`` is a global option, so place it before the subcommand:
 ``archledger --json read ...`` rather than ``archledger read --json``.
 
+Profiles and SDD
+----------------
+
+``archledger init --profile arc42|sdd`` selects the default profile for a new
+project. Existing projects can run ``archledger profile migrate arc42 --write``
+to move legacy sections into ``.archledger/profiles/arc42/sections``.
+
+Use ``archledger sdd check --strict`` to enforce traceability and
+``archledger sdd status`` to report coverage. ``archledger context`` creates
+compact record context for a file, record, or changed source set.
+``archledger trace RECORD_ID`` follows incoming and outgoing links.
+
+For pull requests, use ``source changed --against REVISION`` or
+``sdd check-pr --against REVISION``. Mutation commands are grouped under
+``record``, ``refs``, ``links``, and ``ac``. JSON Schemas are returned with
+``schema --format jsonschema --target TARGET``. ``install`` creates optional
+integration scaffolds and refuses overwrites unless ``--force`` is supplied.
+
 .. _init:
 
 ``init`` — Initialize a workspace

@@ -44,6 +44,45 @@ Editable development install:
 python -m pip install -e ".[dev]"
 ```
 
+## Profiles And SDD
+
+New projects use config version 8 and profile-owned arc42 sections:
+
+```bash
+archledger init --profile arc42
+archledger init --profile sdd
+archledger profile migrate arc42 --write
+archledger profile enable sdd
+```
+
+The SDD profile adds requirements-to-code traceability:
+
+```bash
+archledger seed sdd-minimal
+archledger sdd status
+archledger sdd check --strict
+archledger context --for-file src/example.py
+archledger trace al_0013
+archledger source changed --against origin/main --fail-on-unlinked
+archledger sdd check-pr --against origin/main
+```
+
+Safe mutation commands update front matter and re-run repository validation:
+
+```bash
+archledger record set al_0013 --status accepted
+archledger refs add al_0013 --path src/example.py --role implements
+archledger links add al_0013 --rel decided_by --target al_0014
+archledger ac add al_0013 --statement "The behavior is covered"
+```
+
+Published schemas and integration scaffolds are available from the CLI:
+
+```bash
+archledger --json schema --format jsonschema --target record
+archledger install github-actions
+```
+
 Normal user install:
 
 ```bash

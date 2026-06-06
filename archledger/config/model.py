@@ -15,6 +15,8 @@ from archledger.model import CURRENT_SOURCE_SCHEMA_VERSION
 
 # --- Public allowed-value constants ---
 # Shared by parse.py, render.py, and cli.py.
+VALID_PROFILES: frozenset[str] = frozenset({"arc42", "sdd"})
+VALID_PROFILE_KINDS: frozenset[str] = frozenset({"documentation", "contract"})
 VALID_BUILD_CONVERTERS: frozenset[str] = frozenset({"auto", "pandoc", "asciidoctor"})
 VALID_TRACKING_SCANNERS: frozenset[str] = frozenset({"auto", "git", "filesystem"})
 VALID_TRACKING_HASH_ALGORITHMS: frozenset[str] = frozenset({"sha256"})
@@ -26,6 +28,8 @@ VALID_DIAGRAM_TYPES: frozenset[str] = frozenset(
 )
 VALID_DIAGRAM_IMAGE_FORMATS: frozenset[str] = frozenset({"svg", "png"})
 
+# Default arc42 sections directory, relative to archledger_dir.
+DEFAULT_ARC42_SECTIONS_DIR = "profiles/arc42/sections"
 DEFAULT_TRACKING_INCLUDE = (
     "**/*.py",
     "**/*.toml",
@@ -56,6 +60,7 @@ DEFAULT_ID_SEGMENT = "content"
 DEFAULT_ID_SEGMENT_MAP: dict[str, str] = {
     "section": "content",
     "requirement": "content",
+    "acceptance_criterion": "ac",
     "stakeholder": "content",
     "quality_goal": "quality",
     "constraint": "constraint",
@@ -133,6 +138,44 @@ class IdConfig:
 
 
 @dataclass(frozen=True, slots=True)
+class ProfilesConfig:
+    """Top-level profile selection: which profiles are enabled."""
+
+    enabled: tuple[str, ...] = ("arc42",)
+    default: str = "arc42"
+
+
+@dataclass(frozen=True, slots=True)
+class Arc42ProfileConfig:
+    """arc42 documentation profile settings."""
+
+    kind: str = "documentation"
+    template: str = "arc42"
+    sections_dir: str = DEFAULT_ARC42_SECTIONS_DIR
+    build_template: str = "arc42_document"
+    include_help: bool = False
+
+
+@dataclass(frozen=True, slots=True)
+class SddProfileConfig:
+    """SDD contract profile settings."""
+
+    kind: str = "contract"
+    require_acceptance_criteria: bool = True
+    require_implementation_refs: bool = True
+    require_test_refs: bool = True
+
+
+@dataclass(frozen=True, slots=True)
+class ProjectProfilesConfig:
+    """Aggregated profile configuration for a project."""
+
+    profiles: ProfilesConfig = ProfilesConfig()
+    arc42: Arc42ProfileConfig = Arc42ProfileConfig()
+    sdd: SddProfileConfig = SddProfileConfig()
+
+
+@dataclass(frozen=True, slots=True)
 class TrackingConfig:
     enabled: bool
     state_file: str
@@ -201,6 +244,17 @@ class ProjectConfig:
     diagram_output_dir: str = "diagrams"
     diagram_image_format: str = "svg"
     diagram_kroki_url: str = ""
+    profiles: ProjectProfilesConfig = field(default_factory=ProjectProfilesConfig)
+    # True when the parsed config file explicitly contained a [profiles] table.
+    # Used to distinguish legacy projects (config_version < 8) from migrated/new ones.
+    profiles_present: bool = False
+    # Hard-deprecation control for legacy arc42-only projects.
+    legacy_sections_warned: bool = False
+
+    @property
+    def profile(self) -> str:
+        """Return the default profile name (back-compat accessor)."""
+        return self.profiles.profiles.default
 
     @property
     def source(self) -> SourceConfig:
@@ -287,6 +341,10 @@ class ProjectConfig:
             image_format=self.diagram_image_format,
             kroki_url=self.diagram_kroki_url,
         )
+
+    def profiles_config(self) -> ProjectProfilesConfig:
+        """Return the structured profiles configuration."""
+        return self.profiles
 
 
 def normalize_project_name(name: str) -> str:

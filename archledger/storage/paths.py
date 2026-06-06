@@ -94,12 +94,17 @@ def resolve_project_paths(start: Path) -> tuple[ProjectPaths, ProjectConfig, lis
         "diagrams.output_dir",
         parent_label="build.default_output_dir",
     )
+    sections_dir, sections_warning = _resolve_sections_dir(
+        workspace_root, archledger_dir, config
+    )
+    if sections_warning is not None:
+        warnings.append(sections_warning)
     return (
         ProjectPaths(
             workspace_root=workspace_root,
             config_path=config_path.resolve(),
             archledger_dir=archledger_dir,
-            sections_dir=archledger_dir / "sections",
+            sections_dir=sections_dir,
             records_dir=archledger_dir / "records",
             archive_dir=archledger_dir / "archive",
             build_dir=build_dir,
@@ -109,6 +114,54 @@ def resolve_project_paths(start: Path) -> tuple[ProjectPaths, ProjectConfig, lis
         config,
         warnings,
     )
+
+
+def _resolve_sections_dir(
+    workspace_root: Path, archledger_dir: Path, config: ProjectConfig
+) -> tuple[Path, str | None]:
+    """Resolve the arc42 sections directory from profile config.
+
+    - New/migrated projects (config_version >= 8 with [profiles]) use
+      profiles.arc42.sections_dir resolved inside the archledger directory.
+    - Legacy projects keep using <archledger_dir>/sections and emit a
+      deprecation warning so users know to run `profile migrate arc42 --write`.
+    """
+    if config.profiles_present:
+        # New/migrated project: always resolve the arc42 profile sections_dir.
+        # repo.init / repo.check decide whether to create/require sections based
+        # on whether the arc42 profile is actually enabled.
+        raw = config.profiles.arc42.sections_dir
+        candidate = Path(raw)
+        if candidate.is_absolute():
+            sections_dir = candidate.resolve()
+            try:
+                sections_dir.relative_to(archledger_dir)
+            except ValueError as exc:
+                raise ConfigError(
+                    "profiles.arc42.sections_dir must stay inside "
+                    "the archledger directory."
+                ) from exc
+        else:
+            sections_dir = _resolve_relative_child(
+                archledger_dir,
+                raw,
+                "profiles.arc42.sections_dir",
+                parent_label="archledger_dir",
+            )
+        return sections_dir, None
+
+    legacy_dir = archledger_dir / "sections"
+    # Only warn when the legacy layout is actually present on disk, so that
+    # synthetic config-parsing tests (and fresh projects without sections yet)
+    # do not trigger the deprecation notice.
+    if legacy_dir.is_dir():
+        warning = (
+            "Legacy layout: .archledger/sections/ is deprecated. "
+            "Run: archledger profile migrate arc42 --write"
+        )
+    else:
+        warning = None
+    return legacy_dir, warning
 
 
 def _resolve_archledger_dir(workspace_root: Path, archledger_dir: str) -> Path:
