@@ -1,7 +1,7 @@
 """Immutable dataclasses describing normalized BDD behavior metadata.
 
 These mirror the canonical ``bdd`` front-matter block documented in
-``archledger_bdd_cucumber_agent_brief.md``.  They are deliberately decoupled
+README.md and docs/agent-workflow.rst.  They are deliberately decoupled
 from any Cucumber/``pytest-bdd`` runtime: archledger stores Discovery and
 Formulation metadata plus an *optional* automation pointer it never executes.
 """

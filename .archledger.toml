@@ -14,6 +14,7 @@ segment_mode = "type"
 default_segment = "content"
 
 [ids.segment_map]
+acceptance_criterion = "ac"
 adr = "adr"
 archive_tombstone = "archive"
 black_box = "block"
@@ -55,6 +56,28 @@ keep_intermediate = false
 converter = "auto"
 pdf_engine = ""
 reference_docx = ""
+
+[profiles]
+enabled = [
+  "arc42",
+  "sdd",
+]
+default = "arc42"
+
+[profiles.arc42]
+kind = "documentation"
+template = "arc42"
+sections_dir = "profiles/arc42/sections"
+build_template = "arc42_document"
+include_help = false
+
+[profiles.sdd]
+kind = "contract"
+require_acceptance_criteria = true
+require_implementation_refs = true
+require_test_refs = true
+require_bdd_gwt_for_behavior_records = true
+require_bdd_automation_for_accepted_records = false
 
 [diagrams]
 enabled = true
@@ -104,16 +127,3 @@ exclude = [
 ]
 max_file_bytes = 1000000
 hash_algorithm = "sha256"
-
-[profiles]
-enabled = [
-  "arc42",
-]
-default = "arc42"
-
-[profiles.arc42]
-kind = "documentation"
-template = "arc42"
-sections_dir = "profiles/arc42/sections"
-build_template = "arc42_document"
-include_help = false

@@ -59,3 +59,54 @@ def test_profile_migrate_moves_legacy_sections_and_updates_config(
 def _init(path: Path) -> None:
     result = runner.invoke(app, ["--root", str(path), "init"])
     assert result.exit_code == 0, result.stdout
+
+
+def test_profile_enable_bdd_explains_bdd_is_not_a_profile(tmp_path: Path) -> None:
+    _init(tmp_path)
+    result = runner.invoke(
+        app,
+        ["--root", str(tmp_path), "--json", "profile", "enable", "bdd"],
+    )
+    assert result.exit_code != 0
+    payload = json.loads(result.stdout)
+    assert "BDD is not a standalone profile" in payload["error"]["message"]
+    assert "profile enable sdd" in payload["error"]["message"]
+
+
+def test_profile_disable_bdd_explains_bdd_is_not_a_profile(tmp_path: Path) -> None:
+    _init(tmp_path)
+    result = runner.invoke(
+        app,
+        ["--root", str(tmp_path), "--json", "profile", "disable", "bdd"],
+    )
+    assert result.exit_code != 0
+    payload = json.loads(result.stdout)
+    assert "BDD is not a standalone profile" in payload["error"]["message"]
+
+
+def test_profile_enable_sdd_preserves_existing_sdd_policy(tmp_path: Path) -> None:
+    _init(tmp_path)
+    config = tmp_path / "archledger.toml"
+    text = config.read_text(encoding="utf-8")
+    # First enable sdd so the [profiles.sdd] table exists
+    result = runner.invoke(
+        app,
+        ["--root", str(tmp_path), "profile", "enable", "sdd"],
+    )
+    assert result.exit_code == 0, result.stdout
+    # Now modify a BDD-related flag
+    text = config.read_text(encoding="utf-8")
+    text = text.replace(
+        "require_bdd_automation_for_accepted_records = false",
+        "require_bdd_automation_for_accepted_records = true",
+    )
+    config.write_text(text, encoding="utf-8")
+    # Re-enable sdd (same state, but should not drop the custom flag)
+    result = runner.invoke(
+        app,
+        ["--root", str(tmp_path), "profile", "enable", "sdd"],
+    )
+    assert result.exit_code == 0, result.stdout
+    assert "require_bdd_automation_for_accepted_records = true" in config.read_text(
+        encoding="utf-8"
+    )

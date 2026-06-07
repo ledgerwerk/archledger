@@ -49,7 +49,10 @@ archledger sdd check --strict
 
 ### BDD / Gherkin
 
-BDD is **metadata on existing records** (``runtime_scenario``, ``quality_scenario``).  Gherkin ``.feature`` files are imported/exported artifacts; archledger does **not** run Cucumber or any BDD runner.
+BDD is not a profile.
+BDD is **metadata on existing records** (``runtime_scenario``, ``quality_scenario``).
+Gherkin ``.feature`` files are imported/exported artifacts; archledger does **not**
+run Cucumber or any BDD runner. Use the SDD profile to enforce BDD metadata quality.
 
 ```bash
 # Import a feature file as behavior records

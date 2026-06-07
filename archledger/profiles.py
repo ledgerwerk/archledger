@@ -7,6 +7,7 @@ validation.
 
 from __future__ import annotations
 
+import dataclasses
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -17,10 +18,9 @@ from archledger.config.model import (
     VALID_PROFILES,
 )
 from archledger.config.parse import (
-    _ALLOWED_PROFILES_ARC42_KEYS,  # type: ignore[attr-defined]
+    load_project_config,
 )
 from archledger.config.render import (
-    build_default_project_config,
     render_project_config,
 )
 from archledger.errors import ArchledgerError, ConfigError
@@ -125,6 +125,8 @@ def _render_profiles_block(
         lines.append("require_acceptance_criteria = true")
         lines.append("require_implementation_refs = true")
         lines.append("require_test_refs = true")
+        lines.append("require_bdd_gwt_for_behavior_records = true")
+        lines.append("require_bdd_automation_for_accepted_records = false")
         lines.append("")
     return lines
 
@@ -241,6 +243,11 @@ def enable_profile(
     write: bool = True,
 ) -> ProfileMigrationResult:
     """Enable a profile (arc42 or sdd) in the project config."""
+    if profile == "bdd":
+        raise ArchledgerError(
+            "BDD is not a standalone profile. Enable the SDD profile and use "
+            "`archledger bdd import/export`. Run: archledger profile enable sdd"
+        )
     if profile not in VALID_PROFILES:
         raise ArchledgerError(
             f"profile must be one of: {', '.join(sorted(VALID_PROFILES))}."
@@ -281,29 +288,21 @@ def enable_profile(
         )
 
     if changed:
-        original_text = read_text(config_path)
-        lines = original_text.splitlines()
-        # Ensure config_version >= 8.
-        cv_line_idx = next(
-            (
-                i
-                for i, line in enumerate(lines)
-                if line.strip().startswith("config_version")
+        config = load_project_config(config_path)
+        new_config = dataclasses.replace(
+            config,
+            config_version=8,
+            profiles_present=True,
+            profiles=dataclasses.replace(
+                config.profiles,
+                profiles=dataclasses.replace(
+                    config.profiles.profiles,
+                    enabled=tuple(dict.fromkeys(enabled)),
+                    default=default,
+                ),
             ),
-            None,
         )
-        if cv_line_idx is None:
-            lines.insert(0, "config_version = 8")
-        else:
-            lines[cv_line_idx] = "config_version = 8"
-        include_sdd = "sdd" in enabled or default == "sdd"
-        lines = _ensure_profiles_block(
-            lines,
-            default=default,
-            enabled=tuple(dict.fromkeys(enabled)),
-            include_sdd=include_sdd,
-        )
-        new_text = "\n".join(lines).rstrip() + "\n"
+        new_text = render_project_config(new_config)
         write_text_atomic(config_path, new_text)
         # Ensure profile directory exists for sdd.
         if profile == "sdd":
@@ -325,6 +324,10 @@ def disable_profile(
     write: bool = True,
 ) -> ProfileMigrationResult:
     """Disable a profile in the project config."""
+    if profile == "bdd":
+        raise ArchledgerError(
+            "BDD is not a standalone profile, so there is nothing to disable."
+        )
     if profile not in VALID_PROFILES:
         raise ArchledgerError(
             f"profile must be one of: {', '.join(sorted(VALID_PROFILES))}."
@@ -380,17 +383,21 @@ def disable_profile(
             changed=changed,
             steps=tuple(steps),
         )
-
-    original_text = read_text(config_path)
-    lines = original_text.splitlines()
-    include_sdd = "sdd" in enabled or default == "sdd"
-    lines = _ensure_profiles_block(
-        lines,
-        default=default,
-        enabled=tuple(dict.fromkeys(enabled)),
-        include_sdd=include_sdd,
+    config = load_project_config(config_path)
+    new_config = dataclasses.replace(
+        config,
+        config_version=8,
+        profiles_present=True,
+        profiles=dataclasses.replace(
+            config.profiles,
+            profiles=dataclasses.replace(
+                config.profiles.profiles,
+                enabled=tuple(dict.fromkeys(enabled)),
+                default=default,
+            ),
+        ),
     )
-    new_text = "\n".join(lines).rstrip() + "\n"
+    new_text = render_project_config(new_config)
     write_text_atomic(config_path, new_text)
     return ProfileMigrationResult(
         profile=profile,
@@ -444,7 +451,3 @@ __all__ = [
     "list_profiles",
     "migrate_arc42_profile",
 ]
-
-
-# Suppress unused-import warning for the helper re-export.
-_ = (_ALLOWED_PROFILES_ARC42_KEYS, build_default_project_config, render_project_config)

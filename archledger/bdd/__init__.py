@@ -6,7 +6,7 @@ are an imported/exported exchange and automation format, never archledger's
 canonical source of truth.  archledger does **not** run Cucumber or any BDD
 runner; no such dependency is introduced here.
 
-See ``archledger_bdd_cucumber_agent_brief.md`` for the design contract.
+See README.md and docs/agent-workflow.rst for the public workflow contract.
 """
 
 from archledger.bdd.models import BddAutomation, BddExample

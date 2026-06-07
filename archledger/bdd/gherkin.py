@@ -149,8 +149,7 @@ def parse_gherkin(text: str) -> ParsedFeature:
         for unsupported in _UNSUPPORTED_KEYWORDS:
             if line.startswith(unsupported):
                 raise UnsupportedGherkinError(
-                    f"{unsupported} is not supported by the archledger ",
-                    "Gherkin importer.",
+                    f"{unsupported} is not supported by the archledger",
                     line=line_number,
                 )
 
@@ -326,7 +325,6 @@ def _dispatch_line(ctx: _ParseContext) -> _ParseContext:
                 current_then=[],
                 current_step_bucket=None,
                 pending_tags=[],
-                matched_scenario=True,
             )
 
     # Steps
@@ -334,22 +332,25 @@ def _dispatch_line(ctx: _ParseContext) -> _ParseContext:
         if line.startswith(kw + " ") or line == kw:
             step_text = line[len(kw) :].strip()
             if kw in _GIVEN_KEYWORDS:
+                new_given = ctx.current_given + [step_text]
                 return _replace(
                     ctx,
-                    current_given=ctx.current_given + [step_text],
-                    current_step_bucket=ctx.current_given + [step_text],
+                    current_given=new_given,
+                    current_step_bucket=new_given,
                 )
             elif kw in _WHEN_KEYWORDS:
+                new_when = ctx.current_when + [step_text]
                 return _replace(
                     ctx,
-                    current_when=ctx.current_when + [step_text],
-                    current_step_bucket=ctx.current_when + [step_text],
+                    current_when=new_when,
+                    current_step_bucket=new_when,
                 )
             elif kw in _THEN_KEYWORDS:
+                new_then = ctx.current_then + [step_text]
                 return _replace(
                     ctx,
-                    current_then=ctx.current_then + [step_text],
-                    current_step_bucket=ctx.current_then + [step_text],
+                    current_then=new_then,
+                    current_step_bucket=new_then,
                 )
             else:
                 # And / But -- append to last bucket

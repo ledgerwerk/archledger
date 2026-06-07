@@ -3,7 +3,7 @@
 ``normalize_bdd_metadata(record_id, value)`` is the single entry point used
 by both ``archledger check`` (warnings) and ``archledger sdd check`` (errors
 via re-normalization).  It validates the structural contract documented in
-``archledger_bdd_cucumber_agent_brief.md``:
+README.md and docs/agent-workflow.rst:
 
 * ``bdd`` must be a mapping when present.
 * ``feature``, ``scenario`` and the ``given``/``when``/``then`` sequences are
