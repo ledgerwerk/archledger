@@ -3,22 +3,66 @@
   "$id": "https://archledger.dev/schemas/archledger.sdd.v1.schema.json",
   "title": "Archledger SDD check result",
   "type": "object",
-  "required": ["schema", "summary", "errors", "warnings"],
+  "required": [
+    "schema",
+    "profile",
+    "profile_enabled",
+    "policy",
+    "summary",
+    "errors",
+    "warnings"
+  ],
   "properties": {
     "schema": { "const": "archledger.sdd-check.v1" },
     "profile": { "type": "string" },
-    "summary": { "type": "object" },
+    "profile_enabled": { "type": "boolean" },
+    "policy": { "$ref": "#/$defs/sdd_policy" },
+    "summary": { "$ref": "#/$defs/check_summary" },
     "errors": { "type": "array", "items": { "$ref": "#/$defs/finding" } },
     "warnings": { "type": "array", "items": { "$ref": "#/$defs/finding" } }
   },
   "$defs": {
+    "sdd_policy": {
+      "type": "object",
+      "required": [
+        "require_acceptance_criteria",
+        "require_implementation_refs",
+        "require_test_refs"
+      ],
+      "properties": {
+        "require_acceptance_criteria": { "type": "boolean" },
+        "require_implementation_refs": { "type": "boolean" },
+        "require_test_refs": { "type": "boolean" }
+      }
+    },
+    "check_summary": {
+      "type": "object",
+      "required": [
+        "records_total",
+        "records_checked",
+        "accepted_requirements",
+        "acceptance_criteria",
+        "errors",
+        "warnings"
+      ],
+      "properties": {
+        "records_total": { "type": "integer", "minimum": 0 },
+        "records_checked": { "type": "integer", "minimum": 0 },
+        "accepted_requirements": { "type": "integer", "minimum": 0 },
+        "acceptance_criteria": { "type": "integer", "minimum": 0 },
+        "errors": { "type": "integer", "minimum": 0 },
+        "warnings": { "type": "integer", "minimum": 0 }
+      }
+    },
     "finding": {
       "type": "object",
       "required": ["level", "code", "message"],
       "properties": {
         "level": { "enum": ["error", "warning"] },
         "code": { "type": "string" },
-        "message": { "type": "string" }
+        "message": { "type": "string" },
+        "record_id": { "type": "string" },
+        "path": { "type": "string" }
       }
     }
   }

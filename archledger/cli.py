@@ -698,6 +698,29 @@ def new_record(
             help="Related record ID for diagram records. Repeatable.",
         ),
     ] = None,
+    requirement: Annotated[
+        str | None,
+        typer.Option(
+            "--requirement",
+            help="Requirement record ID for acceptance-criterion records.",
+        ),
+    ] = None,
+    validation_command: Annotated[
+        str | None,
+        typer.Option(
+            "--validation-command",
+            help="Validation command for acceptance-criterion records.",
+        ),
+    ] = None,
+    validation_expected: Annotated[
+        str | None,
+        typer.Option(
+            "--validation-expected",
+            help=(
+                "Expected result for acceptance-criterion validation (default: passes)."
+            ),
+        ),
+    ] = None,
 ) -> None:
     state = _state(ctx)
 
@@ -721,6 +744,9 @@ def new_record(
                 diagram_type=diagram_type,
                 caption=caption,
                 related_records=related_records or [],
+                requirement=requirement,
+                validation_command=validation_command,
+                validation_expected=validation_expected,
             )
         )
 
@@ -1631,8 +1657,48 @@ def profile_migrate(
     )
 
 
+def _enforce_sdd_profile_enabled(
+    config: ProjectConfig,
+    *,
+    allow_without_profile: bool,
+    reason: str | None,
+) -> None:
+    """Fail fast when the SDD profile is not enabled, unless explicitly waived."""
+    if "sdd" in config.profiles.profiles.enabled:
+        return
+    if not allow_without_profile:
+        raise ArchledgerError(
+            "SDD profile is not enabled for this project.",
+            details={
+                "profile_enabled": False,
+                "hint": (
+                    "Run: archledger profile enable sdd — or pass "
+                    '--allow-without-profile --reason "..." for ad-hoc linting.'
+                ),
+            },
+        )
+    if not reason or not reason.strip():
+        raise ArchledgerError("--allow-without-profile requires a non-empty --reason.")
+
+
 @sdd_app.command("status")
-def sdd_status(ctx: typer.Context) -> None:
+def sdd_status(
+    ctx: typer.Context,
+    allow_without_profile: Annotated[
+        bool,
+        typer.Option(
+            "--allow-without-profile",
+            help=(
+                "Report SDD status even when the SDD profile is not enabled "
+                "(requires --reason)."
+            ),
+        ),
+    ] = False,
+    reason: Annotated[
+        str | None,
+        typer.Option("--reason", help="Required when using --allow-without-profile."),
+    ] = None,
+) -> None:
     state = _state(ctx)
 
     def _build_sdd_status(
@@ -1641,6 +1707,9 @@ def sdd_status(ctx: typer.Context) -> None:
         config: ProjectConfig,
     ) -> dict[str, object]:
         del paths
+        _enforce_sdd_profile_enabled(
+            config, allow_without_profile=allow_without_profile, reason=reason
+        )
         from archledger.sdd import check_sdd_status
 
         result = check_sdd_status(repo)
@@ -1655,20 +1724,62 @@ def sdd_status(ctx: typer.Context) -> None:
 def sdd_check(
     ctx: typer.Context,
     strict: Annotated[bool, typer.Option("--strict")] = False,
+    require_acceptance_criteria: Annotated[
+        bool | None,
+        typer.Option(
+            "--require-acceptance-criteria/--no-require-acceptance-criteria",
+            help=(
+                "Override config: require acceptance criteria for accepted "
+                "requirements."
+            ),
+        ),
+    ] = None,
     require_implementation_refs: Annotated[
-        bool,
+        bool | None,
         typer.Option(
             "--require-implementation-refs/--no-require-implementation-refs",
-            help="Require implementation source_refs for accepted requirements.",
+            help=(
+                "Override config: require implementation source_refs for "
+                "accepted requirements."
+            ),
         ),
-    ] = True,
+    ] = None,
     require_test_refs: Annotated[
-        bool,
+        bool | None,
         typer.Option(
             "--require-test-refs/--no-require-test-refs",
-            help="Require validation/test refs for accepted requirements.",
+            help=(
+                "Override config: require validation/test refs for accepted "
+                "requirements."
+            ),
         ),
-    ] = True,
+    ] = None,
+    include_drafts: Annotated[
+        bool,
+        typer.Option("--include-drafts", help="Also evaluate draft records."),
+    ] = False,
+    include_superseded: Annotated[
+        bool,
+        typer.Option("--include-superseded", help="Also evaluate superseded records."),
+    ] = False,
+    all_statuses: Annotated[
+        bool,
+        typer.Option("--all-statuses", help="Evaluate records of every status."),
+    ] = False,
+    allow_without_profile: Annotated[
+        bool,
+        typer.Option(
+            "--allow-without-profile",
+            help=(
+                "Lint ad hoc even when the SDD profile is not enabled "
+                "(requires --reason)."
+            ),
+        ),
+    ] = False,
+    reason: Annotated[
+        str | None,
+        typer.Option("--reason", help="Required when using --allow-without-profile."),
+    ] = None,
 ) -> None:
     state = _state(ctx)
 
@@ -1678,21 +1789,28 @@ def sdd_check(
         config: ProjectConfig,
     ) -> dict[str, object]:
         del paths
-        from archledger.sdd import SddOptions, check_sdd
+        _enforce_sdd_profile_enabled(
+            config, allow_without_profile=allow_without_profile, reason=reason
+        )
+        from archledger.sdd import check_sdd, sdd_options_from_config
 
-        options = SddOptions(
+        options = sdd_options_from_config(
+            config,
             strict=strict,
+            require_acceptance_criteria=require_acceptance_criteria,
             require_implementation_refs=require_implementation_refs,
             require_test_refs=require_test_refs,
+            include_draft=include_drafts or all_statuses,
+            include_superseded=include_superseded or all_statuses,
         )
         result = check_sdd(repo, options=options)
         if result.has_failures(strict=strict):
             raise ArchledgerError(
                 f"SDD check failed with {len(result.errors)} error(s) "
                 f"and {len(result.warnings)} warning(s).",
-                details=_sdd_check_payload(result, config),
+                details=_sdd_check_payload(result, config, options=options),
             )
-        return _sdd_check_payload(result, config)
+        return _sdd_check_payload(result, config, options=options)
 
     _run_configured_command(
         state, "sdd check", _build_sdd_check, _format_sdd_check_message
@@ -1704,6 +1822,27 @@ def sdd_check_pr(
     ctx: typer.Context,
     against: Annotated[str, typer.Option("--against")],
     strict: Annotated[bool, typer.Option("--strict")] = False,
+    allow_without_profile: Annotated[
+        bool,
+        typer.Option(
+            "--allow-without-profile",
+            help=(
+                "Run the PR gate even when the SDD profile is not enabled "
+                "(requires --reason)."
+            ),
+        ),
+    ] = False,
+    reason: Annotated[
+        str | None,
+        typer.Option("--reason", help="Required when using --allow-without-profile."),
+    ] = None,
+    allow_unlinked: Annotated[
+        bool,
+        typer.Option(
+            "--allow-unlinked",
+            help="Do not fail when changed files have no referencing record.",
+        ),
+    ] = False,
 ) -> None:
     state = _state(ctx)
 
@@ -1712,8 +1851,12 @@ def sdd_check_pr(
         paths: ProjectPaths,
         config: ProjectConfig,
     ) -> dict[str, object]:
-        from archledger.sdd import SddOptions, check_sdd
+        from archledger.sdd import check_sdd, sdd_options_from_config
         from archledger.source_tracking import scan_git_revision
+
+        _enforce_sdd_profile_enabled(
+            config, allow_without_profile=allow_without_profile, reason=reason
+        )
 
         baseline = scan_git_revision(
             paths,
@@ -1728,13 +1871,20 @@ def sdd_check_pr(
             include_draft=True,
             include_superseded=False,
         )
-        result = check_sdd(repo, options=SddOptions(strict=strict))
+        options = sdd_options_from_config(config, strict=strict)
+        result = check_sdd(repo, options=options)
         payload = {
             "schema": "archledger.sdd-pr.v1",
             "against": against,
             "changes": _changed_payload(paths, changes),
-            "sdd": _sdd_check_payload(result, config),
+            "sdd": _sdd_check_payload(result, config, options=options),
         }
+        unlinked = list(changes.unlinked_changed_files)
+        if unlinked and not allow_unlinked:
+            raise ArchledgerError(
+                f"SDD PR check failed: {len(unlinked)} unlinked changed file(s).",
+                details=payload,
+            )
         if result.has_failures(strict=strict):
             raise ArchledgerError(
                 "SDD PR check failed.",
@@ -1963,13 +2113,16 @@ def _seed_arc42_minimal(repo: ArchitectureRepository) -> list[ArchitectureRecord
 
 
 def _seed_sdd_minimal(repo: ArchitectureRepository) -> list[ArchitectureRecord]:
-    created_records = [
-        repo.create_record("requirement", "Example requirement", status="draft"),
-        repo.create_record(
-            "acceptance-criterion",
-            "Example requirement is validated",
-            status="draft",
-        ),
+    req = repo.create_record("requirement", "Example requirement", status="draft")
+    ac = repo.create_record(
+        "acceptance-criterion",
+        "Example requirement is validated",
+        status="draft",
+        requirement=req.id,
+    )
+    created_records: list[ArchitectureRecord] = [
+        req,
+        ac,
         repo.create_record(
             "quality-scenario",
             "Agent context remains bounded",

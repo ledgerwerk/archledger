@@ -172,10 +172,15 @@ def _diagram_context(input_data: RecordContextInput) -> dict[str, object]:
     }
 
 
-def _acceptance_criterion_context(_input: RecordContextInput) -> dict[str, object]:
+def _acceptance_criterion_context(input_data: RecordContextInput) -> dict[str, object]:
+    requirement = _string_kwarg(input_data.kwargs, "requirement", "")
+    validation_command = _string_kwarg(input_data.kwargs, "validation_command", "")
+    validation_expected = _string_kwarg(
+        input_data.kwargs, "validation_expected", "passes"
+    )
     return {
-        "requirement": "",
-        "validation": {"command": "", "expected": "passes"},
+        "requirement": requirement,
+        "validation": {"command": validation_command, "expected": validation_expected},
         "test_refs": [],
         "links": [],
     }

@@ -9,6 +9,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from archledger.config.model import ProjectConfig
 
 from archledger.checks import PLACEHOLDER_SNIPPETS
 from archledger.model import (
@@ -16,6 +20,8 @@ from archledger.model import (
     ArchitectureRecord,
 )
 from archledger.repository import ArchitectureRepository
+from archledger.source_refs import normalize_source_refs
+from archledger.test_refs import normalize_test_refs
 
 # ── data classes ────────────────────────────────────────────────────────
 
@@ -23,10 +29,48 @@ from archledger.repository import ArchitectureRepository
 @dataclass(frozen=True, slots=True)
 class SddOptions:
     strict: bool = False
+    require_acceptance_criteria: bool = True
     require_implementation_refs: bool = True
     require_test_refs: bool = True
     include_draft: bool = False
     include_superseded: bool = False
+
+
+def sdd_options_from_config(
+    config: ProjectConfig,
+    *,
+    strict: bool,
+    require_acceptance_criteria: bool | None = None,
+    require_implementation_refs: bool | None = None,
+    require_test_refs: bool | None = None,
+    include_draft: bool = False,
+    include_superseded: bool = False,
+) -> SddOptions:
+    """Build the effective :class:`SddOptions` from config plus CLI overrides.
+
+    ``config.profiles.sdd`` provides the project defaults; any non-``None``
+    CLI override wins. This is the single source of truth so the enforced
+    policy always matches the policy reported in JSON payloads.
+    """
+    sdd = config.profiles.sdd
+    return SddOptions(
+        strict=strict,
+        require_acceptance_criteria=(
+            sdd.require_acceptance_criteria
+            if require_acceptance_criteria is None
+            else require_acceptance_criteria
+        ),
+        require_implementation_refs=(
+            sdd.require_implementation_refs
+            if require_implementation_refs is None
+            else require_implementation_refs
+        ),
+        require_test_refs=(
+            sdd.require_test_refs if require_test_refs is None else require_test_refs
+        ),
+        include_draft=include_draft,
+        include_superseded=include_superseded,
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -63,33 +107,46 @@ def check_sdd(repo: ArchitectureRepository, *, options: SddOptions) -> SddCheckR
     return check_sdd_records(records, repo.paths.workspace_root, options=options)
 
 
-def check_sdd_records(  # noqa: C901
+@dataclass(frozen=True, slots=True)
+class SddContext:
+    """Shared state for SDD rule evaluation."""
+
+    records_by_id: dict[str, ArchitectureRecord]
+    records_by_type: dict[str, list[ArchitectureRecord]]
+    acceptance_by_requirement: dict[str, list[ArchitectureRecord]]
+    waivers_by_record: dict[str, frozenset[str]]
+    workspace_root: Path
+    options: SddOptions
+
+
+def _has_waiver(ctx: SddContext, record_id: str, rule: str) -> bool:
+    return rule in ctx.waivers_by_record.get(record_id, frozenset())
+
+
+def _build_sdd_context(
     records: list[ArchitectureRecord],
     workspace_root: Path,
-    *,
     options: SddOptions,
-) -> SddCheckResult:
+) -> tuple[SddContext, list[SddFinding]]:
+    """Build lookup tables and process waivers; return context + waiver errors."""
     errors: list[SddFinding] = []
-    warnings: list[SddFinding] = []
 
     records_by_id = {r.id: r for r in records}
     records_by_type: dict[str, list[ArchitectureRecord]] = {}
     for r in records:
         records_by_type.setdefault(r.type, []).append(r)
 
-    # Build a lookup: requirement_id -> list of acceptance_criterion records
+    # acceptance_criterion records indexed by the requirement they validate
     acceptance_by_requirement: dict[str, list[ArchitectureRecord]] = {}
     for r in records_by_type.get("acceptance_criterion", []):
         req = r.metadata.get("requirement", "")
         if isinstance(req, str) and req.strip():
             acceptance_by_requirement.setdefault(req.strip(), []).append(r)
-        # Also check links for validates rel pointing to a requirement
         for link in r.links:
             if link.rel == "validates":
                 acceptance_by_requirement.setdefault(link.target, []).append(r)
 
-    # Process waivers
-    waivers_by_record: dict[str, set[str]] = {}
+    waivers_by_record: dict[str, frozenset[str]] = {}
     for r in records:
         if not options.include_draft and r.status == "draft":
             continue
@@ -99,6 +156,7 @@ def check_sdd_records(  # noqa: C901
         raw_waiver_list = raw_waivers.get("waivers", [])
         if not isinstance(raw_waiver_list, list):
             continue
+        rules: set[str] = set()
         for w in raw_waiver_list:
             if not isinstance(w, dict):
                 continue
@@ -117,186 +175,292 @@ def check_sdd_records(  # noqa: C901
                     )
                 )
                 continue
-            waivers_by_record.setdefault(r.id, set()).add(rule.strip())
+            rules.add(rule.strip())
+        if rules:
+            waivers_by_record[r.id] = frozenset(rules)
 
-    def has_waiver(record_id: str, rule: str) -> bool:
-        return rule in waivers_by_record.get(record_id, set())
+    ctx = SddContext(
+        records_by_id=records_by_id,
+        records_by_type=records_by_type,
+        acceptance_by_requirement=acceptance_by_requirement,
+        waivers_by_record=waivers_by_record,
+        workspace_root=workspace_root,
+        options=options,
+    )
+    return ctx, errors
 
-    def add_error(code: str, msg: str, rid: str, path: Path | None = None) -> None:
-        errors.append(
-            SddFinding(level="error", code=code, message=msg, record_id=rid, path=path)
-        )
 
-    def add_warning(code: str, msg: str, rid: str, path: Path | None = None) -> None:
-        warnings.append(
-            SddFinding(
-                level="warning", code=code, message=msg, record_id=rid, path=path
-            )
-        )
+def check_sdd_records(
+    records: list[ArchitectureRecord],
+    workspace_root: Path,
+    *,
+    options: SddOptions,
+) -> SddCheckResult:
+    ctx, pre_errors = _build_sdd_context(records, workspace_root, options)
 
-    # ── Per-record checks ───────────────────────────────────────────────
-
+    findings: list[SddFinding] = list(pre_errors)
     for r in records:
         if not options.include_draft and r.status == "draft":
             continue
         if not options.include_superseded and r.status == "superseded":
             continue
+        findings.extend(_check_record(r, ctx))
 
-        # SDD-PLACEHOLDER: accepted non-section records
-        if r.type != "section" and r.status == "accepted":
-            stripped_body = r.body.strip()
-            if stripped_body and any(
-                snippet in stripped_body for snippet in PLACEHOLDER_SNIPPETS
-            ):
-                if not has_waiver(r.id, "SDD-PLACEHOLDER"):
-                    add_error(
-                        "SDD-PLACEHOLDER",
-                        f"Record {r.id} has placeholder body.",
-                        r.id,
-                        r.path,
-                    )
+    errors = tuple(f for f in findings if f.level == "error")
+    warnings = tuple(f for f in findings if f.level == "warning")
 
-        # SDD-SOURCE-REF-ROLE: invalid roles
-        for ref in r.source_refs:
-            if ref.role and ref.role not in VALID_SOURCE_REF_ROLES:
-                add_warning(
-                    "SDD-SOURCE-REF-ROLE",
-                    f"Record {r.id} source_ref has unknown role: {ref.role!r}.",
-                    r.id,
-                    r.path,
-                )
+    summary = _build_summary(records, options)
+    summary["errors"] = len(errors)
+    summary["warnings"] = len(warnings)
 
-        for missing_path in _missing_reference_paths(
-            r.metadata.get("source_refs"), workspace_root
+    return SddCheckResult(errors=errors, warnings=warnings, summary=summary)
+
+
+def _check_record(
+    r: ArchitectureRecord,
+    ctx: SddContext,
+) -> list[SddFinding]:
+    """Run all SDD checks for a single in-scope record."""
+    findings: list[SddFinding] = []
+
+    # SDD-PLACEHOLDER: accepted non-section records
+    if r.type != "section" and r.status == "accepted":
+        stripped_body = r.body.strip()
+        if stripped_body and any(
+            snippet in stripped_body for snippet in PLACEHOLDER_SNIPPETS
         ):
-            if not has_waiver(r.id, "SDD-SOURCE-REF-EXISTS"):
-                add_error(
-                    "SDD-SOURCE-REF-EXISTS",
-                    f"Record {r.id} source_ref path does not exist: {missing_path}",
-                    r.id,
-                    r.path,
-                )
-
-        for missing_path in _missing_reference_paths(
-            r.metadata.get("test_refs"), workspace_root
-        ):
-            if not has_waiver(r.id, "SDD-TEST-REF-EXISTS"):
-                add_error(
-                    "SDD-TEST-REF-EXISTS",
-                    f"Record {r.id} test_ref path does not exist: {missing_path}",
-                    r.id,
-                    r.path,
-                )
-
-        # SDD-LINK-TARGET: link targets must exist (only for accepted records)
-        if r.status == "accepted":
-            for link in r.links:
-                if link.target not in records_by_id:
-                    add_error(
-                        "SDD-LINK-TARGET",
-                        f"Record {r.id} link target {link.target!r} does not exist.",
-                        r.id,
-                        r.path,
+            if not _has_waiver(ctx, r.id, "SDD-PLACEHOLDER"):
+                findings.append(
+                    SddFinding(
+                        level="error",
+                        code="SDD-PLACEHOLDER",
+                        message=f"Record {r.id} has placeholder body.",
+                        record_id=r.id,
+                        path=r.path,
                     )
-
-        # ── Type-specific checks ────────────────────────────────────────
-
-        if r.type == "requirement" and r.status == "accepted":
-            # SDD-REQ-AC
-            if not has_waiver(r.id, "SDD-REQ-AC"):
-                has_ac = (
-                    _has_inline_acceptance_criteria(r)
-                    or r.id in acceptance_by_requirement
                 )
-                if not has_ac:
-                    add_error(
-                        "SDD-REQ-AC",
-                        f"Accepted requirement {r.id} has no acceptance criteria.",
-                        r.id,
-                        r.path,
-                    )
 
-            # SDD-REQ-IMPL
-            if options.require_implementation_refs and not has_waiver(
-                r.id, "SDD-REQ-IMPL"
+    # SDD-SOURCE-REF-ROLE: invalid roles
+    for ref in r.source_refs:
+        if ref.role and ref.role not in VALID_SOURCE_REF_ROLES:
+            findings.append(
+                SddFinding(
+                    level="warning",
+                    code="SDD-SOURCE-REF-ROLE",
+                    message=f"Record {r.id} source_ref has unknown role: {ref.role!r}.",
+                    record_id=r.id,
+                    path=r.path,
+                )
+            )
+
+    # SDD-AC-FORMAT / SDD-AC-NO-STATEMENT / SDD-AC-VALIDATION-FORMAT
+    inline_ac_valid, ac_format_findings = _classify_inline_acceptance_criteria(r)
+    for code, message in ac_format_findings:
+        if not _has_waiver(ctx, r.id, code):
+            findings.append(
+                SddFinding(
+                    level="error",
+                    code=code,
+                    message=message,
+                    record_id=r.id,
+                    path=r.path,
+                )
+            )
+
+    # SDD-*REF-EXISTS / SDD-*REF-PATH (source + test refs)
+    for code, message in _reference_findings(r, ctx.workspace_root):
+        if not _has_waiver(ctx, r.id, code):
+            findings.append(
+                SddFinding(
+                    level="error",
+                    code=code,
+                    message=message,
+                    record_id=r.id,
+                    path=r.path,
+                )
+            )
+
+    # SDD-LINK-TARGET: link targets must exist (only for accepted records)
+    if r.status == "accepted":
+        for link in r.links:
+            target = ctx.records_by_id.get(link.target)
+            if target is None:
+                findings.append(
+                    SddFinding(
+                        level="error",
+                        code="SDD-LINK-TARGET",
+                        message=(
+                            f"Record {r.id} link target {link.target!r} does not exist."
+                        ),
+                        record_id=r.id,
+                        path=r.path,
+                    )
+                )
+            elif target.status in {"draft", "superseded"} and not _has_waiver(
+                ctx, r.id, "SDD-LINK-TARGET-STATUS"
             ):
-                has_impl = any(ref.role == "implements" for ref in r.source_refs)
-                if not has_impl:
-                    add_error(
-                        "SDD-REQ-IMPL",
-                        f"Accepted requirement {r.id} has no implementation "
-                        "source_refs.",
-                        r.id,
-                        r.path,
+                findings.append(
+                    SddFinding(
+                        level="warning",
+                        code="SDD-LINK-TARGET-STATUS",
+                        message=(
+                            f"Record {r.id} links to "
+                            f"{link.target!r} which is {target.status}."
+                        ),
+                        record_id=r.id,
+                        path=r.path,
                     )
-
-            # SDD-REQ-TEST
-            if options.require_test_refs and not has_waiver(r.id, "SDD-REQ-TEST"):
-                has_test = _has_validation(r, acceptance_by_requirement, records_by_id)
-                if not has_test:
-                    add_error(
-                        "SDD-REQ-TEST",
-                        f"Accepted requirement {r.id} has no validation.",
-                        r.id,
-                        r.path,
-                    )
-
-        if r.type == "adr" and r.status == "accepted":
-            if not has_waiver(r.id, "SDD-ADR-LINK"):
-                has_traceability = (
-                    bool(r.links)
-                    or bool(r.metadata.get("related"))
-                    or bool(r.source_refs)
                 )
-                if not has_traceability:
-                    add_error(
-                        "SDD-ADR-LINK",
-                        f"Accepted ADR {r.id} has no traceability.",
-                        r.id,
-                        r.path,
+
+    # Type-specific checks
+    if r.type == "requirement" and r.status == "accepted":
+        findings.extend(_check_requirement(r, ctx, inline_ac_valid))
+    elif r.type == "adr" and r.status == "accepted":
+        findings.extend(_check_adr(r, ctx))
+    elif r.type == "quality_scenario" and r.status == "accepted":
+        findings.extend(_check_quality_scenario(r, ctx))
+
+    return findings
+
+
+def _check_requirement(
+    r: ArchitectureRecord,
+    ctx: SddContext,
+    inline_ac_valid: list[dict[str, object]],
+) -> list[SddFinding]:
+    """SDD-REQ-AC, SDD-REQ-IMPL, SDD-REQ-TEST checks."""
+    findings: list[SddFinding] = []
+
+    if ctx.options.require_acceptance_criteria and not _has_waiver(
+        ctx, r.id, "SDD-REQ-AC"
+    ):
+        if not (inline_ac_valid or r.id in ctx.acceptance_by_requirement):
+            findings.append(
+                SddFinding(
+                    level="error",
+                    code="SDD-REQ-AC",
+                    message=f"Accepted requirement {r.id} has no acceptance criteria.",
+                    record_id=r.id,
+                    path=r.path,
+                )
+            )
+
+    if ctx.options.require_implementation_refs and not _has_waiver(
+        ctx, r.id, "SDD-REQ-IMPL"
+    ):
+        if not any(ref.role == "implements" for ref in r.source_refs):
+            findings.append(
+                SddFinding(
+                    level="error",
+                    code="SDD-REQ-IMPL",
+                    message=(
+                        f"Accepted requirement {r.id} has no "
+                        "implementation source_refs."
+                    ),
+                    record_id=r.id,
+                    path=r.path,
+                )
+            )
+
+    if ctx.options.require_test_refs and not _has_waiver(ctx, r.id, "SDD-REQ-TEST"):
+        if not _has_validation(r, ctx.acceptance_by_requirement, ctx.records_by_id):
+            findings.append(
+                SddFinding(
+                    level="error",
+                    code="SDD-REQ-TEST",
+                    message=f"Accepted requirement {r.id} has no validation.",
+                    record_id=r.id,
+                    path=r.path,
+                )
+            )
+
+    return findings
+
+
+def _check_adr(r: ArchitectureRecord, ctx: SddContext) -> list[SddFinding]:
+    """SDD-ADR-LINK traceability check."""
+    if _has_waiver(ctx, r.id, "SDD-ADR-LINK"):
+        return []
+    has_traceability = (
+        bool(r.links) or bool(r.metadata.get("related")) or bool(r.source_refs)
+    )
+    if has_traceability:
+        return []
+    return [
+        SddFinding(
+            level="error",
+            code="SDD-ADR-LINK",
+            message=f"Accepted ADR {r.id} has no traceability.",
+            record_id=r.id,
+            path=r.path,
+        )
+    ]
+
+
+def _check_quality_scenario(
+    r: ArchitectureRecord,
+    ctx: SddContext,
+) -> list[SddFinding]:
+    """SDD-QS-COMPLETE and SDD-QS-MEASURABLE checks."""
+    findings: list[SddFinding] = []
+
+    if not _has_waiver(ctx, r.id, "SDD-QS-COMPLETE"):
+        missing = _qs_missing_fields(r)
+        if missing:
+            findings.append(
+                SddFinding(
+                    level="error",
+                    code="SDD-QS-COMPLETE",
+                    message=(
+                        f"Accepted quality_scenario {r.id} "
+                        f"is missing: {', '.join(missing)}."
+                    ),
+                    record_id=r.id,
+                    path=r.path,
+                )
+            )
+
+    if not _has_waiver(ctx, r.id, "SDD-QS-MEASURABLE"):
+        resp_measure = r.metadata.get("response_measure", "")
+        if isinstance(resp_measure, str) and resp_measure.strip():
+            if not _looks_measurable(resp_measure):
+                findings.append(
+                    SddFinding(
+                        level="warning",
+                        code="SDD-QS-MEASURABLE",
+                        message=(
+                            f"Quality_scenario {r.id} response_measure"
+                            " is not measurable."
+                        ),
+                        record_id=r.id,
+                        path=r.path,
                     )
+                )
 
-        if r.type == "quality_scenario" and r.status == "accepted":
-            if not has_waiver(r.id, "SDD-QS-COMPLETE"):
-                missing = _qs_missing_fields(r)
-                if missing:
-                    add_error(
-                        "SDD-QS-COMPLETE",
-                        f"Accepted quality_scenario {r.id} is missing: "
-                        f"{', '.join(missing)}.",
-                        r.id,
-                        r.path,
-                    )
+    return findings
 
-            if not has_waiver(r.id, "SDD-QS-MEASURABLE"):
-                resp_measure = r.metadata.get("response_measure", "")
-                if isinstance(resp_measure, str) and resp_measure.strip():
-                    if not _looks_measurable(resp_measure):
-                        add_warning(
-                            "SDD-QS-MEASURABLE",
-                            f"Quality_scenario {r.id} response_measure is not "
-                            "measurable.",
-                            r.id,
-                            r.path,
-                        )
 
-    # ── Summary ─────────────────────────────────────────────────────────
-
-    summary = {
-        "records_checked": len(records),
+def _build_summary(
+    records: list[ArchitectureRecord],
+    options: SddOptions,
+) -> dict[str, int]:
+    """Build the summary dict (errors/warnings counts are added by the caller)."""
+    in_scope_records = [
+        r
+        for r in records
+        if (options.include_draft or r.status != "draft")
+        and (options.include_superseded or r.status != "superseded")
+    ]
+    return {
+        "records_total": len(records),
+        "records_checked": len(in_scope_records),
         "accepted_requirements": len(
             [r for r in records if r.type == "requirement" and r.status == "accepted"]
         ),
         "acceptance_criteria": len(
             [r for r in records if r.type == "acceptance_criterion"]
         ),
-        "errors": len(errors),
-        "warnings": len(warnings),
     }
-
-    return SddCheckResult(
-        errors=tuple(errors), warnings=tuple(warnings), summary=summary
-    )
 
 
 def check_sdd_status(repo: ArchitectureRepository) -> SddStatusResult:
@@ -376,11 +540,63 @@ def check_sdd_status(repo: ArchitectureRepository) -> SddStatusResult:
 # ── helpers ─────────────────────────────────────────────────────────────
 
 
+def _classify_inline_acceptance_criteria(
+    record: ArchitectureRecord,
+) -> tuple[list[dict[str, object]], list[tuple[str, str]]]:
+    """Split inline ``acceptance_criteria`` into valid items and findings.
+
+    A valid inline criterion is a mapping with a non-empty ``statement``.
+    Malformed entries produce ``(code, message)`` findings the caller maps to
+    SDD errors. ``validation`` is optional but, when present, must be a mapping
+    (otherwise an ``SDD-AC-VALIDATION-FORMAT`` finding is emitted while the
+    criterion still counts as present).
+    """
+    raw = record.metadata.get("acceptance_criteria")
+    if not isinstance(raw, list):
+        return [], []
+    valid: list[dict[str, object]] = []
+    findings: list[tuple[str, str]] = []
+    for index, item in enumerate(raw, start=1):
+        if not isinstance(item, dict):
+            findings.append(
+                (
+                    "SDD-AC-FORMAT",
+                    f"Record {record.id} acceptance_criteria entry {index} "
+                    "must be a mapping.",
+                )
+            )
+            continue
+        statement = item.get("statement")
+        if not isinstance(statement, str) or not statement.strip():
+            findings.append(
+                (
+                    "SDD-AC-NO-STATEMENT",
+                    f"Record {record.id} acceptance_criteria entry {index} "
+                    "has no statement.",
+                )
+            )
+            continue
+        valid.append(item)
+        validation = item.get("validation")
+        if validation is not None and not isinstance(validation, dict):
+            findings.append(
+                (
+                    "SDD-AC-VALIDATION-FORMAT",
+                    f"Record {record.id} acceptance_criteria entry {index} "
+                    "validation must be a mapping.",
+                )
+            )
+    return valid, findings
+
+
+def _valid_inline_acceptance_criteria(
+    record: ArchitectureRecord,
+) -> list[dict[str, object]]:
+    return _classify_inline_acceptance_criteria(record)[0]
+
+
 def _has_inline_acceptance_criteria(record: ArchitectureRecord) -> bool:
-    ac = record.metadata.get("acceptance_criteria")
-    if isinstance(ac, list) and ac:
-        return True
-    return False
+    return bool(_valid_inline_acceptance_criteria(record))
 
 
 def _has_validation(
@@ -389,26 +605,26 @@ def _has_validation(
     records_by_id: dict[str, ArchitectureRecord],
 ) -> bool:
     """Check if a requirement has test/validation evidence."""
+    del records_by_id  # retained for API compatibility
     # test_refs on the record itself
     if record.test_refs:
         return True
     # source_refs role=validates
     if any(ref.role == "validates" for ref in record.source_refs):
         return True
-    # inline acceptance_criteria with validation command
-    ac = record.metadata.get("acceptance_criteria")
-    if isinstance(ac, list):
-        for item in ac:
-            if isinstance(item, dict) and item.get("validation", {}).get("command"):
-                return True
+    # inline acceptance_criteria with a validation command
+    for item in _valid_inline_acceptance_criteria(record):
+        validation = item.get("validation")
+        if isinstance(validation, dict) and validation.get("command"):
+            return True
     # Linked acceptance_criterion records
     for ac_record in acceptance_by_requirement.get(record.id, []):
         if ac_record.test_refs:
             return True
         if any(ref.role == "validates" for ref in ac_record.source_refs):
             return True
-        v = ac_record.metadata.get("validation")
-        if isinstance(v, dict) and v.get("command"):
+        validation = ac_record.metadata.get("validation")
+        if isinstance(validation, dict) and validation.get("command"):
             return True
     return False
 
@@ -458,31 +674,57 @@ def _looks_measurable(value: str) -> bool:
     return any(indicator in lowered for indicator in indicators)
 
 
-def _missing_reference_paths(value: object, workspace_root: Path) -> tuple[str, ...]:
-    if not isinstance(value, list):
-        return ()
-    missing: list[str] = []
-    for entry in value:
-        if isinstance(entry, str):
-            path_text = entry.partition("::")[0].strip().rstrip("/")
-        elif isinstance(entry, dict):
-            raw_path = entry.get("path")
-            path_text = (
-                raw_path.strip().rstrip("/") if isinstance(raw_path, str) else ""
+def _reference_findings(
+    record: ArchitectureRecord,
+    workspace_root: Path,
+) -> list[tuple[str, str]]:
+    """Re-normalize raw source/test refs and map warnings to SDD findings.
+
+    The repository loader drops missing ``source_ref`` entries at load time,
+    so existence/format problems can only be detected by re-normalizing the
+    raw metadata here. Role checks keep using the already-normalized
+    ``record.source_refs``/``record.test_refs``.
+    """
+    findings: list[tuple[str, str]] = []
+    raw_source = record.metadata.get("source_refs")
+    if raw_source is not None:
+        _refs, warnings = normalize_source_refs(
+            record.id, raw_source, workspace_root=workspace_root
+        )
+        findings.extend(
+            (
+                "SDD-SOURCE-REF-EXISTS"
+                if "does not exist" in warning
+                else "SDD-SOURCE-REF-PATH",
+                warning,
             )
-        else:
-            continue
-        if path_text and not (workspace_root / path_text).exists():
-            missing.append(path_text)
-    return tuple(missing)
+            for warning in warnings
+        )
+    raw_test = record.metadata.get("test_refs")
+    if raw_test is not None:
+        _refs, warnings = normalize_test_refs(
+            record.id, raw_test, workspace_root=workspace_root
+        )
+        findings.extend(
+            (
+                "SDD-TEST-REF-EXISTS"
+                if "does not exist" in warning
+                else "SDD-TEST-REF-PATH",
+                warning,
+            )
+            for warning in warnings
+        )
+    return findings
 
 
 __all__ = [
     "SddCheckResult",
+    "SddContext",
     "SddFinding",
     "SddOptions",
     "SddStatusResult",
     "check_sdd",
     "check_sdd_records",
     "check_sdd_status",
+    "sdd_options_from_config",
 ]

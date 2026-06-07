@@ -481,15 +481,29 @@ def sdd_finding_payload(finding: object) -> dict[str, object]:
     return payload
 
 
-def sdd_check_payload(result: object, config: object) -> dict[str, object]:
+def sdd_check_payload(
+    result: object,
+    config: object,
+    *,
+    options: object | None = None,
+) -> dict[str, object]:
+    if options is None:
+        from archledger.sdd import SddOptions
+
+        sdd = config.profiles.sdd
+        options = SddOptions(
+            require_acceptance_criteria=sdd.require_acceptance_criteria,
+            require_implementation_refs=sdd.require_implementation_refs,
+            require_test_refs=sdd.require_test_refs,
+        )
     return {
         "schema": "archledger.sdd-check.v1",
         "profile": config.profile,
+        "profile_enabled": "sdd" in config.profiles.profiles.enabled,
         "policy": {
-            "require_implementation_refs": (
-                config.profiles.sdd.require_implementation_refs
-            ),
-            "require_test_refs": config.profiles.sdd.require_test_refs,
+            "require_acceptance_criteria": options.require_acceptance_criteria,
+            "require_implementation_refs": options.require_implementation_refs,
+            "require_test_refs": options.require_test_refs,
         },
         "summary": result.summary,
         "errors": [sdd_finding_payload(f) for f in result.errors],

@@ -157,6 +157,10 @@ class ArchitectureRepository:
         # Only create sections directory when the arc42 profile is enabled.
         if self._arc42_enabled():
             dirs_to_create.append(self.paths.sections_dir)
+        # Create sdd profile directory when the sdd profile is enabled.
+        if self._sdd_enabled():
+            sdd_profile_dir = self.paths.archledger_dir / "profiles" / "sdd"
+            dirs_to_create.append(sdd_profile_dir)
         for path in dirs_to_create:
             if not path.exists():
                 created_paths.append(path)
@@ -951,6 +955,10 @@ class ArchitectureRepository:
             )
 
     def _arc42_enabled(self) -> bool:
+        return "arc42" in self.config.profiles.profiles.enabled
+
+    def _sdd_enabled(self) -> bool:
+        return "sdd" in self.config.profiles.profiles.enabled
         return "arc42" in self.config.profiles.profiles.enabled
 
     def _write_counter(self, next_number: int) -> None:

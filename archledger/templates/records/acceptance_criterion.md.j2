@@ -7,12 +7,12 @@ status: {{ status }}
 section: {{ section }}
 order: {{ order }}
 date: {{ date | tojson }}
-requirement: ""
+requirement: {{ requirement | tojson }}
 validation:
-  command: ""
-  expected: "passes"
-test_refs: []
-links: []
+  command: {{ validation.command | tojson }}
+  expected: {{ validation.expected | tojson }}
+test_refs: {{ test_refs | tojson }}
+links: {{ links | tojson }}
 body_format: markdown
 created_at: {{ created_at | tojson }}
 updated_at: {{ updated_at | tojson }}
@@ -24,5 +24,5 @@ State the externally observable condition that must be true.
 
 ## Validation
 
-- Command: TBD
-- Expected: passes
+- Command: {{ validation.command | default("TBD", true) }}
+- Expected: {{ validation.expected | default("passes", true) }}

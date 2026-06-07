@@ -10,6 +10,8 @@ from archledger.errors import ArchledgerError
 SCHEMA_FILES = {
     "record": "archledger.record.v2.schema.json",
     "sdd": "archledger.sdd.v1.schema.json",
+    "sdd-status": "archledger.sdd-status.v1.schema.json",
+    "sdd-pr": "archledger.sdd-pr.v1.schema.json",
     "context": "archledger.context.v1.schema.json",
     "trace": "archledger.trace.v1.schema.json",
     "changed": "archledger.changed.v1.schema.json",

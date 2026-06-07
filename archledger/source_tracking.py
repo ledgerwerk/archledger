@@ -414,6 +414,8 @@ def scan_git_revision(
             continue
         if _matches_any_pattern(relative_path, config.tracking_exclude):
             continue
+        if _should_skip_path(paths.workspace_root / relative_path, paths, config):
+            continue
         try:
             content_result = subprocess.run(
                 ["git", "-C", workspace, "show", f"{revision}:{relative_path}"],

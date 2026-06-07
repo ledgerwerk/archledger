@@ -105,6 +105,11 @@ def test_all_markdown_templates_include_schema_version_date_body_format() -> Non
         context_kind="external",
         partner="",
         term="test",
+        # SDD acceptance-criterion fields
+        requirement="",
+        validation={"command": "", "expected": "passes"},
+        test_refs=[],
+        links=[],
     )
     for path in sorted(template_root.glob("*.md.j2")):
         tmpl_name = path.relative_to("archledger/templates").as_posix()
@@ -140,6 +145,11 @@ def test_all_asciidoc_templates_include_schema_version_date_body_format() -> Non
         context_kind="external",
         partner="",
         term="test",
+        # SDD acceptance-criterion fields
+        requirement="",
+        validation={"command": "", "expected": "passes"},
+        test_refs=[],
+        links=[],
     )
     for path in sorted(template_root.glob("*.adoc.j2")):
         tmpl_name = path.relative_to("archledger/templates").as_posix()
