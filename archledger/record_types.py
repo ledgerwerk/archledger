@@ -342,7 +342,7 @@ RECORD_TYPE_SPECS = (
 )
 
 RECORD_TYPES = {spec.kind: spec for spec in RECORD_TYPE_SPECS}
-VALID_RECORD_TYPES = frozenset(RECORD_TYPES)
+VALID_RECORD_TYPES = frozenset(RECORD_TYPES) | frozenset({"archive_tombstone"})
 RECORD_TYPE_TO_DIR = {kind: spec.directory for kind, spec in RECORD_TYPES.items()}
 RECORD_TYPE_TO_DEFAULT_SECTION = {
     kind: spec.default_section for kind, spec in RECORD_TYPES.items()

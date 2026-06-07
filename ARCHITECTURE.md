@@ -1,7 +1,7 @@
 ---
 title: "archledger Architecture Documentation"
-date: "2026-05-23"
-generator: "archledger 0.1.1.dev9+gd859d2276"
+date: "2026-06-07"
+generator: "archledger 0.2.1.dev3+gaf0af85a8.d20260606"
 arc42_template_version: "9.0-EN"
 ---
 
@@ -31,18 +31,21 @@ Detailed agent guidance lives in `docs/agent-workflow.rst`.
 
 ## Requirements Overview
 
-| Title                                                         | Priority | Source                                                | Stakeholders | Quality goals |
-| ------------------------------------------------------------- | -------- | ----------------------------------------------------- | ------------ | ------------- |
-| Project initialization creates archledger workspace structure | must     | archledger CLI behavior and repository implementation |              |               |
-| File-based source model uses editable records                 | must     | archledger CLI behavior and repository implementation |              |               |
-| Record creation enforces schema and unique ids                | must     | archledger CLI behavior and repository implementation |              |               |
-| Read current architecture model without export                | must     | archledger CLI behavior and repository implementation |              |               |
-| Native build requires no external converter tools             | must     | archledger CLI behavior and repository implementation |              |               |
-| Multi-format export supports configured converter tools       | must     | archledger CLI behavior and repository implementation |              |               |
-| Source tracking reports changes impacts and unlinked files    | must     | archledger CLI behavior and repository implementation |              |               |
-| Path safety prevents writes outside allowed roots             | must     | archledger CLI behavior and repository implementation |              |               |
-| CLI provides stable machine-readable JSON output              | must     | archledger CLI behavior and repository implementation |              |               |
-| Local-first operation requires no network services            | must     | archledger CLI behavior and repository implementation |              |               |
+| Title                                                                | Priority | Source                                                | Stakeholders | Quality goals |
+| -------------------------------------------------------------------- | -------- | ----------------------------------------------------- | ------------ | ------------- |
+| Project initialization creates archledger workspace structure        | must     | archledger CLI behavior and repository implementation |              |               |
+| File-based source model uses editable records                        | must     | archledger CLI behavior and repository implementation |              |               |
+| Record creation enforces schema and unique ids                       | must     | archledger CLI behavior and repository implementation |              |               |
+| Read current architecture model without export                       | must     | archledger CLI behavior and repository implementation |              |               |
+| Native build requires no external converter tools                    | must     | archledger CLI behavior and repository implementation |              |               |
+| Multi-format export supports configured converter tools              | must     | archledger CLI behavior and repository implementation |              |               |
+| Source tracking reports changes impacts and unlinked files           | must     | archledger CLI behavior and repository implementation |              |               |
+| Path safety prevents writes outside allowed roots                    | must     | archledger CLI behavior and repository implementation |              |               |
+| CLI provides stable machine-readable JSON output                     | must     | archledger CLI behavior and repository implementation |              |               |
+| Local-first operation requires no network services                   | must     | archledger CLI behavior and repository implementation |              |               |
+| SDD profile enforces specification traceability contracts            | must     | SDD profile implementation and CLI tests              |              |               |
+| Agent context and trace queries return focused architecture evidence | must     | Agent context and trace implementation                |              |               |
+| BDD metadata imports and exports supported Gherkin scenarios         | must     | BDD metadata import and export implementation         |              |               |
 
 ## Quality Goals
 
@@ -205,7 +208,7 @@ through assembly to the build output.
 
 ## Motivation
 
-archledger is decomposed into focused black-box building blocks within one white-box system. The current Building Block View includes CLI, Config, Repository, Render, Storage, Model, Assembly, Dialect, Section Rendering, Converter, Source Tracking, Migration, Record Type Registry, Check, Source Ref Validation, ID Utilities, Renumber Service, and ID Segment Resolution.
+archledger is decomposed into focused black-box building blocks within one white-box system. The current Building Block View includes CLI, Config, Repository, Render, Storage, Model, Assembly, Dialect, Section Rendering, Converter, Source Tracking, Migration, Record Type Registry, Check, Source Ref Validation, ID Utilities, Renumber Service, ID Segment Resolution, and specification and traceability services.
 
 ## Contained building blocks
 
@@ -227,10 +230,11 @@ archledger is decomposed into focused black-box building blocks within one white
 - **ID Utilities** (`ids.py`): ID parsing and formatting helpers for ledger-prefixed IDs
 - **Renumber Service** (`renumber.py`): ID migration planning and apply operations across records and links
 - **ID Segment Resolution** (`id_segments.py`): Segment-aware ID routing and section scoping logic
+- **Specification and Traceability Services** (`sdd.py`, `context.py`, `trace.py`, `mutations.py`, `bdd/`): SDD policy enforcement, bounded agent context, record trace traversal, validated record mutation, and Gherkin metadata exchange
 
 ## Important interfaces
 
-The primary interface is the CLI (`archledger` console script). The CLI delegates to `cli_payloads.py` for JSON output construction and `cli_formatting.py` for human-readable messages. Internally, the Repository exposes methods that the CLI calls, and the Repository delegates to Storage, Model, Record Type Registry, Check, and Source Ref Validation. Config parsing is handled by the Config Layer independently from Storage. The Render Layer delegates to Assembly and Converters. The Converter Layer uses `conversion_plan.py` to plan each format conversion. Source Tracking is used by the CLI `source` subgroup for snapshot/changed/convert commands.
+The primary interface is the CLI (`archledger` console script). The CLI delegates to `cli_payloads.py` for JSON output construction and `cli_formatting.py` for human-readable messages. Internally, the Repository exposes source-model operations used by the CLI and specification services, and delegates persistence to Storage. Config parsing is handled by the Config Layer independently from Storage. The Render Layer delegates to Assembly and Converters. Source Tracking feeds `source changed`, focused context queries, and the SDD pull-request gate. SDD, context, trace, mutation, and BDD modules remain domain services; the CLI owns command gating and presentation.
 
 ### Level 1
 
@@ -432,6 +436,29 @@ Three entry points serve different callers: `id_segment_for_metadata()` for raw 
 
 This module is intentionally thin — it isolates the resolution policy so that `renumber.py` and `repository.py` share the same logic without coupling to each other.
 
+#### Specification and traceability services
+
+**Parent:** al_block_0041
+**Interfaces:**
+**Location:**
+**Fulfilled requirements:** al_content_0136, al_content_0137, al_content_0138
+
+This logical subsystem turns architecture records into enforceable,
+agent-consumable specifications.
+
+- **SDD policy evaluator** checks accepted requirements, ADRs, quality
+  scenarios, references, validation evidence, waivers, and BDD metadata.
+- **Context service** selects bounded record sets from a file, record, or source
+  drift query.
+- **Trace service** traverses links and evidence around a record.
+- **BDD service** parses a constrained Gherkin subset and imports or exports
+  behavior metadata without executing test runners.
+- **Mutation service** updates status, metadata, bodies, links, references, and
+  acceptance criteria while reusing repository validation.
+
+The CLI layer owns presentation and command gating; these services own the
+domain behavior and return structured payloads.
+
 ## Interfaces
 
 ### CLI stdout JSON contract
@@ -563,6 +590,156 @@ delegate to pandoc or asciidoctor.
 7. Without `--apply`: returns the plan as JSON or formatted text and exits.
 8. With `--apply`: rewrites file contents, renames files via two-phase temp strategy, updates `archledger.toml`, and recomputes `storage.yaml`.
 9. CLI outputs the summary of renamed files and rewritten references.
+
+## Agent tries to implement before approval
+
+Describe the runtime scenario.
+
+## Scenario
+
+Rule: Implementation requires an accepted plan
+
+Example: Agent tries to implement before approval
+
+Given a task has a proposed plan
+Given the plan has not been approved by the user
+When the agent starts implementation
+Then implementation is blocked
+And the task remains in planning or review state
+
+## Agent implements after approval
+
+Describe the runtime scenario.
+
+## Scenario
+
+Rule: Implementation requires an accepted plan
+
+Example: Agent implements after approval
+
+Given a task has an approved plan
+When the agent starts implementation
+Then implementation proceeds normally
+
+## Agent tries to implement before approval
+
+Describe the runtime scenario.
+
+## Scenario
+
+Rule: Implementation requires an accepted plan
+
+Example: Agent tries to implement before approval
+
+Given a task has a proposed plan
+Given the plan has not been approved by the user
+When the agent starts implementation
+Then implementation is blocked
+And the task remains in planning or review state
+
+## Agent implements after approval
+
+Describe the runtime scenario.
+
+## Scenario
+
+Rule: Implementation requires an accepted plan
+
+Example: Agent implements after approval
+
+Given a task has an approved plan
+When the agent starts implementation
+Then implementation proceeds normally
+
+## Agent tries to implement before approval
+
+Describe the runtime scenario.
+
+## Scenario
+
+Rule: Implementation requires an accepted plan
+
+Example: Agent tries to implement before approval
+
+Given a task has a proposed plan
+Given the plan has not been approved by the user
+When the agent starts implementation
+Then implementation is blocked
+And the task remains in planning or review state
+
+## Agent implements after approval
+
+Describe the runtime scenario.
+
+## Scenario
+
+Rule: Implementation requires an accepted plan
+
+Example: Agent implements after approval
+
+Given a task has an approved plan
+When the agent starts implementation
+Then implementation proceeds normally
+
+## Agent tries to implement before approval
+
+Describe the runtime scenario.
+
+## Scenario
+
+Rule: Implementation requires an accepted plan
+
+Example: Agent tries to implement before approval
+
+Given a task has a proposed plan
+Given the plan has not been approved by the user
+When the agent starts implementation
+Then implementation is blocked
+And the task remains in planning or review state
+
+## Agent implements after approval
+
+Describe the runtime scenario.
+
+## Scenario
+
+Rule: Implementation requires an accepted plan
+
+Example: Agent implements after approval
+
+Given a task has an approved plan
+When the agent starts implementation
+Then implementation proceeds normally
+
+## Agent tries to implement before approval
+
+Describe the runtime scenario.
+
+## Scenario
+
+Rule: Implementation requires an accepted plan
+
+Example: Agent tries to implement before approval
+
+Given a task has a proposed plan
+And the plan has not been approved by the user
+When the agent starts implementation
+Then implementation is blocked
+And the task remains in planning or review state
+
+## Agent implements after approval
+
+Describe the runtime scenario.
+
+## Scenario
+
+Rule: Implementation requires an accepted plan
+
+Example: Agent implements after approval
+
+Given a task has an approved plan
+When the agent starts implementation
+Then implementation proceeds normally
 
 # Deployment View
 

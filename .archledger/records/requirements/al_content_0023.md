@@ -13,11 +13,24 @@ stakeholders: []
 quality_goals: []
 body_format: markdown
 created_at: "2026-05-21T18:18:41Z"
-updated_at: "2026-05-21T18:18:41Z"
+updated_at: "2026-06-07T09:10:47Z"
 source_refs:
   - archledger/cli.py
   - archledger/repository.py
   - tests/test_read_cli.py
+  - path: archledger/render.py
+    role: implements
+    reason: Renders native source formats without converter invocation.
+acceptance_criteria:
+  - id: AC-001
+    statement:
+      A native Markdown or AsciiDoc build succeeds when external converter
+      executables are unavailable.
+    validation:
+      command: pytest -q tests/test_build.py
+      expected: passes
+test_refs:
+  - tests/test_build.py
 ---
 
 ## Requirement

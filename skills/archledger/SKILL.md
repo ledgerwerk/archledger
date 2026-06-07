@@ -66,6 +66,16 @@ archledger bdd export al_runtime_0123 \
 
 Imported records carry a `bdd` front-matter block (feature, rule, scenario, tags, given/when/then, automation) and a `source_refs` entry with role `documents` linking to the originating feature file. Use `source_refs` and `test_refs` to bind features, tests, and code for drift detection.
 
+Cross-ledger Taskledger guidance:
+
+- Import Taskledger-generated `.feature` files only after the Archledger
+  parser is working correctly.
+- Preserve `@task-*`, `@bdd-*`, and `@ac-*` tags as traceability when
+  importing. These tags are emitted by Taskledger's `bdd gherkin-export`.
+- For accepted records, run `archledger sdd check --strict`.
+- `.feature` files are exchange/automation artifacts, not Archledger's
+  canonical source unless ownership is explicitly changed.
+
 Use `archledger --json read --body` as the agent source of truth; the `.feature` file is a derived artifact.
 
 Use `record set`, `record meta set`, `record body append`, `refs add`,

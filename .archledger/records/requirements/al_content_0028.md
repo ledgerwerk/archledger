@@ -13,11 +13,25 @@ stakeholders: []
 quality_goals: []
 body_format: markdown
 created_at: "2026-05-21T18:18:43Z"
-updated_at: "2026-05-21T18:18:43Z"
+updated_at: "2026-06-07T09:10:57Z"
 source_refs:
   - archledger/cli.py
   - archledger/repository.py
   - tests/test_read_cli.py
+  - path: archledger/repository.py
+    role: implements
+    reason: Provides local filesystem-backed repository operations.
+acceptance_criteria:
+  - id: AC-001
+    statement:
+      Read, check, and native build complete using only local files and processes,
+      with no required server, database, or network call.
+    validation:
+      command: pytest -q tests/test_read_cli.py tests/test_build.py
+      expected: passes
+test_refs:
+  - tests/test_read_cli.py
+  - tests/test_build.py
 ---
 
 ## Requirement

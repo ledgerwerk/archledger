@@ -13,10 +13,24 @@ stakeholders: []
 quality_goals: []
 body_format: markdown
 created_at: "2026-05-21T18:18:40Z"
-updated_at: "2026-05-21T18:18:40Z"
+updated_at: "2026-06-07T09:10:39Z"
 source_refs:
   - archledger/cli.py
   - archledger/repository.py
+  - tests/test_read_cli.py
+  - path: archledger/storage/frontmatter.py
+    role: implements
+    reason: Parses and writes canonical source records.
+acceptance_criteria:
+  - id: AC-001
+    statement:
+      Markdown and AsciiDoc records round-trip as YAML-front-matter source
+      files in the configured records directory.
+    validation:
+      command: pytest -q tests/test_frontmatter.py tests/test_read_cli.py
+      expected: passes
+test_refs:
+  - tests/test_frontmatter.py
   - tests/test_read_cli.py
 ---
 

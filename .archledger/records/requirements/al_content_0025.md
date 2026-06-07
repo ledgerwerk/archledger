@@ -13,11 +13,24 @@ stakeholders: []
 quality_goals: []
 body_format: markdown
 created_at: "2026-05-21T18:18:42Z"
-updated_at: "2026-05-21T18:18:42Z"
+updated_at: "2026-06-07T09:10:51Z"
 source_refs:
   - archledger/cli.py
   - archledger/repository.py
   - tests/test_read_cli.py
+  - path: archledger/source_tracking.py
+    role: implements
+    reason: Scans source state and computes drift.
+acceptance_criteria:
+  - id: AC-001
+    statement:
+      After a source snapshot, changed reports additions, modifications, deletions,
+      possible renames, impacted records, and unlinked changed files in JSON.
+    validation:
+      command: pytest -q tests/test_source_tracking.py
+      expected: passes
+test_refs:
+  - tests/test_source_tracking.py
 ---
 
 ## Requirement

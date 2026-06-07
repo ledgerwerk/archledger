@@ -13,10 +13,23 @@ stakeholders: []
 quality_goals: []
 body_format: markdown
 created_at: "2026-05-21T18:18:39Z"
-updated_at: "2026-05-22T21:48:00Z"
+updated_at: "2026-06-07T09:10:37Z"
 source_refs:
   - archledger/cli.py
   - archledger/repository.py
+  - tests/test_init_cli.py
+  - path: archledger/cli.py
+    role: implements
+    reason: Implements project initialization command and options.
+acceptance_criteria:
+  - id: AC-001
+    statement:
+      Running init in an empty directory creates config, storage metadata,
+      arc42 section sources, record directories, and configured profile defaults.
+    validation:
+      command: pytest -q tests/test_init_cli.py
+      expected: passes
+test_refs:
   - tests/test_init_cli.py
 ---
 
