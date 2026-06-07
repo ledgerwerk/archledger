@@ -14,6 +14,8 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from archledger.config.model import ProjectConfig
 
+from archledger.bdd.models import DEFAULT_BDD_AUTOMATION_STATUS
+from archledger.bdd.normalize import normalize_bdd_metadata
 from archledger.checks import PLACEHOLDER_SNIPPETS
 from archledger.model import (
     VALID_SOURCE_REF_ROLES,
@@ -32,6 +34,8 @@ class SddOptions:
     require_acceptance_criteria: bool = True
     require_implementation_refs: bool = True
     require_test_refs: bool = True
+    require_bdd_gwt_for_behavior_records: bool = True
+    require_bdd_automation_for_accepted_records: bool = False
     include_draft: bool = False
     include_superseded: bool = False
 
@@ -48,7 +52,7 @@ def sdd_options_from_config(
 ) -> SddOptions:
     """Build the effective :class:`SddOptions` from config plus CLI overrides.
 
-    ``config.profiles.sdd`` provides the project defaults; any non-``None``
+    ``config.profiles.sdd`` provides the project defaults; any non-``None```
     CLI override wins. This is the single source of truth so the enforced
     policy always matches the policy reported in JSON payloads.
     """
@@ -67,6 +71,12 @@ def sdd_options_from_config(
         ),
         require_test_refs=(
             sdd.require_test_refs if require_test_refs is None else require_test_refs
+        ),
+        require_bdd_gwt_for_behavior_records=getattr(
+            sdd, "require_bdd_gwt_for_behavior_records", True
+        ),
+        require_bdd_automation_for_accepted_records=getattr(
+            sdd, "require_bdd_automation_for_accepted_records", False
         ),
         include_draft=include_draft,
         include_superseded=include_superseded,
@@ -319,6 +329,10 @@ def _check_record(
         findings.extend(_check_adr(r, ctx))
     elif r.type == "quality_scenario" and r.status == "accepted":
         findings.extend(_check_quality_scenario(r, ctx))
+
+    # BDD-specific checks (all accepted records that carry bdd metadata)
+    if r.status == "accepted" and r.metadata.get("bdd") is not None:
+        findings.extend(_check_bdd(r, ctx))
 
     return findings
 
@@ -714,6 +728,169 @@ def _reference_findings(
             )
             for warning in warnings
         )
+    return findings
+
+
+def _check_bdd(
+    r: ArchitectureRecord,
+    ctx: SddContext,
+) -> list[SddFinding]:
+    """Run BDD-specific SDD checks for an accepted record with bdd metadata.
+
+    Checks:
+    * SDD-BDD-SHAPE: bdd block must be structurally valid (warning from normalizer
+      is promoted to error).
+    * SDD-BDD-GWT: accepted runtime_scenario with bdd must have non-empty given,
+      when, and then.
+    * SDD-BDD-AUTOMATION: warn on pending automation unless the profile requires it.
+    * SDD-BDD-FEATURE-REF: feature_file must be linked via source_refs or test_refs.
+    * SDD-BDD-AC-LINK: referenced AC IDs should exist.
+    """
+    findings: list[SddFinding] = []
+    raw_bdd = r.metadata.get("bdd")
+
+    # SDD-BDD-SHAPE: normalize and promote warnings to errors
+    example, shape_warnings = normalize_bdd_metadata(r.id, raw_bdd)
+    if example is None and shape_warnings:
+        findings.append(
+            SddFinding(
+                level="error",
+                code="SDD-BDD-SHAPE",
+                message=(
+                    f"Record {r.id} bdd metadata is structurally invalid: "
+                    + "; ".join(shape_warnings)
+                ),
+                record_id=r.id,
+                path=r.path,
+            )
+        )
+        return findings  # can't run further checks without a valid example
+
+    if shape_warnings and example is not None:
+        # Promote normalizer warnings to errors for accepted records
+        for warning in shape_warnings:
+            findings.append(
+                SddFinding(
+                    level="error",
+                    code="SDD-BDD-SHAPE",
+                    message=warning,
+                    record_id=r.id,
+                    path=r.path,
+                )
+            )
+
+    if example is None:
+        return findings
+
+    # SDD-BDD-GWT: required for runtime_scenario records
+    if r.type == "runtime_scenario":
+        _require_gwt = ctx.options.require_bdd_gwt_for_behavior_records
+        if _require_gwt and not _has_waiver(ctx, r.id, "SDD-BDD-GWT"):
+            missing = [
+                name
+                for step, name in [
+                    (example.given, "given"),
+                    (example.when, "when"),
+                    (example.then, "then"),
+                ]
+                if not step
+            ]
+            if missing:
+                findings.append(
+                    SddFinding(
+                        level="error",
+                        code="SDD-BDD-GWT",
+                        message=(
+                            f"Accepted runtime_scenario {r.id} bdd metadata is "
+                            f"missing: {', '.join(missing)}."
+                        ),
+                        record_id=r.id,
+                        path=r.path,
+                    )
+                )
+
+    # SDD-BDD-AUTOMATION: warn on pending unless profile requires it
+    if example.automation is not None:
+        auto_status = example.automation.status
+    else:
+        auto_status = DEFAULT_BDD_AUTOMATION_STATUS
+    require_automation = ctx.options.require_bdd_automation_for_accepted_records
+    if (
+        auto_status == "pending"
+        and not require_automation
+        and not _has_waiver(ctx, r.id, "SDD-BDD-AUTOMATION")
+    ):
+        findings.append(
+            SddFinding(
+                level="warning",
+                code="SDD-BDD-AUTOMATION",
+                message=(
+                    f"Record {r.id} has bdd with automation.status=pending; "
+                    "link to a feature file when automation is wired."
+                ),
+                record_id=r.id,
+                path=r.path,
+            )
+        )
+    elif (
+        auto_status == "pending"
+        and require_automation
+        and not _has_waiver(ctx, r.id, "SDD-BDD-AUTOMATION")
+    ):
+        findings.append(
+            SddFinding(
+                level="error",
+                code="SDD-BDD-AUTOMATION",
+                message=(
+                    f"Record {r.id} has bdd with automation.status=pending; "
+                    "automation is required by profile policy."
+                ),
+                record_id=r.id,
+                path=r.path,
+            )
+        )
+
+    # SDD-BDD-FEATURE-REF: feature_file must be linked via source_refs or test_refs
+    if (
+        example.automation is not None
+        and example.automation.feature_file
+        and not _has_waiver(ctx, r.id, "SDD-BDD-FEATURE-REF")
+    ):
+        feat_path = example.automation.feature_file
+        is_linked = any(ref.path == feat_path for ref in r.source_refs) or any(
+            ref.path == feat_path for ref in r.test_refs
+        )
+        if not is_linked:
+            findings.append(
+                SddFinding(
+                    level="error",
+                    code="SDD-BDD-FEATURE-REF",
+                    message=(
+                        f"Record {r.id} bdd.automation.feature_file "
+                        f"{feat_path!r} is not linked via source_refs or test_refs."
+                    ),
+                    record_id=r.id,
+                    path=r.path,
+                )
+            )
+
+    # SDD-BDD-AC-LINK: referenced AC IDs should exist
+    if example.acceptance_criteria and not _has_waiver(ctx, r.id, "SDD-BDD-AC-LINK"):
+        for ac_id in example.acceptance_criteria:
+            if ac_id not in ctx.records_by_id:
+                findings.append(
+                    SddFinding(
+                        level="warning",
+                        code="SDD-BDD-AC-LINK",
+                        message=(
+                            f"Record {r.id} bdd.acceptance_criteria "
+                            f"references {ac_id!r} which does not exist."
+                        ),
+                        record_id=r.id,
+                        path=r.path,
+                    )
+                )
+
     return findings
 
 

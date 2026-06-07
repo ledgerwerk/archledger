@@ -27,12 +27,16 @@
       "required": [
         "require_acceptance_criteria",
         "require_implementation_refs",
-        "require_test_refs"
+        "require_test_refs",
+        "require_bdd_gwt_for_behavior_records",
+        "require_bdd_automation_for_accepted_records"
       ],
       "properties": {
         "require_acceptance_criteria": { "type": "boolean" },
         "require_implementation_refs": { "type": "boolean" },
-        "require_test_refs": { "type": "boolean" }
+        "require_test_refs": { "type": "boolean" },
+        "require_bdd_gwt_for_behavior_records": { "type": "boolean" },
+        "require_bdd_automation_for_accepted_records": { "type": "boolean" }
       }
     },
     "check_summary": {

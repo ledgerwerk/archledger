@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://archledger.dev/schemas/archledger.bdd-import.v1.schema.json",
+  "title": "Archledger BDD import result",
+  "type": "object",
+  "required": ["schema", "feature_file", "created_records", "warnings"],
+  "properties": {
+    "schema": { "const": "archledger.bdd-import.v1" },
+    "feature_file": { "type": "string" },
+    "created_records": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/imported_record" }
+    },
+    "warnings": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "$defs": {
+    "imported_record": {
+      "type": "object",
+      "required": ["id", "type", "title", "path"],
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "type": "string" },
+        "title": { "type": "string" },
+        "path": { "type": "string" }
+      }
+    }
+  }
+}

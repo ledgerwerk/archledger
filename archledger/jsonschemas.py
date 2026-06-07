@@ -15,6 +15,8 @@ SCHEMA_FILES = {
     "context": "archledger.context.v1.schema.json",
     "trace": "archledger.trace.v1.schema.json",
     "changed": "archledger.changed.v1.schema.json",
+    "bdd-import": "archledger.bdd-import.v1.schema.json",
+    "bdd-export": "archledger.bdd-export.v1.schema.json",
 }
 
 

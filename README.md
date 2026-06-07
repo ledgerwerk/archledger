@@ -67,6 +67,29 @@ archledger source changed --against origin/main --fail-on-unlinked
 archledger sdd check-pr --against origin/main
 ```
 
+### BDD / Gherkin
+
+BDD is **metadata on existing records** (`runtime_scenario`, `quality_scenario`).
+Gherkin files are imported/exported artifacts; archledger does not run Cucumber.
+
+```bash
+# Import a feature file as behavior records
+archledger bdd import tests/bdd/features/lifecycle.feature \
+  --kind runtime-scenario --status proposed
+
+# Export a record as a .feature file
+archledger bdd export al_runtime_0123 \
+  --out tests/bdd/features/lifecycle.feature
+```
+
+Imported records carry a `bdd` front-matter block (feature, rule, scenario,
+tags, given/when/then, automation) and a `source_refs` entry linking to the
+feature file. Use `source_refs` and `test_refs` to bind features, tests,
+and code for drift detection.
+
+The repo's own SDD profile is not enforced (arc42 only) until records are
+brought to SDD standards; this keeps BDD work unobscured.
+
 Safe mutation commands update front matter and re-run repository validation:
 
 ```bash

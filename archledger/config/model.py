@@ -164,6 +164,8 @@ class SddProfileConfig:
     require_acceptance_criteria: bool = True
     require_implementation_refs: bool = True
     require_test_refs: bool = True
+    require_bdd_gwt_for_behavior_records: bool = True
+    require_bdd_automation_for_accepted_records: bool = False
 
 
 @dataclass(frozen=True, slots=True)

@@ -299,7 +299,7 @@ def test_renumber_rejects_invalid_prefix(tmp_path: Path) -> None:
         ["--root", str(tmp_path), "renumber", "--prefix", "TA", "--width", "3"],
     )
     assert result.exit_code == 1
-    assert "prefix" in result.stderr.lower() or "prefix" in result.stdout.lower()
+    assert "prefix" in result.output.lower()
 
 
 def test_renumber_rejects_existing_target_file(tmp_path: Path) -> None:

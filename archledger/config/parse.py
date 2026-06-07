@@ -103,6 +103,8 @@ _ALLOWED_PROFILES_SDD_KEYS = {
     "require_acceptance_criteria",
     "require_implementation_refs",
     "require_test_refs",
+    "require_bdd_gwt_for_behavior_records",
+    "require_bdd_automation_for_accepted_records",
 }
 _ALLOWED_SKILL_KEYS = {"installed", "path"}
 _ALLOWED_TRACKING_KEYS = {
@@ -796,11 +798,21 @@ def _parse_sdd_profile(data: dict[str, object]) -> SddProfileConfig:
     require_test_refs = _require_bool(
         data.get("require_test_refs", True), "profiles.sdd.require_test_refs"
     )
+    require_bdd_gwt_for_behavior_records = _require_bool(
+        data.get("require_bdd_gwt_for_behavior_records", True),
+        "profiles.sdd.require_bdd_gwt_for_behavior_records",
+    )
+    require_bdd_automation_for_accepted_records = _require_bool(
+        data.get("require_bdd_automation_for_accepted_records", False),
+        "profiles.sdd.require_bdd_automation_for_accepted_records",
+    )
     return SddProfileConfig(
         kind=kind,
         require_acceptance_criteria=require_acceptance_criteria,
         require_implementation_refs=require_implementation_refs,
         require_test_refs=require_test_refs,
+        require_bdd_gwt_for_behavior_records=require_bdd_gwt_for_behavior_records,
+        require_bdd_automation_for_accepted_records=require_bdd_automation_for_accepted_records,
     )
 
 

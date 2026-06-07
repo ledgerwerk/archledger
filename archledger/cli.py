@@ -9,6 +9,7 @@ from typing import Annotated
 import typer
 
 from archledger import __version__
+from archledger.bdd.cli import bdd_app as _bdd_app
 from archledger.cli_formatting import (
     format_archive_message as _format_archive_message,
 )
@@ -195,6 +196,12 @@ links_app = typer.Typer(add_completion=False, no_args_is_help=True)
 app.add_typer(links_app, name="links", help="Manage record links.")
 ac_app = typer.Typer(add_completion=False, no_args_is_help=True)
 app.add_typer(ac_app, name="ac", help="Manage inline acceptance criteria.")
+# Register BDD sub-app from archledger.bdd.cli (logic lives in bdd package)
+app.add_typer(
+    _bdd_app,
+    name="bdd",
+    help="Import and export BDD/Gherkin behavior metadata.",
+)
 
 
 @dataclass(frozen=True, slots=True)

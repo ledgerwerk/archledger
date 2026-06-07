@@ -1173,7 +1173,7 @@ def test_new_refuses_to_allocate_when_storage_counter_proves_missing_number(
     result = runner.invoke(app, ["--root", str(tmp_path), "new", "requirement", "B"])
 
     assert result.exit_code == 1
-    assert "doctor --repair" in result.stderr or "doctor --repair" in result.stdout
+    assert "doctor --repair" in result.output
 
 
 def test_doctor_repair_recreates_missing_required_section(tmp_path: Path) -> None:

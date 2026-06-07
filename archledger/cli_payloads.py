@@ -504,6 +504,12 @@ def sdd_check_payload(
             "require_acceptance_criteria": options.require_acceptance_criteria,
             "require_implementation_refs": options.require_implementation_refs,
             "require_test_refs": options.require_test_refs,
+            "require_bdd_gwt_for_behavior_records": (
+                options.require_bdd_gwt_for_behavior_records
+            ),
+            "require_bdd_automation_for_accepted_records": (
+                options.require_bdd_automation_for_accepted_records
+            ),
         },
         "summary": result.summary,
         "errors": [sdd_finding_payload(f) for f in result.errors],
@@ -593,4 +599,32 @@ def profile_list_payload(summary: dict[str, object]) -> dict[str, object]:
     return {
         "schema": "archledger.profile-list.v1",
         **summary,
+    }
+
+
+def bdd_import_payload(response: object) -> dict[str, object]:
+    """Payload for archledger bdd import command."""
+    return {
+        "schema": response.schema,
+        "feature_file": response.feature_file,
+        "created_records": [
+            {
+                "id": rec.id,
+                "type": rec.type,
+                "title": rec.title,
+                "path": rec.path,
+            }
+            for rec in response.created_records
+        ],
+        "warnings": list(response.warnings),
+    }
+
+
+def bdd_export_payload(response: object) -> dict[str, object]:
+    """Payload for archledger bdd export command."""
+    return {
+        "schema": response.schema,
+        "record_id": response.record_id,
+        "output_file": response.output_file,
+        "warnings": list(response.warnings),
     }

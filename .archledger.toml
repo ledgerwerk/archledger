@@ -1,6 +1,6 @@
 # Project-local archledger configuration.
 # This file lives in the source project root.
-config_version = 7
+config_version = 8
 archledger_dir = ".archledger"
 
 # Stable project identity. Commit this with your source tree.
@@ -104,3 +104,16 @@ exclude = [
 ]
 max_file_bytes = 1000000
 hash_algorithm = "sha256"
+
+[profiles]
+enabled = [
+  "arc42",
+]
+default = "arc42"
+
+[profiles.arc42]
+kind = "documentation"
+template = "arc42"
+sections_dir = "profiles/arc42/sections"
+build_template = "arc42_document"
+include_help = false

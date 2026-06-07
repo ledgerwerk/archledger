@@ -143,6 +143,8 @@ def test_sdd_check_uses_config_policy_flags(
         "require_acceptance_criteria": False,
         "require_implementation_refs": False,
         "require_test_refs": False,
+        "require_bdd_gwt_for_behavior_records": True,
+        "require_bdd_automation_for_accepted_records": False,
     }
     assert payload["profile_enabled"] is True
 

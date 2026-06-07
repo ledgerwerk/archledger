@@ -22,6 +22,38 @@ For pull requests, use ``source changed --against REVISION`` or
 ``schema --format jsonschema --target TARGET``. ``install`` creates optional
 integration scaffolds and refuses overwrites unless ``--force`` is supplied.
 
+
+BDD / Gherkin
+-------------
+
+BDD is treated as **metadata on existing records** (primarily ``runtime_scenario``
+and ``quality_scenario``).  Gherkin ``.feature`` files are an imported/exported
+exchange and automation format; archledger does **not** run Cucumber or any BDD
+runner.
+
+Import a feature file as behavior records:
+
+.. code-block:: bash
+
+   archledger bdd import tests/bdd/features/lifecycle.feature \
+     --kind runtime-scenario --status proposed
+
+Export a record with ``bdd`` metadata as a deterministic ``.feature`` file:
+
+.. code-block:: bash
+
+   archledger bdd export al_runtime_0123 \
+     --out tests/bdd/features/lifecycle.feature
+
+Imported records carry a ``bdd`` front-matter block (feature, rule, scenario,
+tags, given/when/then, automation) and a ``source_refs`` entry with role
+``documents`` linking to the originating feature file.  ``source_refs`` and
+``test_refs`` are used to bind features, tests, and code for drift detection.
+
+Use ``archledger --json read --body`` as the agent source of truth for BDD
+records; the ``.feature`` file is a derived artifact.
+
+
 .. _init:
 
 ``init`` — Initialize a workspace

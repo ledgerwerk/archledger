@@ -397,9 +397,17 @@ def _render_profiles_tables(config: ProjectConfig) -> list[str]:
                 "require_implementation_refs = "
                 f"{_toml_bool(profiles.sdd.require_implementation_refs)}",
                 f"require_test_refs = {_toml_bool(profiles.sdd.require_test_refs)}",
-                "",
+                f"require_bdd_gwt_for_behavior_records = "
+                f"{_toml_bool(profiles.sdd.require_bdd_gwt_for_behavior_records)}",
+            ],
+        )
+        lines.extend(
+            [
+                f"require_bdd_automation_for_accepted_records = "
+                f"{_toml_bool(profiles.sdd.require_bdd_automation_for_accepted_records)}",
             ]
         )
+        lines.append("")
     return lines
 
 

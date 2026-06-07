@@ -40,3 +40,34 @@ Generated output
 Generated build outputs are derived artifacts and should not be edited as
 source. New projects default to ``build/`` under the workspace root, and
 ``[build].default_output_dir`` may place outputs elsewhere.
+
+BDD / Gherkin behavior metadata
+---------------------------------
+
+BDD (Behavior-Driven Development) is implemented as **metadata on existing records**, primarily ``runtime_scenario`` and ``quality_scenario``.  Gherkin ``.feature`` files are an imported/exported exchange and automation format, never the canonical source of truth.
+
+Records carry a ``bdd`` front-matter block:
+
+.. code-block:: yaml
+
+   bdd:
+     feature: "Task lifecycle gates"
+     rule: "Implementation requires an accepted plan"
+     scenario: "Agent tries to implement before approval"
+     tags: [lifecycle, approval]
+     given:
+       - a task has a proposed plan
+     when:
+       - the agent starts implementation
+     then:
+       - implementation is blocked
+     automation:
+       status: pending
+       feature_file: tests/bdd/features/lifecycle.feature
+       command: "pytest -q tests/bdd"
+
+The ``automation.command`` field is **never executed** by archledger.  ``automation.status`` tracks whether automation has been wired (``pending``, ``linked``, ``automated``, ``not_applicable``).
+
+Imported records include a ``source_refs`` entry with role ``documents`` linking to the originating ``.feature`` file.  Use ``source_refs`` and ``test_refs`` to bind features, tests, and code for drift detection.
+
+See ``archledger bdd import`` and ``archledger bdd export`` in :doc:`cli`.

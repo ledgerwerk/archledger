@@ -29,6 +29,8 @@ Use this skill when a coding agent needs to create, inspect, enrich, repair, or 
 - Do not migrate source dialects unless the user explicitly asks for `source convert`.
 - Do not invent architecture facts without repository evidence.
 - Do not leave placeholder bodies in accepted records.
+- Do not treat `.feature` files as canonical source; archledger records are the source of truth.
+- Do not run Cucumber or any BDD runner from archledger; automation commands are stored but never executed.
 
 ## Fresh-context entry protocol
 
@@ -42,6 +44,26 @@ archledger trace RECORD_ID
 archledger sdd status
 archledger sdd check --strict
 ```
+
+````
+
+### BDD / Gherkin
+
+BDD is **metadata on existing records** (``runtime_scenario``, ``quality_scenario``).  Gherkin ``.feature`` files are imported/exported artifacts; archledger does **not** run Cucumber or any BDD runner.
+
+```bash
+# Import a feature file as behavior records
+archledger bdd import tests/bdd/features/lifecycle.feature \
+  --kind runtime-scenario --status proposed
+
+# Export a record as a .feature file
+archledger bdd export al_runtime_0123 \
+  --out tests/bdd/features/lifecycle.feature
+````
+
+Imported records carry a `bdd` front-matter block (feature, rule, scenario, tags, given/when/then, automation) and a `source_refs` entry with role `documents` linking to the originating feature file. Use `source_refs` and `test_refs` to bind features, tests, and code for drift detection.
+
+Use `archledger --json read --body` as the agent source of truth; the `.feature` file is a derived artifact.
 
 Use `record set`, `record meta set`, `record body append`, `refs add`,
 `links add`, and `ac add` instead of hand-editing front matter when the
