@@ -47,8 +47,52 @@ Export a record with ``bdd`` metadata as a deterministic ``.feature`` file:
 
 Imported records carry a ``bdd`` front-matter block (feature, rule, scenario,
 tags, given/when/then, automation) and a ``source_refs`` entry with role
-``documents`` linking to the originating feature file.  ``source_refs`` and
-``test_refs`` are used to bind features, tests, and code for drift detection.
+``documents`` linking to the originating feature file.  Imported records default
+to ``automation.status=linked`` since a feature file and scenario are now bound.
+``source_refs`` and ``test_refs`` are used to bind features, tests, and code
+for drift detection.
+
+**Canonical ownership**: Archledger record metadata is the canonical source
+after import. Gherkin ``.feature`` files are exchange and automation artifacts
+unless a project explicitly changes ownership. ``bdd sync --check`` reports
+drift between the two views.
+
+Additional BDD commands:
+
+.. code-block:: bash
+
+   # Validate BDD metadata on a record or feature file
+   archledger bdd validate al_runtime_0042
+   archledger bdd validate --feature-file tests/bdd/features/lifecycle.feature
+   archledger bdd validate --all
+
+   # List all records with BDD metadata (filterable)
+   archledger bdd list
+   archledger bdd list --automation linked
+   archledger bdd list --feature "Task lifecycle"
+
+   # Summarize BDD coverage
+   archledger bdd status
+
+   # Set or replace the bdd block on a record (no manual YAML)
+   archledger bdd set al_runtime_0042 \
+     --feature "Task lifecycle" --scenario "Blocked" \
+     --given "a task has a proposed plan" \
+     --when "the agent starts implementation" \
+     --then "implementation is blocked" \
+     --tag task-0001
+
+   # Link automation metadata and source_refs
+   archledger bdd link al_runtime_0042 \
+     --feature-file tests/bdd/features/lifecycle.feature \
+     --scenario "Blocked" --command "pytest -q tests/bdd" \
+     --status automated
+
+   # Dry-run import (parse without creating records)
+   archledger bdd import tests/bdd/features/lifecycle.feature --dry-run
+
+   # Batch export all BDD records grouped by feature+rule
+   archledger bdd export --all --out-dir tests/bdd/features
 
 Use ``archledger --json read --body`` as the agent source of truth for BDD
 records; the ``.feature`` file is a derived artifact.

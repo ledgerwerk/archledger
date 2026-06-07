@@ -332,13 +332,23 @@ def format_sdd_check_message(payload: dict[str, object]) -> str:
 
 
 def format_sdd_status_message(payload: dict[str, object]) -> str:
-    profile = payload.get("profile", "unknown")
     counts = payload.get("counts", {})
     coverage = payload.get("coverage", {})
     if not isinstance(counts, dict) or not isinstance(coverage, dict):
         return "SDD status payload malformed."
+    sdd_enabled = payload.get("sdd_enabled")
+    enabled = payload.get("enabled_profiles", [])
+    default_profile = payload.get("default_profile", payload.get("profile", "unknown"))
+    yes_no = "yes" if sdd_enabled else "no"
+    profiles_str = (
+        ", ".join(enabled)
+        if isinstance(enabled, list) and enabled
+        else str(default_profile)
+    )
     lines = [
-        f"SDD profile: {profile}",
+        f"SDD enabled: {yes_no}",
+        f"Default profile: {default_profile}",
+        f"Enabled profiles: {profiles_str}",
         f"Accepted requirements: {counts.get('accepted_requirements', 0)}",
         "Accepted requirements with AC: "
         f"{coverage.get('accepted_requirements_with_ac', 0)}"

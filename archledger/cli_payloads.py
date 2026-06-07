@@ -519,8 +519,11 @@ def sdd_check_payload(
 
 def sdd_status_payload(result: object) -> dict[str, object]:
     return {
-        "schema": "archledger.sdd-status.v1",
-        "profile": result.profile,
+        "schema": "archledger.sdd-status.v2",
+        "default_profile": result.default_profile,
+        "enabled_profiles": list(result.enabled_profiles),
+        "sdd_enabled": result.sdd_enabled,
+        "policy": result.policy,
         "counts": result.counts,
         "coverage": result.coverage,
     }
@@ -627,4 +630,94 @@ def bdd_export_payload(response: object) -> dict[str, object]:
         "record_id": response.record_id,
         "output_file": response.output_file,
         "warnings": list(response.warnings),
+    }
+
+
+def sdd_explain_payload(info: object) -> dict[str, object]:
+    """Payload for archledger sdd explain (single rule)."""
+    return {
+        "schema": "archledger.sdd-explain.v1",
+        "code": info.code,
+        "severity": info.severity,
+        "meaning": info.meaning,
+        "fix": info.fix,
+        "waivable": info.waivable,
+        "waiver_example": info.waiver_example,
+    }
+
+
+def sdd_explain_all_payload(rules: object) -> dict[str, object]:
+    """Payload for archledger sdd explain --all."""
+    return {
+        "schema": "archledger.sdd-explain.v1",
+        "rules": [
+            {
+                "code": r.code,
+                "severity": r.severity,
+                "meaning": r.meaning,
+                "fix": r.fix,
+                "waivable": r.waivable,
+                "waiver_example": r.waiver_example,
+            }
+            for r in rules
+        ],
+    }
+
+
+def bdd_validate_payload(response: object) -> dict[str, object]:
+    """Payload for archledger bdd validate."""
+    return {
+        "schema": "archledger.bdd-validate.v1",
+        "target": response.target,
+        "valid": response.valid,
+        "findings": [
+            {
+                "code": f.code,
+                "severity": f.severity,
+                "message": f.message,
+                "record_id": f.record_id,
+                "feature_file": f.feature_file,
+                "line": f.line,
+            }
+            for f in response.findings
+        ],
+        "scenarios": [dict(s) for s in response.scenarios],
+    }
+
+
+def bdd_list_payload(response: object) -> dict[str, object]:
+    """Payload for archledger bdd list."""
+    from archledger.bdd.inspect import status_entry_dicts
+
+    return {
+        "schema": "archledger.bdd-list.v1",
+        "entries": status_entry_dicts(response),
+        "count": response.count,
+    }
+
+
+def bdd_status_payload(response: object) -> dict[str, object]:
+    """Payload for archledger bdd status."""
+    return {
+        "schema": "archledger.bdd-status.v1",
+        "totals": dict(response.totals),
+        "coverage": {k: dict(v) for k, v in response.coverage.items()},
+    }
+
+
+def bdd_sync_payload(response):
+    return {
+        "schema": "archledger.bdd-sync.v1",
+        "checked": response.checked,
+        "feature_files_checked": response.feature_files_checked,
+        "findings": [
+            {
+                "code": f.code,
+                "severity": f.severity,
+                "message": f.message,
+                "record_id": f.record_id,
+                "feature_file": f.feature_file,
+            }
+            for f in response.findings
+        ],
     }

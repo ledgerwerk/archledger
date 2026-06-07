@@ -184,6 +184,10 @@ app.add_typer(
     name="sdd",
     help="Validate SDD traceability contracts.",
 )
+sdd_policy_app = typer.Typer(add_completion=False, no_args_is_help=True)
+sdd_app.add_typer(sdd_policy_app, name="policy", help="Show or set SDD policy flags.")
+sdd_waive_app = typer.Typer(add_completion=False, no_args_is_help=True)
+sdd_app.add_typer(sdd_waive_app, name="waive", help="Manage SDD rule waivers.")
 record_app = typer.Typer(add_completion=False, no_args_is_help=True)
 app.add_typer(record_app, name="record", help="Safely mutate records.")
 record_meta_app = typer.Typer(add_completion=False, no_args_is_help=True)
@@ -1398,6 +1402,60 @@ def record_body_append(
     )
 
 
+@record_body_app.command("set")
+def record_body_set(
+    ctx: typer.Context,
+    record_id: Annotated[str, typer.Argument()],
+    from_file: Annotated[
+        Path | None,
+        typer.Option(
+            "--from-file",
+            exists=True,
+            dir_okay=False,
+            help="Replace the record body with the contents of this file.",
+        ),
+    ] = None,
+    text: Annotated[
+        str | None,
+        typer.Option("--text", help="Replace the record body with this text."),
+    ] = None,
+) -> None:
+    """Replace a record body (removing the template placeholder)."""
+    state = _state(ctx)
+    if (from_file is None) == (text is None):
+        raise ArchledgerError("Provide exactly one of --from-file or --text.")
+
+    def _build(
+        repo: ArchitectureRepository,
+        paths: ProjectPaths,
+        config: ProjectConfig,
+    ) -> dict[str, object]:
+        del config
+        from archledger.mutations import replace_record_body
+
+        target_path = _find_record_path(repo, record_id)
+        body_text = (
+            from_file.read_text(encoding="utf-8")
+            if from_file is not None
+            else (text or "")
+        )
+        replace_record_body(
+            target_path,
+            record_id,
+            body_text,
+            workspace_root=paths.workspace_root,
+        )
+        _validate_mutation(repo, target_path)
+        return {"id": record_id, "path": str(target_path)}
+
+    _run_configured_command(
+        state,
+        "record body set",
+        _build,
+        lambda payload: f"Replaced body of {payload.get('id')}.",
+    )
+
+
 @refs_app.command("add")
 def refs_add(
     ctx: typer.Context,
@@ -1688,6 +1746,370 @@ def _enforce_sdd_profile_enabled(
         raise ArchledgerError("--allow-without-profile requires a non-empty --reason.")
 
 
+@sdd_app.command("init")
+def sdd_init(
+    ctx: typer.Context,
+    seed: Annotated[
+        str | None,
+        typer.Option(
+            "--seed",
+            help="Seed minimal contract records after enabling (use 'minimal').",
+        ),
+    ] = None,
+    strict_defaults: Annotated[
+        bool,
+        typer.Option(
+            "--strict-defaults",
+            help=(
+                "Turn on stricter SDD policy: require BDD automation for "
+                "accepted records."
+            ),
+        ),
+    ] = False,
+    dry_run: Annotated[
+        bool,
+        typer.Option("--dry-run", help="Plan without writing any changes."),
+    ] = False,
+) -> None:
+    """Enable the SDD profile, ensure [profiles.sdd], and print policy."""
+    state = _state(ctx)
+
+    def _build(
+        repo: ArchitectureRepository,
+        paths: ProjectPaths,
+        config: ProjectConfig,
+    ) -> dict[str, object]:
+        del repo
+        from archledger.config.parse import load_project_config
+        from archledger.profiles import (
+            SDD_POLICY_FIELDS,
+            enable_profile,
+            set_sdd_profile_policy,
+        )
+        from archledger.sdd import sdd_options_from_config
+
+        steps: list[str] = []
+        enabled_before = "sdd" in config.profiles.profiles.enabled
+        if not enabled_before:
+            enable_result = enable_profile(
+                paths.config_path,
+                paths.archledger_dir,
+                "sdd",
+                write=not dry_run,
+            )
+            steps.append(
+                "enable SDD profile"
+                if enable_result.changed
+                else "SDD profile already enabled"
+            )
+        else:
+            steps.append("SDD profile already enabled")
+
+        overrides: dict[str, bool] = {}
+        if strict_defaults:
+            overrides["require_bdd_automation_for_accepted_records"] = True
+        before_policy = {
+            f: bool(getattr(config.profiles.sdd, f)) for f in SDD_POLICY_FIELDS
+        }
+        if overrides and not dry_run:
+            set_sdd_profile_policy(
+                paths.config_path,
+                paths.archledger_dir,
+                overrides,
+            )
+            config = load_project_config(paths.config_path)
+        elif overrides and dry_run:
+            steps.append("(dry-run) would apply strict-defaults")
+        effective = sdd_options_from_config(config, strict=False)
+        policy = {
+            "require_acceptance_criteria": effective.require_acceptance_criteria,
+            "require_implementation_refs": effective.require_implementation_refs,
+            "require_test_refs": effective.require_test_refs,
+            "require_bdd_gwt_for_behavior_records": (
+                effective.require_bdd_gwt_for_behavior_records
+            ),
+            "require_bdd_automation_for_accepted_records": (
+                effective.require_bdd_automation_for_accepted_records
+            ),
+        }
+
+        seeded: list[dict[str, object]] = []
+        if seed == "minimal":
+            if dry_run:
+                steps.append("(dry-run) would seed sdd-minimal")
+            else:
+                # Reload repo so it sees the enabled profile state.
+                repo2 = ArchitectureRepository(paths, config)
+                records = _seed_sdd_minimal(repo2)
+                seeded = [
+                    {"id": r.id, "type": r.type, "title": r.title} for r in records
+                ]
+                steps.append(f"seeded {len(records)} sdd-minimal record(s)")
+        elif seed is not None:
+            raise ArchledgerError("Unsupported --seed value (use 'minimal').")
+
+        return {
+            "schema": "archledger.sdd-init.v1",
+            "dry_run": dry_run,
+            "steps": steps,
+            "policy_before": before_policy,
+            "policy": policy,
+            "seeded": seeded,
+        }
+
+    def _fmt(p: dict[str, object]) -> str:
+        lines = ["SDD init:"]
+        for s in p.get("steps", []):
+            lines.append(f"  - {s}")
+        pol = p.get("policy", {})
+        lines.append("Effective policy:")
+        for key in sorted(pol):
+            lines.append(f"  {key}: {pol[key]}")
+        return "\n".join(lines)
+
+    _run_configured_command(state, "sdd init", _build, _fmt)
+
+
+@sdd_policy_app.command("show")
+def sdd_policy_show(ctx: typer.Context) -> None:
+    """Print the effective [profiles.sdd] policy in human and JSON form."""
+    state = _state(ctx)
+
+    def _build(
+        repo: ArchitectureRepository,
+        paths: ProjectPaths,
+        config: ProjectConfig,
+    ) -> dict[str, object]:
+        del repo, paths
+        from archledger.profiles import SDD_POLICY_FIELDS
+        from archledger.sdd import sdd_options_from_config
+
+        options = sdd_options_from_config(config, strict=False)
+        policy = {
+            "require_acceptance_criteria": options.require_acceptance_criteria,
+            "require_implementation_refs": options.require_implementation_refs,
+            "require_test_refs": options.require_test_refs,
+            "require_bdd_gwt_for_behavior_records": (
+                options.require_bdd_gwt_for_behavior_records
+            ),
+            "require_bdd_automation_for_accepted_records": (
+                options.require_bdd_automation_for_accepted_records
+            ),
+        }
+        return {
+            "schema": "archledger.sdd-policy.v1",
+            "sdd_enabled": "sdd" in config.profiles.profiles.enabled,
+            "policy": policy,
+            "fields": list(SDD_POLICY_FIELDS),
+        }
+
+    def _fmt(p: dict[str, object]) -> str:
+        lines = [
+            f"SDD enabled: {'yes' if p.get('sdd_enabled') else 'no'}",
+            "Effective policy:",
+        ]
+        for key in sorted(p.get("policy", {})):
+            lines.append(f"  {key}: {p['policy'][key]}")
+        return "\n".join(lines)
+
+    _run_configured_command(state, "sdd policy show", _build, _fmt)
+
+
+@sdd_policy_app.command("set")
+def sdd_policy_set(
+    ctx: typer.Context,
+    require_acceptance_criteria: Annotated[
+        bool | None,
+        typer.Option("--require-acceptance-criteria/--no-require-acceptance-criteria"),
+    ] = None,
+    require_implementation_refs: Annotated[
+        bool | None,
+        typer.Option("--require-implementation-refs/--no-require-implementation-refs"),
+    ] = None,
+    require_test_refs: Annotated[
+        bool | None,
+        typer.Option("--require-test-refs/--no-require-test-refs"),
+    ] = None,
+    require_bdd_gwt: Annotated[
+        bool | None,
+        typer.Option("--require-bdd-gwt/--no-require-bdd-gwt"),
+    ] = None,
+    require_bdd_automation: Annotated[
+        bool | None,
+        typer.Option("--require-bdd-automation/--no-require-bdd-automation"),
+    ] = None,
+) -> None:
+    """Update [profiles.sdd] policy flags in .archledger.toml."""
+    state = _state(ctx)
+    overrides: dict[str, bool] = {}
+    for flag, value in (
+        ("require_acceptance_criteria", require_acceptance_criteria),
+        ("require_implementation_refs", require_implementation_refs),
+        ("require_test_refs", require_test_refs),
+        ("require_bdd_gwt_for_behavior_records", require_bdd_gwt),
+        ("require_bdd_automation_for_accepted_records", require_bdd_automation),
+    ):
+        if value is not None:
+            overrides[flag] = value
+    if not overrides:
+        raise ArchledgerError(
+            "Provide at least one --require-*/--no-require-* flag to set."
+        )
+
+    def _build(
+        repo: ArchitectureRepository,
+        paths: ProjectPaths,
+        config: ProjectConfig,
+    ) -> dict[str, object]:
+        del repo, config
+        from archledger.profiles import set_sdd_profile_policy
+
+        before, after = set_sdd_profile_policy(
+            paths.config_path,
+            paths.archledger_dir,
+            overrides,
+        )
+        changed = [k for k in overrides if before[k] != after[k]]
+        return {
+            "schema": "archledger.sdd-policy.v1",
+            "before": before,
+            "after": after,
+            "changed": changed,
+        }
+
+    def _fmt(p: dict[str, object]) -> str:
+        changed = p.get("changed", [])
+        if not changed:
+            return "No policy flags changed."
+        after = p.get("after", {})
+        lines = ["Updated SDD policy:"]
+        for key in changed:
+            lines.append(f"  {key}: {after[key]}")
+        return "\n".join(lines)
+
+    _run_configured_command(state, "sdd policy set", _build, _fmt)
+
+
+@sdd_waive_app.command("add")
+def sdd_waive_add(
+    ctx: typer.Context,
+    record_id: Annotated[str, typer.Argument(help="Record to waive a rule for.")],
+    rule: Annotated[
+        str, typer.Option("--rule", help="SDD rule code (e.g. SDD-REQ-AC).")
+    ],
+    reason: Annotated[
+        str,
+        typer.Option("--reason", help="Non-empty waiver reason."),
+    ] = "",
+) -> None:
+    """Add an sdd.waivers[] entry; requires a non-empty reason."""
+    state = _state(ctx)
+    if not reason or not reason.strip():
+        raise ArchledgerError("--reason is required and must be non-empty.")
+
+    def _build(
+        repo: ArchitectureRepository,
+        paths: ProjectPaths,
+        config: ProjectConfig,
+    ) -> dict[str, object]:
+        del config
+        from archledger.mutations import add_sdd_waiver
+        from archledger.sdd_rules import is_known_sdd_rule
+
+        if not is_known_sdd_rule(rule):
+            raise ArchledgerError(f"Unknown SDD rule code: {rule!r}")
+        target_path = _find_record_path(repo, record_id)
+        _metadata, waivers = add_sdd_waiver(
+            target_path,
+            record_id,
+            rule,
+            reason,
+            workspace_root=paths.workspace_root,
+        )
+        _validate_mutation(repo, target_path)
+        return {"id": record_id, "rule": rule, "waivers": waivers}
+
+    def _fmt(p: dict[str, object]) -> str:
+        return (
+            f"Waived {p.get('rule')} on {p.get('id')} "
+            f"({len(p.get('waivers', []))} waiver(s))."
+        )
+
+    _run_configured_command(state, "sdd waive add", _build, _fmt)
+
+
+@sdd_waive_app.command("list")
+def sdd_waive_list(
+    ctx: typer.Context,
+    record_id: Annotated[str, typer.Argument(help="Record to list waivers for.")],
+) -> None:
+    """List sdd.waivers[] entries for a record."""
+    state = _state(ctx)
+
+    def _build(
+        repo: ArchitectureRepository,
+        paths: ProjectPaths,
+        config: ProjectConfig,
+    ) -> dict[str, object]:
+        del config
+        from archledger.mutations import list_sdd_waivers
+
+        target_path = _find_record_path(repo, record_id)
+        waivers = list_sdd_waivers(
+            target_path,
+            record_id,
+            workspace_root=paths.workspace_root,
+        )
+        return {"id": record_id, "waivers": waivers}
+
+    def _fmt(p: dict[str, object]) -> str:
+        waivers = p.get("waivers", [])
+        if not waivers:
+            return f"No waivers on {p.get('id')}."
+        lines = [f"Waivers on {p.get('id')}:"]
+        for w in waivers:
+            lines.append(f"  - {w.get('rule')}: {w.get('reason')}")
+        return "\n".join(lines)
+
+    _run_configured_command(state, "sdd waive list", _build, _fmt)
+
+
+@sdd_waive_app.command("remove")
+def sdd_waive_remove(
+    ctx: typer.Context,
+    record_id: Annotated[str, typer.Argument(help="Record to remove a waiver from.")],
+    rule: Annotated[str, typer.Option("--rule", help="SDD rule code to remove.")],
+) -> None:
+    """Remove the sdd.waivers[] entry matching --rule."""
+    state = _state(ctx)
+
+    def _build(
+        repo: ArchitectureRepository,
+        paths: ProjectPaths,
+        config: ProjectConfig,
+    ) -> dict[str, object]:
+        del config
+        from archledger.mutations import remove_sdd_waiver
+
+        target_path = _find_record_path(repo, record_id)
+        _metadata, remaining = remove_sdd_waiver(
+            target_path,
+            record_id,
+            rule,
+            workspace_root=paths.workspace_root,
+        )
+        _validate_mutation(repo, target_path)
+        return {"id": record_id, "rule": rule, "waivers": remaining}
+
+    def _fmt(p: dict[str, object]) -> str:
+        return (
+            f"Removed waiver {p.get('rule')} on {p.get('id')} "
+            f"({len(p.get('waivers', []))} remaining)."
+        )
+
+    _run_configured_command(state, "sdd waive remove", _build, _fmt)
+
+
 @sdd_app.command("status")
 def sdd_status(
     ctx: typer.Context,
@@ -1761,6 +2183,26 @@ def sdd_check(
             ),
         ),
     ] = None,
+    require_bdd_gwt: Annotated[
+        bool | None,
+        typer.Option(
+            "--require-bdd-gwt/--no-require-bdd-gwt",
+            help=(
+                "Override config: require Given/When/Then for accepted"
+                " runtime_scenario records with bdd metadata."
+            ),
+        ),
+    ] = None,
+    require_bdd_automation: Annotated[
+        bool | None,
+        typer.Option(
+            "--require-bdd-automation/--no-require-bdd-automation",
+            help=(
+                "Override config: require wired automation for accepted"
+                " records with bdd metadata."
+            ),
+        ),
+    ] = None,
     include_drafts: Annotated[
         bool,
         typer.Option("--include-drafts", help="Also evaluate draft records."),
@@ -1787,6 +2229,20 @@ def sdd_check(
         str | None,
         typer.Option("--reason", help="Required when using --allow-without-profile."),
     ] = None,
+    scope_record: Annotated[
+        str | None,
+        typer.Option(
+            "--record",
+            help="Scope findings to a specific record id.",
+        ),
+    ] = None,
+    scope_kind: Annotated[
+        str | None,
+        typer.Option(
+            "--kind",
+            help="Scope findings to records of a given type (e.g. requirement, adr).",
+        ),
+    ] = None,
 ) -> None:
     state = _state(ctx)
 
@@ -1807,10 +2263,31 @@ def sdd_check(
             require_acceptance_criteria=require_acceptance_criteria,
             require_implementation_refs=require_implementation_refs,
             require_test_refs=require_test_refs,
+            require_bdd_gwt_for_behavior_records=require_bdd_gwt,
+            require_bdd_automation_for_accepted_records=require_bdd_automation,
             include_draft=include_drafts or all_statuses,
             include_superseded=include_superseded or all_statuses,
         )
         result = check_sdd(repo, options=options)
+        if scope_record or scope_kind:
+            from archledger.model import normalize_kind
+            from archledger.sdd import SddCheckResult
+
+            allowed_ids: set[str] = set()
+            if scope_record:
+                allowed_ids.add(scope_record)
+            if scope_kind:
+                norm_kind = normalize_kind(scope_kind.replace("-", "_"))
+                allowed_ids.update(
+                    r.id for r in repo.load_all_records() if r.type == norm_kind
+                )
+            result = SddCheckResult(
+                errors=tuple(f for f in result.errors if f.record_id in allowed_ids),
+                warnings=tuple(
+                    f for f in result.warnings if f.record_id in allowed_ids
+                ),
+                summary=result.summary,
+            )
         if result.has_failures(strict=strict):
             raise ArchledgerError(
                 f"SDD check failed with {len(result.errors)} error(s) "
@@ -1910,6 +2387,143 @@ def sdd_check_pr(
             else "SDD PR check complete."
         ),
     )
+
+
+@sdd_app.command("explain")
+def sdd_explain(
+    ctx: typer.Context,
+    code: Annotated[
+        str | None,
+        typer.Argument(help="SDD rule code to explain (e.g. SDD-REQ-AC)."),
+    ] = None,
+    all_rules: Annotated[
+        bool,
+        typer.Option("--all", help="Explain every registered SDD rule."),
+    ] = False,
+) -> None:
+    """Explain one or all SDD rule codes (severity, meaning, fix, waiver)."""
+    from archledger.cli_payloads import sdd_explain_all_payload, sdd_explain_payload
+    from archledger.sdd_rules import (
+        all_sdd_rules,
+        get_sdd_rule,
+        known_sdd_rule_codes,
+    )
+
+    state = _state(ctx)
+
+    def _build() -> dict[str, object]:
+        if not code and not all_rules:
+            raise ArchledgerError(
+                "Provide an SDD rule code or pass --all.",
+                details={"known_codes": list(known_sdd_rule_codes())},
+            )
+        if all_rules:
+            return sdd_explain_all_payload(all_sdd_rules())
+        info = get_sdd_rule(code or "")
+        if info is None:
+            raise ArchledgerError(
+                f"Unknown SDD rule code: {code!r}",
+                details={"known_codes": list(known_sdd_rule_codes())},
+            )
+        return sdd_explain_payload(info)
+
+    try:
+        payload = _build()
+    except ArchledgerError as exc:
+        _emit_error(state, "sdd explain", exc)
+        return
+
+    if all_rules:
+
+        def _fmt(p: dict[str, object]) -> str:
+            lines = [f"SDD rules ({len(p.get('rules', []))}):"]
+            for r in p.get("rules", []):
+                lines.append(
+                    f"  {r.get('code')} [{r.get('severity')}] {r.get('meaning')}"
+                )
+            return "\n".join(lines)
+    else:
+
+        def _fmt(p: dict[str, object]) -> str:
+            lines = [
+                f"{p.get('code')}",
+                f"Severity: {p.get('severity')}",
+                f"Meaning: {p.get('meaning')}",
+                f"Fix: {p.get('fix')}",
+                f"Waivable: {'yes' if p.get('waivable') else 'no'}",
+            ]
+            if p.get("waiver_example"):
+                lines.append("Waiver front matter:")
+                lines.append(str(p.get("waiver_example")))
+            return "\n".join(lines)
+
+    _emit_success(
+        state,
+        command="sdd explain",
+        result=payload,
+        warnings=[],
+        human_message=_fmt(payload),
+    )
+
+
+@sdd_app.command("coverage")
+def sdd_coverage(
+    ctx: typer.Context,
+    by_record: Annotated[
+        bool,
+        typer.Option("--by-record", help="Per-record detail (JSON only)."),
+    ] = False,
+    include_bdd: Annotated[
+        bool,
+        typer.Option("--include-bdd", help="Include BDD coverage dimensions."),
+    ] = False,
+    format: Annotated[
+        str,
+        typer.Option("--format", help="Output format: human, markdown."),
+    ] = "human",
+) -> None:
+    """Detailed SDD coverage report with gaps and optional BDD dimensions."""
+    state = _state(ctx)
+
+    def _build(
+        repo: ArchitectureRepository,
+        paths: ProjectPaths,
+        config: ProjectConfig,
+    ) -> dict[str, object]:
+        del paths, config
+        from archledger.sdd import check_sdd_coverage
+
+        result = check_sdd_coverage(repo, include_bdd=include_bdd, by_record=by_record)
+        dim_payload = {
+            k: {"covered": d.covered, "total": d.total}
+            for k, d in result.coverage.items()
+        }
+        return {
+            "schema": "archledger.sdd-coverage.v1",
+            "sdd_enabled": result.sdd_enabled,
+            "totals": result.totals,
+            "coverage": dim_payload,
+            "gaps": list(result.gaps),
+        }
+
+    def _fmt(p: dict[str, object]) -> str:
+        totals = p.get("totals", {})
+        cov = p.get("coverage", {})
+        gaps = p.get("gaps", [])
+        lines = ["SDD coverage:"]
+        lines.append(
+            f"  Accepted requirements: {totals.get('accepted_requirements', 0)}"
+        )
+        for key in sorted(cov):
+            d = cov[key]
+            lines.append(f"  {key}: {d['covered']}/{d['total']}")
+        if gaps:
+            lines.append("Gaps:")
+            for g in gaps:
+                lines.append(f"  - {g}")
+        return "\n".join(lines)
+
+    _run_configured_command(state, "sdd coverage", _build, _fmt)
 
 
 def _run_configured_command(

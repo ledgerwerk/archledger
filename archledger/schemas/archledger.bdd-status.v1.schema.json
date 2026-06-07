@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Archledger BDD status",
+  "type": "object",
+  "required": ["schema", "totals", "coverage"],
+  "properties": {
+    "schema": { "const": "archledger.bdd-status.v1" },
+    "totals": { "type": "object" },
+    "coverage": { "type": "object" }
+  }
+}

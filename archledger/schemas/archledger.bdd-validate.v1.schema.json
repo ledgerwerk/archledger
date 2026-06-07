@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Archledger BDD validate",
+  "type": "object",
+  "required": ["schema", "target", "valid", "findings"],
+  "properties": {
+    "schema": { "const": "archledger.bdd-validate.v1" },
+    "target": { "type": "string" },
+    "valid": { "type": "boolean" },
+    "findings": { "type": "array" },
+    "scenarios": { "type": "array" }
+  }
+}

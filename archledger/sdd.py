@@ -47,6 +47,8 @@ def sdd_options_from_config(
     require_acceptance_criteria: bool | None = None,
     require_implementation_refs: bool | None = None,
     require_test_refs: bool | None = None,
+    require_bdd_gwt_for_behavior_records: bool | None = None,
+    require_bdd_automation_for_accepted_records: bool | None = None,
     include_draft: bool = False,
     include_superseded: bool = False,
 ) -> SddOptions:
@@ -72,11 +74,15 @@ def sdd_options_from_config(
         require_test_refs=(
             sdd.require_test_refs if require_test_refs is None else require_test_refs
         ),
-        require_bdd_gwt_for_behavior_records=getattr(
-            sdd, "require_bdd_gwt_for_behavior_records", True
+        require_bdd_gwt_for_behavior_records=(
+            getattr(sdd, "require_bdd_gwt_for_behavior_records", True)
+            if require_bdd_gwt_for_behavior_records is None
+            else require_bdd_gwt_for_behavior_records
         ),
-        require_bdd_automation_for_accepted_records=getattr(
-            sdd, "require_bdd_automation_for_accepted_records", False
+        require_bdd_automation_for_accepted_records=(
+            getattr(sdd, "require_bdd_automation_for_accepted_records", False)
+            if require_bdd_automation_for_accepted_records is None
+            else require_bdd_automation_for_accepted_records
         ),
         include_draft=include_draft,
         include_superseded=include_superseded,
@@ -104,7 +110,10 @@ class SddCheckResult:
 
 @dataclass(frozen=True, slots=True)
 class SddStatusResult:
-    profile: str
+    default_profile: str
+    enabled_profiles: tuple[str, ...]
+    sdd_enabled: bool
+    policy: dict[str, bool]
     counts: dict[str, int]
     coverage: dict[str, int]
 
@@ -478,8 +487,23 @@ def _build_summary(
 
 
 def check_sdd_status(repo: ArchitectureRepository) -> SddStatusResult:
+    config = repo.config
+    enabled_profiles = tuple(config.profiles.profiles.enabled)
+    default_profile = config.profiles.profiles.default
+    sdd_enabled = "sdd" in enabled_profiles
+    options = sdd_options_from_config(config, strict=False)
+    policy = {
+        "require_acceptance_criteria": options.require_acceptance_criteria,
+        "require_implementation_refs": options.require_implementation_refs,
+        "require_test_refs": options.require_test_refs,
+        "require_bdd_gwt_for_behavior_records": (
+            options.require_bdd_gwt_for_behavior_records
+        ),
+        "require_bdd_automation_for_accepted_records": (
+            options.require_bdd_automation_for_accepted_records
+        ),
+    }
     records = repo.load_all_records(include_sections=True)
-    profile = repo.config.profile
 
     counts: dict[str, int] = {
         "requirements": 0,
@@ -548,7 +572,175 @@ def check_sdd_status(repo: ArchitectureRepository) -> SddStatusResult:
         "accepted_adrs_with_traceability": with_trace,
     }
 
-    return SddStatusResult(profile=profile, counts=counts, coverage=coverage)
+    return SddStatusResult(
+        default_profile=default_profile,
+        enabled_profiles=enabled_profiles,
+        sdd_enabled=sdd_enabled,
+        policy=policy,
+        counts=counts,
+        coverage=coverage,
+    )
+
+
+# ── SDD coverage ─────────────────────────────────────────────────────
+
+
+@dataclass(frozen=True, slots=True)
+class SddCoverageDimension:
+    covered: int = 0
+    total: int = 0
+
+
+@dataclass(frozen=True, slots=True)
+class SddCoverageResult:
+    default_profile: str
+    enabled_profiles: tuple[str, ...]
+    sdd_enabled: bool
+    totals: dict[str, int]
+    coverage: dict[str, SddCoverageDimension]
+    gaps: tuple[str, ...]
+
+
+def check_sdd_coverage(
+    repo: ArchitectureRepository,
+    *,
+    include_bdd: bool = False,
+    by_record: bool = False,
+) -> SddCoverageResult:
+    config = repo.config
+    records = repo.load_all_records(include_sections=True)
+    enabled_profiles = tuple(config.profiles.profiles.enabled)
+    default_profile = config.profiles.profiles.default
+    sdd_enabled = "sdd" in enabled_profiles
+
+    acceptance_by_req: dict[str, list[ArchitectureRecord]] = {}
+    for r in records:
+        if r.type == "acceptance_criterion":
+            req = r.metadata.get("requirement", "")
+            if isinstance(req, str) and req.strip():
+                acceptance_by_req.setdefault(req.strip(), []).append(r)
+            for link in r.links:
+                if link.rel == "validates":
+                    acceptance_by_req.setdefault(link.target, []).append(r)
+
+    accepted_reqs = [
+        r for r in records if r.type == "requirement" and r.status == "accepted"
+    ]
+    accepted_adrs = [r for r in records if r.type == "adr" and r.status == "accepted"]
+    all_risks = [r for r in records if r.type == "risk"]
+    behavior_records = [
+        r
+        for r in records
+        if r.type in ("runtime_scenario", "quality_scenario") and r.status == "accepted"
+    ]
+
+    reqs_with_ac = sum(
+        1
+        for r in accepted_reqs
+        if _has_inline_acceptance_criteria(r) or r.id in acceptance_by_req
+    )
+    reqs_with_impl = sum(
+        1
+        for r in accepted_reqs
+        if any(ref.role == "implements" for ref in r.source_refs)
+    )
+    reqs_with_validation = sum(
+        1
+        for r in accepted_reqs
+        if _has_validation(r, acceptance_by_req, {r.id: r for r in records})
+    )
+    adrs_with_trace = sum(
+        1
+        for r in accepted_adrs
+        if r.links or r.metadata.get("related") or r.source_refs
+    )
+    risks_linked = sum(
+        1
+        for r in all_risks
+        if r.links
+        or any(
+            ref.role in ("implements", "validates", "documents")
+            for ref in r.source_refs
+        )
+    )
+
+    def _dim(c: int, t: int) -> SddCoverageDimension:
+        return SddCoverageDimension(covered=c, total=t)
+
+    cov: dict[str, SddCoverageDimension] = {
+        "accepted_requirements_with_ac": _dim(reqs_with_ac, len(accepted_reqs)),
+        "accepted_requirements_with_implementation_refs": _dim(
+            reqs_with_impl, len(accepted_reqs)
+        ),
+        "accepted_requirements_with_validation": _dim(
+            reqs_with_validation, len(accepted_reqs)
+        ),
+        "accepted_adrs_with_traceability": _dim(adrs_with_trace, len(accepted_adrs)),
+        "risks_linked": _dim(risks_linked, len(all_risks)),
+    }
+
+    if include_bdd:
+        from archledger.bdd.models import DEFAULT_BDD_AUTOMATION_STATUS
+        from archledger.bdd.normalize import normalize_bdd_metadata
+
+        behavior_with_gwt = 0
+        behavior_with_feature = 0
+        behavior_automated = 0
+        for br in behavior_records:
+            raw_bdd = br.metadata.get("bdd")
+            if raw_bdd is None:
+                continue
+            example, _warnings = normalize_bdd_metadata(br.id, raw_bdd)
+            if example is None:
+                continue
+            if example.given and example.when and example.then:
+                behavior_with_gwt += 1
+            auto = example.automation
+            auto_status = auto.status if auto else DEFAULT_BDD_AUTOMATION_STATUS
+            if auto and auto.feature_file:
+                behavior_with_feature += 1
+            if auto_status in ("automated", "linked"):
+                behavior_automated += 1
+        cov["behavior_with_gwt"] = _dim(behavior_with_gwt, len(behavior_records))
+        cov["behavior_with_feature_file"] = _dim(
+            behavior_with_feature, len(behavior_records)
+        )
+        cov["behavior_automated"] = _dim(behavior_automated, len(behavior_records))
+
+    gaps: list[str] = []
+    if reqs_with_ac < len(accepted_reqs):
+        gaps.append(
+            f"{len(accepted_reqs) - reqs_with_ac} accepted requirement(s) missing AC."
+        )
+    if reqs_with_impl < len(accepted_reqs):
+        gaps.append(
+            f"{len(accepted_reqs) - reqs_with_impl} accepted requirement(s)"
+            " missing implementation refs."
+        )
+    if reqs_with_validation < len(accepted_reqs):
+        gaps.append(
+            f"{len(accepted_reqs) - reqs_with_validation} accepted requirement(s)"
+            " missing validation."
+        )
+    if adrs_with_trace < len(accepted_adrs):
+        gaps.append(
+            f"{len(accepted_adrs) - adrs_with_trace} accepted ADR(s)"
+            " missing traceability."
+        )
+
+    return SddCoverageResult(
+        default_profile=default_profile,
+        enabled_profiles=enabled_profiles,
+        sdd_enabled=sdd_enabled,
+        totals={
+            "accepted_requirements": len(accepted_reqs),
+            "accepted_adrs": len(accepted_adrs),
+            "behavior_records": len(behavior_records),
+            "risks": len(all_risks),
+        },
+        coverage=cov,
+        gaps=tuple(gaps),
+    )
 
 
 # ── helpers ─────────────────────────────────────────────────────────────

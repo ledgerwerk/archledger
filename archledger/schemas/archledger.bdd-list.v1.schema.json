@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Archledger BDD list",
+  "type": "object",
+  "required": ["schema", "entries", "count"],
+  "properties": {
+    "schema": { "const": "archledger.bdd-list.v1" },
+    "entries": { "type": "array" },
+    "count": { "type": "integer" }
+  }
+}

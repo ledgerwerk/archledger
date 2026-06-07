@@ -317,6 +317,67 @@ def enable_profile(
     )
 
 
+# Boolean policy fields on SddProfileConfig that may be overridden via
+# `sdd policy set` / `sdd init --strict-defaults`.
+SDD_POLICY_FIELDS: tuple[str, ...] = (
+    "require_acceptance_criteria",
+    "require_implementation_refs",
+    "require_test_refs",
+    "require_bdd_gwt_for_behavior_records",
+    "require_bdd_automation_for_accepted_records",
+)
+
+
+def ensure_sdd_profile_enabled(
+    config_path: Path,
+    archledger_dir: Path,
+    *,
+    write: bool = True,
+) -> bool:
+    """Ensure the SDD profile is enabled and [profiles.sdd] is present.
+
+    Returns True if a change was made (and written).
+    """
+    result = enable_profile(config_path, archledger_dir, "sdd", write=write)
+    return result.changed and write
+
+
+def set_sdd_profile_policy(
+    config_path: Path,
+    archledger_dir: Path,
+    overrides: dict[str, bool],
+    *,
+    write: bool = True,
+) -> tuple[dict[str, bool], dict[str, bool]]:
+    """Update [profiles.sdd] policy flags and return (before, after).
+
+    Only fields listed in :data:`SDD_POLICY_FIELDS` are accepted. Enables
+    the SDD profile first if it is not already enabled.
+    """
+    invalid = set(overrides) - set(SDD_POLICY_FIELDS)
+    if invalid:
+        raise ArchledgerError(
+            "Unknown SDD policy field(s): " + ", ".join(sorted(invalid))
+        )
+    config = load_project_config(config_path)
+    before = {f: bool(getattr(config.profiles.sdd, f)) for f in SDD_POLICY_FIELDS}
+    # Enable sdd if needed so [profiles.sdd] is actually written.
+    if "sdd" not in config.profiles.profiles.enabled:
+        ensure_sdd_profile_enabled(config_path, archledger_dir, write=write)
+        config = load_project_config(config_path)
+    new_sdd = dataclasses.replace(config.profiles.sdd, **overrides)
+    new_config = dataclasses.replace(
+        config,
+        config_version=8,
+        profiles_present=True,
+        profiles=dataclasses.replace(config.profiles, sdd=new_sdd),
+    )
+    after = {f: bool(getattr(new_sdd, f)) for f in SDD_POLICY_FIELDS}
+    if write:
+        write_text_atomic(config_path, render_project_config(new_config))
+    return before, after
+
+
 def disable_profile(
     config_path: Path,
     profile: str,
@@ -446,8 +507,11 @@ def list_profiles(
 __all__ = [
     "ProfileMigrationResult",
     "ProfileMigrationStep",
+    "SDD_POLICY_FIELDS",
     "disable_profile",
     "enable_profile",
+    "ensure_sdd_profile_enabled",
     "list_profiles",
     "migrate_arc42_profile",
+    "set_sdd_profile_policy",
 ]

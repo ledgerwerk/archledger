@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Archledger SDD coverage",
+  "type": "object",
+  "required": ["schema", "sdd_enabled", "totals", "coverage", "gaps"],
+  "properties": {
+    "schema": { "const": "archledger.sdd-coverage.v1" },
+    "sdd_enabled": { "type": "boolean" },
+    "totals": { "type": "object" },
+    "coverage": { "type": "object" },
+    "gaps": { "type": "array", "items": { "type": "string" } }
+  }
+}

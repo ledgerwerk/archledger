@@ -51,7 +51,8 @@ def test_bdd_export_creates_feature_file(tmp_path: Path) -> None:
     """ac-0011: export creates a .feature file from a record with bdd metadata."""
     _init(tmp_path)
     record_id = _create_record_with_bdd(tmp_path)
-    out = tmp_path / "out.feature"
+    out_rel = "out.feature"
+    out = tmp_path / out_rel
 
     result = runner.invoke(
         app,
@@ -63,7 +64,7 @@ def test_bdd_export_creates_feature_file(tmp_path: Path) -> None:
             "export",
             record_id,
             "--out",
-            str(out),
+            out_rel,
         ],
     )
     assert result.exit_code == 0, result.stdout
@@ -113,10 +114,12 @@ def test_bdd_export_is_deterministic(tmp_path: Path) -> None:
     """ac-0011: export produces identical content on repeated runs."""
     _init(tmp_path)
     record_id = _create_record_with_bdd(tmp_path)
-    out1 = tmp_path / "out1.feature"
-    out2 = tmp_path / "out2.feature"
+    out1_rel = "out1.feature"
+    out2_rel = "out2.feature"
+    out1 = tmp_path / out1_rel
+    out2 = tmp_path / out2_rel
 
-    for out in [out1, out2]:
+    for out_rel in [out1_rel, out2_rel]:
         result = runner.invoke(
             app,
             [
@@ -127,7 +130,7 @@ def test_bdd_export_is_deterministic(tmp_path: Path) -> None:
                 "export",
                 record_id,
                 "--out",
-                str(out),
+                out_rel,
             ],
         )
         assert result.exit_code == 0, result.stdout
@@ -143,3 +146,95 @@ def test_bdd_export_json_schema_matches() -> None:
     schema = load_json_schema("bdd-export")
     assert schema["title"] == "Archledger BDD export result"
     assert "record_id" in schema["required"]
+
+
+# ---- P0: export path validation + overwrite protection ----
+
+
+def test_bdd_export_refuses_absolute_outside_workspace_by_default(
+    tmp_path: Path,
+) -> None:
+    """P0: --out must be a safe relative POSIX path inside the workspace."""
+    _init(tmp_path)
+    record_id = _create_record_with_bdd(tmp_path)
+    result = runner.invoke(
+        app,
+        [
+            "--root",
+            str(tmp_path),
+            "--json",
+            "bdd",
+            "export",
+            record_id,
+            "--out",
+            "/tmp/should-be-refused.feature",
+        ],
+    )
+    assert result.exit_code != 0
+    payload = json.loads(result.stdout)
+    msg = payload["error"]["message"].lower()
+    assert "absolute" in msg or "relative" in msg or "workspace" in msg
+
+
+def test_bdd_export_does_not_write_before_path_validation(tmp_path: Path) -> None:
+    """P0: no file is written when path validation fails."""
+    _init(tmp_path)
+    record_id = _create_record_with_bdd(tmp_path)
+    # A parent-escape path is refused by validate_relative_posix_path.
+    result = runner.invoke(
+        app,
+        [
+            "--root",
+            str(tmp_path),
+            "--json",
+            "bdd",
+            "export",
+            record_id,
+            "--out",
+            "../al_export_refused_unique.feature",
+        ],
+    )
+    assert result.exit_code != 0
+    # Nothing should have been written outside the workspace.
+    assert not (tmp_path.parent / "al_export_refused_unique.feature").exists()
+
+
+def test_bdd_export_refuses_overwrite_without_force(tmp_path: Path) -> None:
+    """P0: overwriting an existing file requires --force."""
+    _init(tmp_path)
+    record_id = _create_record_with_bdd(tmp_path)
+    existing = tmp_path / "out.feature"
+    existing.write_text("PRE-EXISTING\n", encoding="utf-8")
+    # First attempt without --force must fail and must not overwrite.
+    refused = runner.invoke(
+        app,
+        [
+            "--root",
+            str(tmp_path),
+            "--json",
+            "bdd",
+            "export",
+            record_id,
+            "--out",
+            "out.feature",
+        ],
+    )
+    assert refused.exit_code != 0
+    assert existing.read_text(encoding="utf-8") == "PRE-EXISTING\n"
+    # With --force it succeeds and overwrites.
+    forced = runner.invoke(
+        app,
+        [
+            "--root",
+            str(tmp_path),
+            "--json",
+            "bdd",
+            "export",
+            record_id,
+            "--out",
+            "out.feature",
+            "--force",
+        ],
+    )
+    assert forced.exit_code == 0, forced.stdout
+    assert "PRE-EXISTING" not in existing.read_text(encoding="utf-8")

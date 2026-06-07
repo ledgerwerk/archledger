@@ -52,13 +52,19 @@ class ParsedStep:
 
 @dataclass(frozen=True, slots=True)
 class ParsedScenario:
-    """A parsed Scenario or Example."""
+    """A parsed Scenario or Example.
+
+    ``rule`` carries the Rule active at the point the scenario was flushed,
+    so a feature with multiple ``Rule:`` blocks preserves the correct rule
+    per scenario instead of collapsing to the last rule.
+    """
 
     name: str
     tags: tuple[str, ...]
     given: tuple[str, ...]
     when: tuple[str, ...]
     then: tuple[str, ...]
+    rule: str = ""
 
 
 @dataclass(slots=True)
@@ -192,14 +198,20 @@ def parse_gherkin(text: str) -> ParsedFeature:
         current_when,
         current_then,
         scenarios,
+        rule=rule_name,
     )
 
     if not found_feature:
         raise GherkinSyntaxError("No Feature: line found.")
 
+    # ParsedFeature.rule is a derived convenience: the first non-empty rule
+    # among scenarios (falls back to the tracked rule_name). It is NOT the
+    # authoritative per-scenario rule; use ParsedScenario.rule for that.
+    feature_rule = next((s.rule for s in scenarios if s.rule), rule_name)
+
     return ParsedFeature(
         name=feature_name,
-        rule=rule_name,
+        rule=feature_rule,
         tags=tuple(feature_tags),
         scenarios=tuple(scenarios),
     )
@@ -227,8 +239,13 @@ def _flush_scenario(
     when: list[str],
     then: list[str],
     scenarios: list[ParsedScenario],
+    rule: str = "",
 ) -> None:
-    """Append the current scenario to *scenarios* if one is active."""
+    """Append the current scenario to *scenarios* if one is active.
+
+    *rule* is the Rule active at the point the scenario is flushed, so a
+    multi-rule feature preserves the correct rule per scenario.
+    """
     if name is None:
         return
     scenarios.append(
@@ -238,6 +255,7 @@ def _flush_scenario(
             given=tuple(given),
             when=tuple(when),
             then=tuple(then),
+            rule=rule,
         )
     )
 
@@ -292,6 +310,7 @@ def _dispatch_line(ctx: _ParseContext) -> _ParseContext:
                 ctx.current_when,
                 ctx.current_then,
                 scenarios,
+                rule=ctx.rule_name,
             )
             return _replace(
                 ctx,
@@ -315,6 +334,7 @@ def _dispatch_line(ctx: _ParseContext) -> _ParseContext:
                 ctx.current_when,
                 ctx.current_then,
                 scenarios,
+                rule=ctx.rule_name,
             )
             return _replace(
                 ctx,

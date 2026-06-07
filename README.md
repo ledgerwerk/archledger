@@ -67,9 +67,54 @@ archledger sdd check --strict
 ```
 
 Imported BDD records carry a `bdd` front-matter block with feature, rule,
-scenario, tags, Given/When/Then steps, and optional automation metadata. Link
-feature files through `source_refs` and executable tests through `test_refs`.
+scenario, tags, Given/When/Then steps, and optional automation metadata. Imported
+records default to `automation.status=linked`. Link feature files through `source_refs`
+and executable tests through `test_refs`.
+
 Archledger does not run Cucumber and does not require a Cucumber dependency.
+
+### SDD lifecycle commands
+
+```bash
+# Initialize SDD with strict defaults and seed minimal contract records
+archledger sdd init --strict-defaults --seed minimal
+
+# Show and set policy without manual TOML editing
+archledger sdd policy show
+archledger sdd policy set --require-bdd-automation
+
+# Explain rule codes and manage waivers
+archledger sdd explain SDD-BDD-AUTOMATION
+archledger sdd waive add al_requirement_0001 --rule SDD-REQ-AC --reason "Legacy."
+
+# Detailed coverage with gaps
+archledger sdd coverage --include-bdd
+
+# Scoped checks
+archledger sdd check --record al_requirement_0001
+archledger sdd check --kind requirement
+```
+
+### BDD lifecycle commands
+
+```bash
+# Validate without importing/exporting
+archledger bdd validate al_runtime_0042
+archledger bdd validate --feature-file tests/bdd/features/lifecycle.feature
+
+# List, status, set, link
+archledger bdd list --automation pending
+archledger bdd status
+archledger bdd set al_runtime_0042 --feature "F" --scenario "S" --given g --when w --then t
+archledger bdd link al_runtime_0042 --feature-file path.feature --status automated
+
+# Dry-run import and batch export
+archledger bdd import path.feature --dry-run
+archledger bdd export --all --out-dir tests/bdd/features
+```
+
+Archledger record metadata is the canonical source after import. Feature files
+are exchange and automation artifacts. `bdd sync --check` reports drift.
 
 Safe mutation commands update front matter and re-run repository validation:
 

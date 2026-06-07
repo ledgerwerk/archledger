@@ -240,3 +240,41 @@ def test_parse_fixture_lifecycle_feature() -> None:
     assert feature.name == "Task lifecycle gates"
     assert feature.rule == "Implementation requires an accepted plan"
     assert len(feature.scenarios) == 2
+
+
+def test_parse_multiple_rules_preserves_rule_per_scenario() -> None:
+    """P0: multiple Rule blocks must not collapse to the last rule.
+
+    Each scenario must capture the rule active at the point it is flushed, so
+    import does not silently misassign an earlier scenario to a later rule.
+    """
+    text = textwrap.dedent("""\
+        Feature: F
+
+          Rule: R1
+            Scenario: S1
+              Given g
+              When w
+              Then t
+
+          Rule: R2
+            Scenario: S2
+              Given g2
+              When w2
+              Then t2
+    """)
+    feature = parse_gherkin(text)
+    assert len(feature.scenarios) == 2
+    s1, s2 = feature.scenarios
+    assert s1.name == "S1"
+    assert s1.rule == "R1"
+    assert s2.name == "S2"
+    assert s2.rule == "R2"
+
+
+def test_parsed_scenario_carries_rule_for_single_rule_feature() -> None:
+    """A single-Rule feature stamps that rule on each scenario."""
+    feature = parse_gherkin(FEATURE_TEXT)
+    assert len(feature.scenarios) == 2
+    for scenario in feature.scenarios:
+        assert scenario.rule == "Implementation requires an accepted plan"

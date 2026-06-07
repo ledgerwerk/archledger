@@ -268,3 +268,40 @@ def test_sdd_bdd_checks_run_only_for_accepted_records(tmp_path: Path) -> None:
         f["code"] for f in result["data"]["errors"] + result["data"]["warnings"]
     }
     assert "SDD-BDD-SHAPE" not in all_codes
+
+
+def test_sdd_bdd_feature_ref_passes_for_imported_records(tmp_path: Path) -> None:
+    """P0: importing a feature then accepting must satisfy SDD-BDD-FEATURE-REF.
+
+    The importer sets automation.feature_file and a documents source_ref, so the
+    accepted record must not raise SDD-BDD-FEATURE-REF.
+    """
+    _init_sdd(tmp_path)
+    feature_rel = "tests/bdd/features/lifecycle.feature"
+    feat_path = tmp_path / feature_rel
+    feat_path.parent.mkdir(parents=True, exist_ok=True)
+    feat_path.write_text(
+        "Feature: Task lifecycle\n"
+        "  Scenario: Blocked\n"
+        "    Given g\n    When w\n    Then t\n",
+        encoding="utf-8",
+    )
+    imported = runner.invoke(
+        app,
+        [
+            "--root",
+            str(tmp_path),
+            "--json",
+            "bdd",
+            "import",
+            feature_rel,
+            "--kind",
+            "runtime-scenario",
+            "--status",
+            "accepted",
+        ],
+    )
+    assert imported.exit_code == 0, imported.stdout
+    result = _run_sdd_check(tmp_path)
+    codes = {f["code"] for f in result["data"]["errors"] + result["data"]["warnings"]}
+    assert "SDD-BDD-FEATURE-REF" not in codes

@@ -16,7 +16,11 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from archledger.bdd.gherkin import ParsedFeature, ParsedScenario, parse_gherkin
-from archledger.mutations import add_source_ref, append_record_body, set_record_meta
+from archledger.mutations import (
+    add_source_ref,
+    replace_record_body,
+    set_record_meta,
+)
 from archledger.repository import ArchitectureRepository
 from archledger.source_refs import validate_relative_posix_path
 
@@ -136,12 +140,18 @@ def _import_scenario(
         "given": list(scenario.given),
         "when": list(scenario.when),
         "then": list(scenario.then),
+        # An imported scenario is linked to its feature file by definition,
+        # so automation.status defaults to 'linked' (a feature/scenario exists
+        # even if executable automation is not yet wired).
         "automation": {
-            "status": "pending",
+            "status": "linked",
+            "feature_file": feature_path,
+            "scenario": scenario.name,
         },
     }
-    if feature.rule:
-        bdd_metadata["rule"] = feature.rule
+    rule = getattr(scenario, "rule", "") or feature.rule
+    if rule:
+        bdd_metadata["rule"] = rule
 
     # Write bdd metadata to front matter
     set_record_meta(
@@ -162,10 +172,11 @@ def _import_scenario(
         workspace_root=repo.paths.workspace_root,
     )
 
-    # Write the BDD body content
+    # Write the BDD body content (replace, not append, so accepted imports
+    # do not keep the template placeholder that would trigger SDD-PLACEHOLDER).
     body_format = record.metadata.get("body_format", "markdown")
     body_text = _generate_bdd_body(feature, scenario, body_format)
-    append_record_body(
+    replace_record_body(
         record.path,
         record.id,
         body_text,

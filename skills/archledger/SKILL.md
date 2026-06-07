@@ -55,16 +55,44 @@ Gherkin ``.feature`` files are imported/exported artifacts; archledger does **no
 run Cucumber or any BDD runner. Use the SDD profile to enforce BDD metadata quality.
 
 ```bash
-# Import a feature file as behavior records
+# Import (dry-run first to preview)
+archledger bdd import tests/bdd/features/lifecycle.feature --dry-run
 archledger bdd import tests/bdd/features/lifecycle.feature \
-  --kind runtime-scenario --status proposed
+  --kind runtime-scenario --status accepted  # defaults to automation.status=linked
 
-# Export a record as a .feature file
-archledger bdd export al_runtime_0123 \
-  --out tests/bdd/features/lifecycle.feature
-````
+# Validate, list, status, set, link
+archledger bdd validate al_runtime_0042
+archledger bdd validate --feature-file tests/bdd/features/lifecycle.feature
+archledger bdd list --automation pending
+archledger bdd status
+archledger bdd set al_runtime_0042 --feature "F" --scenario "S" --given g --when w --then t
+archledger bdd link al_runtime_0042 --feature-file path.feature --status automated
 
-Imported records carry a `bdd` front-matter block (feature, rule, scenario, tags, given/when/then, automation) and a `source_refs` entry with role `documents` linking to the originating feature file. Use `source_refs` and `test_refs` to bind features, tests, and code for drift detection.
+# Export single or batch
+archledger bdd export al_runtime_0123 --out tests/bdd/features/lifecycle.feature
+archledger bdd export --all --out-dir tests/bdd/features
+```
+
+Imported records carry a `bdd` front-matter block (feature, rule, scenario, tags,
+given/when/then, automation) and a `source_refs` entry with role `documents`
+linking to the originating feature file. Imported records default to
+`automation.status=linked`.
+
+**Canonical ownership**: Archledger record metadata is the canonical source after
+import. Feature files are exchange and automation artifacts. `bdd sync --check`
+reports drift between the two views.
+
+SDD lifecycle commands:
+
+```bash
+archledger sdd init --strict-defaults --seed minimal
+archledger sdd policy show
+archledger sdd policy set --require-bdd-automation
+archledger sdd explain SDD-BDD-AUTOMATION
+archledger sdd waive add al_requirement_0001 --rule SDD-REQ-AC --reason "Legacy."
+archledger sdd coverage --include-bdd
+archledger sdd check --record al_requirement_0001
+```
 
 Cross-ledger Taskledger guidance:
 
@@ -274,3 +302,4 @@ Good archledger content is concrete, traceable, and concise:
 - which stakeholder, quality goal, constraint, decision, or risk it affects
 
 Avoid generic filler. Prefer precise source-backed statements over broad architecture boilerplate.
+````

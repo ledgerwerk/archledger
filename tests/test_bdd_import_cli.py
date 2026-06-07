@@ -102,7 +102,10 @@ def test_bdd_import_writes_bdd_metadata(tmp_path: Path) -> None:
     assert bdd["given"] == ["plan exists"]
     assert bdd["when"] == ["agent starts"]
     assert bdd["then"] == ["blocked"]
-    assert bdd["automation"]["status"] == "pending"
+    # Imported scenarios are linked to their feature file by definition.
+    assert bdd["automation"]["status"] == "linked"
+    assert bdd["automation"]["feature_file"] == rel
+    assert bdd["automation"]["scenario"] == "Before approval"
     # source_ref for the feature file
     assert any(ref["role"] == "documents" for ref in metadata.get("source_refs", []))
     # Body contains scenario content
@@ -279,3 +282,116 @@ def test_bdd_import_no_cucumber_dependency() -> None:
     for name in archledger.bdd.__dict__:
         assert "cucumber" not in name.lower()
         assert "pytest_bdd" not in name.lower()
+
+
+# ---- P0: import body replacement + automation fields + structured errors ----
+
+
+def test_bdd_import_accepted_record_does_not_keep_template_placeholder(
+    tmp_path: Path,
+) -> None:
+    """P0: an accepted imported record must not keep the template placeholder body."""
+    _init(tmp_path)
+    rel = _write_feature(
+        tmp_path,
+        "test.feature",
+        "Feature: F\n  Scenario: A\n    Given X\n    When Y\n    Then Z\n",
+    )
+    result = runner.invoke(
+        app,
+        [
+            "--root",
+            str(tmp_path),
+            "--json",
+            "bdd",
+            "import",
+            rel,
+            "--kind",
+            "runtime-scenario",
+            "--status",
+            "accepted",
+        ],
+    )
+    assert result.exit_code == 0, result.stdout
+    rec_path = Path(json.loads(result.stdout)["result"]["created_records"][0]["path"])
+    metadata, body = read_front_matter_document(rec_path)
+    # Placeholder snippets from checks.PLACEHOLDER_SNIPPETS must be gone.
+    from archledger.checks import PLACEHOLDER_SNIPPETS
+
+    stripped = body.strip()
+    for snippet in PLACEHOLDER_SNIPPETS:
+        assert snippet not in stripped, f"placeholder {snippet!r} still present"
+    # And the scenario body is present.
+    assert "Given X" in body
+    assert "Then Z" in body
+
+
+def test_bdd_import_sets_automation_feature_file_and_scenario(tmp_path: Path) -> None:
+    """P0: imported records populate automation.feature_file and automation.scenario."""
+    _init(tmp_path)
+    rel = _write_feature(
+        tmp_path,
+        "tests/bdd/features/lifecycle.feature",
+        "Feature: Task lifecycle\n"
+        "  Scenario: Blocked\n"
+        "    Given g\n    When w\n    Then t\n",
+    )
+    result = runner.invoke(
+        app,
+        [
+            "--root",
+            str(tmp_path),
+            "--json",
+            "bdd",
+            "import",
+            rel,
+            "--kind",
+            "runtime-scenario",
+        ],
+    )
+    assert result.exit_code == 0, result.stdout
+    rec_path = Path(json.loads(result.stdout)["result"]["created_records"][0]["path"])
+    metadata, _body = read_front_matter_document(rec_path)
+    auto = metadata["bdd"]["automation"]
+    assert auto["feature_file"] == rel
+    assert auto["scenario"] == "Blocked"
+
+
+def test_bdd_import_sets_automation_status_linked_by_default(tmp_path: Path) -> None:
+    """P0: imported records default automation.status to 'linked'."""
+    _init(tmp_path)
+    rel = _write_feature(
+        tmp_path,
+        "test.feature",
+        "Feature: F\n  Scenario: A\n    Given g\n    When w\n    Then t\n",
+    )
+    result = runner.invoke(
+        app,
+        ["--root", str(tmp_path), "--json", "bdd", "import", rel],
+    )
+    assert result.exit_code == 0, result.stdout
+    rec_path = Path(json.loads(result.stdout)["result"]["created_records"][0]["path"])
+    metadata, _body = read_front_matter_document(rec_path)
+    assert metadata["bdd"]["automation"]["status"] == "linked"
+
+
+def test_bdd_import_reports_gherkin_line_number_in_json_error(tmp_path: Path) -> None:
+    """P0: JSON error preserves structured detail (line/construct/feature_file)."""
+    _init(tmp_path)
+    rel = _write_feature(
+        tmp_path,
+        "bad.feature",
+        "Feature: F\n  Background:\n    Given X\n",
+    )
+    result = runner.invoke(
+        app,
+        ["--root", str(tmp_path), "--json", "bdd", "import", rel],
+    )
+    assert result.exit_code != 0
+    payload = json.loads(result.stdout)
+    err = payload["error"]
+    # Structured error detail must carry the line number and the construct.
+    details = err.get("details", {})
+    assert details.get("line") == 2 or "line" in str(details)
+    assert details.get("construct") == "Background:" or "Background" in str(details)
+    assert details.get("feature_file") == rel or rel in str(details)
