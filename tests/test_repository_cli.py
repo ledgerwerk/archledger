@@ -1227,4 +1227,6 @@ def test_doctor_repair_refuses_after_manual_segment_mode_change(tmp_path: Path) 
         for message in messages
     )
 
-    assert not list((tmp_path / ".archledger" / "archive" / "tombstones").glob("al_archive_*.md"))
+    assert not list(
+        (tmp_path / ".archledger" / "archive" / "tombstones").glob("al_archive_*.md")
+    )

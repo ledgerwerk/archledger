@@ -371,17 +371,16 @@ def _detect_generated_tombstone_collisions(
                 continue
         if number in living_numbers_after:
             quarantine_dir = (
-                paths.archive_dir
-                / "quarantine"
-                / "generated-tombstones"
-                / utc_now_ts()
+                paths.archive_dir / "quarantine" / "generated-tombstones" / utc_now_ts()
             )
             quarantine_path = quarantine_dir / path.name
             found.append(
                 QuarantinedPath(
                     path=path,
                     quarantine_path=quarantine_path,
-                    reason=f"Collides with living record number {number} after renumber",
+                    reason=(
+                        f"Collides with living record number {number} after renumber"
+                    ),
                 )
             )
 

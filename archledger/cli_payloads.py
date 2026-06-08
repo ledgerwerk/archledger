@@ -258,7 +258,9 @@ def read_payload(
             if addon is not None:
                 addon_dir = addon if addon.endswith("/") else addon + "/"
                 if not any(
-                    addon_dir == apply_to or addon_dir.startswith(apply_to.rstrip("/") + "/") or apply_to.rstrip("/") == addon
+                    addon_dir == apply_to
+                    or addon_dir.startswith(apply_to.rstrip("/") + "/")
+                    or apply_to.rstrip("/") == addon
                     for apply_to in record.scope.applies_to
                 ):
                     continue
@@ -477,7 +479,9 @@ def renumber_payload(result: RenumberResult) -> dict[str, object]:
             }
             for item in result.rewritten
         ],
-        "quarantined_generated_tombstones_count": len(result.quarantined_generated_tombstones),
+        "quarantined_generated_tombstones_count": len(
+            result.quarantined_generated_tombstones
+        ),
         "quarantined_generated_tombstones": [
             {
                 "path": str(item.path),
@@ -490,6 +494,8 @@ def renumber_payload(result: RenumberResult) -> dict[str, object]:
         "storage_next_number_before": result.storage_next_number_before,
         "storage_next_number_after": result.storage_next_number_after,
     }
+
+
 def finding_payload(finding: CheckFinding) -> dict[str, object]:
     payload: dict[str, object] = {"level": finding.level, "message": finding.message}
     if finding.path is not None:

@@ -41,6 +41,53 @@ class RecordScope:
     lifecycle: str = "active"
 
 
+def _validate_path_list(
+    record_id: str,
+    raw_entries: list[object],
+    field: str,
+    *,
+    workspace_root: Path | None = None,
+    lifecycle: str = "active",
+) -> tuple[list[str] | None, list[str]]:
+    """Validate a list of path strings for scope fields."""
+    result: list[str] = []
+    warnings: list[str] = []
+    for i, entry in enumerate(raw_entries, start=1):
+        if not isinstance(entry, str) or not entry.strip():
+            return None, [
+                f"Record {record_id} scope.{field} entry {i} "
+                "must be a non-empty string."
+            ]
+        original = entry.strip()
+        is_dir = original.endswith("/")
+        path_text = original.rstrip("/") if is_dir else original
+        try:
+            validated = validate_relative_posix_path(
+                path_text,
+                field_name=f"Record {record_id} scope.{field} entry {i}",
+            )
+        except ValueError as exc:
+            return None, [str(exc)]
+        if is_dir:
+            validated = f"{validated}/"
+
+        if workspace_root is not None and lifecycle != "retired":
+            abs_path = workspace_root / (validated.rstrip("/"))
+            if is_dir and not abs_path.is_dir():
+                warnings.append(
+                    f"Record {record_id} scope.{field} entry {i} "
+                    f"directory does not exist: {validated}"
+                )
+            elif not is_dir and not abs_path.exists():
+                warnings.append(
+                    f"Record {record_id} scope.{field} entry {i} "
+                    f"path does not exist: {validated}"
+                )
+
+        result.append(validated)
+    return result, warnings
+
+
 def normalize_scope(
     record_id: str,
     value: object,
@@ -77,14 +124,10 @@ def normalize_scope(
 
     raw_applies_to = value.get("applies_to")
     if not isinstance(raw_applies_to, list) or not raw_applies_to:
-        return None, [
-            f"Record {record_id} scope.applies_to must be a non-empty list."
-        ]
+        return None, [f"Record {record_id} scope.applies_to must be a non-empty list."]
     raw_lifecycle = value.get("lifecycle", "active")
     if not isinstance(raw_lifecycle, str) or not raw_lifecycle.strip():
-        return None, [
-            f"Record {record_id} scope.lifecycle must be a non-empty string."
-        ]
+        return None, [f"Record {record_id} scope.lifecycle must be a non-empty string."]
     lifecycle = raw_lifecycle.strip()
     if lifecycle not in VALID_SCOPE_LIFECYCLES:
         return None, [
@@ -92,68 +135,33 @@ def normalize_scope(
             f"Allowed: {', '.join(sorted(VALID_SCOPE_LIFECYCLES))}"
         ]
 
-    applies_to: list[str] = []
-    for i, entry in enumerate(raw_applies_to, start=1):
-        if not isinstance(entry, str) or not entry.strip():
-            return None, [
-                f"Record {record_id} scope.applies_to entry {i} "
-                "must be a non-empty string."
-            ]
-        original = entry.strip()
-        is_dir = original.endswith("/")
-        path_text = original.rstrip("/") if is_dir else original
-        try:
-            validated = validate_relative_posix_path(
-                path_text,
-                field_name=f"Record {record_id} scope.applies_to entry {i}",
-            )
-        except ValueError as exc:
-            return None, [str(exc)]
-        if is_dir:
-            validated = f"{validated}/"
-
-        if workspace_root is not None and lifecycle != "retired":
-            abs_path = workspace_root / (validated.rstrip("/"))
-            if is_dir and not abs_path.is_dir():
-                warnings.append(
-                    f"Record {record_id} scope.applies_to entry {i} "
-                    f"directory does not exist: {validated}"
-                )
-            elif not is_dir and not abs_path.exists():
-                warnings.append(
-                    f"Record {record_id} scope.applies_to entry {i} "
-                    f"path does not exist: {validated}"
-                )
-
-        applies_to.append(validated)
+    applies_to, at_warnings = _validate_path_list(
+        record_id,
+        raw_applies_to,
+        "applies_to",
+        workspace_root=workspace_root,
+        lifecycle=lifecycle,
+    )
+    if applies_to is None:
+        return None, at_warnings
+    warnings.extend(at_warnings)
 
     raw_excludes = value.get("excludes", [])
     excludes: list[str] = []
     if raw_excludes is not None:
         if not isinstance(raw_excludes, list):
-            return None, [
-                f"Record {record_id} scope.excludes must be a list."
-            ]
-        for i, entry in enumerate(raw_excludes, start=1):
-            if not isinstance(entry, str) or not entry.strip():
-                return None, [
-                    f"Record {record_id} scope.excludes entry {i} "
-                    "must be a non-empty string."
-                ]
-            original = entry.strip()
-            is_dir = original.endswith("/")
-            path_text = original.rstrip("/") if is_dir else original
-            try:
-                validated = validate_relative_posix_path(
-                    path_text,
-                    field_name=f"Record {record_id} scope.excludes entry {i}",
-                )
-            except ValueError as exc:
-                return None, [str(exc)]
-            if is_dir:
-                validated = f"{validated}/"
-            excludes.append(validated)
-
+            return None, [f"Record {record_id} scope.excludes must be a list."]
+        validated_exc, ex_warnings = _validate_path_list(
+            record_id,
+            raw_excludes,
+            "excludes",
+            workspace_root=workspace_root,
+            lifecycle=lifecycle,
+        )
+        if validated_exc is None:
+            return None, ex_warnings
+        excludes = validated_exc
+        warnings.extend(ex_warnings)
 
     return (
         RecordScope(

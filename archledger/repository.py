@@ -336,7 +336,9 @@ class ArchitectureRepository:
                 if addon is not None:
                     addon_dir = addon if addon.endswith("/") else addon + "/"
                     if not any(
-                        addon_dir == apply_to or addon_dir.startswith(apply_to.rstrip("/") + "/") or apply_to.rstrip("/") == addon
+                        addon_dir == apply_to
+                        or addon_dir.startswith(apply_to.rstrip("/") + "/")
+                        or apply_to.rstrip("/") == addon
                         for apply_to in record.scope.applies_to
                     ):
                         continue
@@ -651,12 +653,16 @@ class ArchitectureRepository:
                             "ID format mismatch: config uses "
                             f"{self.config.id_format.prefix}/{self.config.id_format.width}/"
                             f"{self.config.id_format.segment_mode},\n"
-                            f"but {len(drift)} source files still use the alternate format.\n"
+                            f"but {len(drift)} source files still use "
+                            f"the alternate format.\n"
                             f"{drift_paths}\n"
                             "Run: archledger renumber "
-                            f"--from-id-segment-mode {drift[0].detected_format.segment_mode} "
-                            f"--id-segment-mode {self.config.id_segment_mode} --apply\n"
-                            "Do not run doctor --repair until renumber succeeds."
+                            f"--from-id-segment-mode "
+                            f"{drift[0].detected_format.segment_mode} "
+                            f"--id-segment-mode "
+                            f"{self.config.id_segment_mode} --apply\n"
+                            "Do not run doctor --repair until "
+                            "renumber succeeds."
                         ),
                         None,
                     )

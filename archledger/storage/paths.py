@@ -63,7 +63,9 @@ def discover_project_config(start: Path) -> tuple[Path, list[str]]:
             break
         current = current.parent
 
-    raise ConfigError("No archledger.toml or .archledger.toml found. Run: archledger init")
+    raise ConfigError(
+        "No archledger.toml or .archledger.toml found. Run: archledger init"
+    )
 
 
 def resolve_project_paths(start: Path) -> tuple[ProjectPaths, ProjectConfig, list[str]]:

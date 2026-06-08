@@ -200,13 +200,12 @@ def test_hidden_archledger_toml_is_supported(tmp_path: Path) -> None:
     assert str(hidden_config) in result.stdout
 
 
-
 def test_init_refuses_when_hidden_archledger_toml_exists(tmp_path: Path) -> None:
     hidden_config = tmp_path / ".archledger.toml"
     hidden_config.write_text(
         "\n".join(
             [
-                'config_version = 8',
+                "config_version = 8",
                 'archledger_dir = ".archledger"',
                 'project_uuid = "12345678-1234-1234-1234-123456789abc"',
                 'project_name = "demo"',

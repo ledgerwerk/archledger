@@ -139,6 +139,7 @@ from archledger.cli_payloads import (
 from archledger.errors import ArchledgerError, StorageError
 from archledger.id_format_drift import find_id_format_drift
 from archledger.ids import DEFAULT_ID_PREFIX, DEFAULT_ID_SEGMENT_MODE, DEFAULT_ID_WIDTH
+from archledger.migration import convert_sources
 from archledger.model import ArchitectureRecord, known_source_extensions
 from archledger.render import build_document
 from archledger.renumber import renumber_project
@@ -982,7 +983,9 @@ def renumber(
     ] = None,
     from_id_segment_mode: Annotated[
         str | None,
-        typer.Option("--from-id-segment-mode", help="Old ID segment mode: none or type."),
+        typer.Option(
+            "--from-id-segment-mode", help="Old ID segment mode: none or type."
+        ),
     ] = None,
     prefix: Annotated[
         str | None,
@@ -1002,7 +1005,10 @@ def renumber(
     ] = False,
     prune_generated_tombstones: Annotated[
         bool,
-        typer.Option("--prune-generated-tombstones", help="Quarantine generated tombstones that collide with living records."),
+        typer.Option(
+            "--prune-generated-tombstones",
+            help="Quarantine generated tombstones that collide with living records.",
+        ),
     ] = False,
 ) -> None:
     state = _state(ctx)
@@ -1079,6 +1085,7 @@ def renumber(
         _build_renumber_result,
         _format_renumber_message,
     )
+
 
 @source_app.command("snapshot")
 def snapshot(
@@ -1348,7 +1355,8 @@ def trace_cmd(
     ctx: typer.Context,
     record_id: Annotated[str, typer.Argument()],
     output_format: Annotated[
-        str, typer.Option("--format", help="Output format: trace-json or combo-json."),
+        str,
+        typer.Option("--format", help="Output format: trace-json or combo-json."),
     ] = "trace-json",
 ) -> None:
     state = _state(ctx)
@@ -1747,8 +1755,12 @@ def scope_affected(
                 continue
             if scope_matches_path(record.scope, normalized_path):
                 affected.append(
-                    {"id": record.id, "type": record.type, "title": record.title,
-                     "scope_name": record.scope.name}
+                    {
+                        "id": record.id,
+                        "type": record.type,
+                        "title": record.title,
+                        "scope_name": record.scope.name,
+                    }
                 )
         return {"path": normalized_path, "affected_records": affected}
 

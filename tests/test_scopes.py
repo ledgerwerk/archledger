@@ -1,4 +1,4 @@
-"""Tests for archledger scope metadata, CLI filters, and archived source ref handling."""
+"""Tests for archledger scope metadata, CLI filters, and source ref handling."""
 
 from __future__ import annotations
 
@@ -23,6 +23,7 @@ runner = CliRunner()
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _init_project(tmp_path: Path) -> None:
     result = runner.invoke(
         app,
@@ -46,7 +47,9 @@ def _workspace_with_addons(tmp_path: Path) -> Path:
     (addons / "has_helpdesk" / "models").mkdir()
     (addons / "has_helpdesk" / "models" / "helpdesk_ticket.py").write_text("# ticket")
     (addons / "has_helpdesk_crm" / "models").mkdir()
-    (addons / "has_helpdesk_crm" / "models" / "helpdesk_ticket.py").write_text("# crm ticket")
+    (addons / "has_helpdesk_crm" / "models" / "helpdesk_ticket.py").write_text(
+        "# crm ticket"
+    )
     return tmp_path
 
 
@@ -82,7 +85,9 @@ def _create_record(
     if scope is not None:
         front_matter["scope"] = scope
 
-    content = f"---\n{yaml.dump(front_matter, default_flow_style=False)}---\n\n{title}\n"
+    content = (
+        f"---\n{yaml.dump(front_matter, default_flow_style=False)}---\n\n{title}\n"
+    )
     record_path.write_text(content)
     return record_path
 
@@ -97,6 +102,7 @@ def _get_repo(workspace: Path):
 # ---------------------------------------------------------------------------
 # 1. Scope metadata round-trip
 # ---------------------------------------------------------------------------
+
 
 class TestScopeRoundTrip:
     def test_normalize_and_read_back(self, tmp_path: Path) -> None:
@@ -150,6 +156,7 @@ class TestScopeRoundTrip:
 # ---------------------------------------------------------------------------
 # 2. Scope path validation
 # ---------------------------------------------------------------------------
+
 
 class TestScopePathValidation:
     def test_accept_valid_directory(self, tmp_path: Path) -> None:
@@ -219,7 +226,12 @@ class TestScopePathValidation:
     def test_invalid_lifecycle(self) -> None:
         scope, warnings = normalize_scope(
             "oa_0001",
-            {"kind": "addon", "name": "x", "applies_to": ["foo/"], "lifecycle": "unknown"},
+            {
+                "kind": "addon",
+                "name": "x",
+                "applies_to": ["foo/"],
+                "lifecycle": "unknown",
+            },
         )
         assert scope is None
         assert any("not allowed" in w for w in warnings)
@@ -245,6 +257,7 @@ class TestScopePathValidation:
 # 3. Directory scope matching
 # ---------------------------------------------------------------------------
 
+
 class TestScopeDirectoryMatching:
     def _make_scope(self) -> RecordScope:
         return RecordScope(
@@ -257,7 +270,9 @@ class TestScopeDirectoryMatching:
 
     def test_match_file_in_applies_to(self) -> None:
         scope = self._make_scope()
-        assert scope_matches_path(scope, "addons/has_helpdesk_crm/models/helpdesk_ticket.py")
+        assert scope_matches_path(
+            scope, "addons/has_helpdesk_crm/models/helpdesk_ticket.py"
+        )
 
     def test_match_directory_itself(self) -> None:
         scope = self._make_scope()
@@ -275,6 +290,7 @@ class TestScopeDirectoryMatching:
 # ---------------------------------------------------------------------------
 # 4. source_refs still drive impact (integration with context)
 # ---------------------------------------------------------------------------
+
 
 class TestSourceRefsImpact:
     def test_source_ref_match_in_context(self, tmp_path: Path) -> None:
@@ -301,6 +317,7 @@ class TestSourceRefsImpact:
 # ---------------------------------------------------------------------------
 # 5. excludes override broad applies_to
 # ---------------------------------------------------------------------------
+
 
 class TestExcludesOverride:
     def test_excluded_path_not_matched(self) -> None:
@@ -329,6 +346,7 @@ class TestExcludesOverride:
 # ---------------------------------------------------------------------------
 # 6. Archive deleted addon (source refs relaxation)
 # ---------------------------------------------------------------------------
+
 
 class TestArchivedSourceRefs:
     def test_archived_missing_source_ref_no_error(self, tmp_path: Path) -> None:
@@ -378,6 +396,7 @@ class TestArchivedSourceRefs:
 # 7. Link relationship
 # ---------------------------------------------------------------------------
 
+
 class TestAppliesToLink:
     def test_applies_to_link_valid(self) -> None:
         from archledger.links import VALID_LINK_RELS
@@ -387,7 +406,9 @@ class TestAppliesToLink:
     def test_invalid_rel_still_fails(self) -> None:
         from archledger.links import normalize_links
 
-        links, warnings = normalize_links("oa_0001", [{"rel": "bad_rel", "target": "oa_0002"}])
+        links, warnings = normalize_links(
+            "oa_0001", [{"rel": "bad_rel", "target": "oa_0002"}]
+        )
         assert links == ()
         assert any("not an allowed relationship" in w for w in warnings)
 
@@ -395,6 +416,7 @@ class TestAppliesToLink:
 # ---------------------------------------------------------------------------
 # 8. Context scope matching integration
 # ---------------------------------------------------------------------------
+
 
 class TestContextScopeMatching:
     def test_context_matches_scope(self, tmp_path: Path) -> None:

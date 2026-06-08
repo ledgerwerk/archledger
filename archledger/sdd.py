@@ -359,7 +359,7 @@ def _check_record(
 def _check_taskledger_provenance(
     r: ArchitectureRecord,
     ctx: SddContext,
- ) -> list[SddFinding]:
+) -> list[SddFinding]:
     findings: list[SddFinding] = []
     values = _taskledger_ids(r.metadata)
     for value in values:
@@ -406,9 +406,7 @@ def _taskledger_ids(value: object) -> list[str]:
 def _taskledger_link_ids(value: object) -> list[str]:
     if isinstance(value, dict):
         return [
-            found
-            for item in value.values()
-            for found in _taskledger_link_ids(item)
+            found for item in value.values() for found in _taskledger_link_ids(item)
         ]
     if isinstance(value, list):
         return [found for item in value for found in _taskledger_link_ids(item)]
