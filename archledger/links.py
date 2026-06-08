@@ -23,6 +23,7 @@ VALID_LINK_RELS: frozenset[str] = frozenset(
         "supersedes",
         "relates_to",
         "blocks",
+        "applies_to",
     }
 )
 

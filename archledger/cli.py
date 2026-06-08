@@ -200,6 +200,9 @@ links_app = typer.Typer(add_completion=False, no_args_is_help=True)
 app.add_typer(links_app, name="links", help="Manage record links.")
 ac_app = typer.Typer(add_completion=False, no_args_is_help=True)
 app.add_typer(ac_app, name="ac", help="Manage inline acceptance criteria.")
+scope_app = typer.Typer(add_completion=False, no_args_is_help=True)
+app.add_typer(scope_app, name="scope", help="Inspect record scope metadata.")
+
 # Register BDD sub-app from archledger.bdd.cli (logic lives in bdd package)
 app.add_typer(
     _bdd_app,
@@ -795,6 +798,7 @@ def list_records(
     include_drafts: Annotated[bool, typer.Option("--include-drafts")] = False,
     include_superseded: Annotated[bool, typer.Option("--include-superseded")] = False,
     all_statuses: Annotated[bool, typer.Option("--all-statuses")] = False,
+    scope: Annotated[str | None, typer.Option("--scope")] = None,
 ) -> None:
     state = _state(ctx)
     visibility = _resolve_visibility(
@@ -814,6 +818,7 @@ def list_records(
                 include_draft=visibility.include_drafts,
                 include_superseded=visibility.include_superseded,
                 kind=kind,
+                scope=scope,
             )
         )
 
@@ -849,6 +854,9 @@ def read(
     all_statuses: Annotated[bool, typer.Option("--all-statuses")] = False,
     section: Annotated[str | None, typer.Option("--section")] = None,
     kind: Annotated[str | None, typer.Option("--kind")] = None,
+    scope: Annotated[str | None, typer.Option("--scope")] = None,
+    scope_kind: Annotated[str | None, typer.Option("--scope-kind")] = None,
+    addon: Annotated[str | None, typer.Option("--addon")] = None,
 ) -> None:
     state = _state(ctx)
     visibility = _resolve_visibility(
@@ -871,6 +879,9 @@ def read(
             include_superseded=visibility.include_superseded,
             section=section,
             kind=kind,
+            scope=scope,
+            scope_kind=scope_kind,
+            addon=addon,
         )
 
     _run_configured_command(state, "read", _build_read_result, _format_read_message)
@@ -1535,6 +1546,149 @@ def links_add(
         return f"Added link {p.get('rel')} -> {p.get('target')} to {p.get('id')}."
 
     _run_configured_command(state, "links add", _build, _fmt)
+
+
+@scope_app.command("list")
+def scope_list(
+    ctx: typer.Context,
+) -> None:
+    state = _state(ctx)
+
+    def _build(
+        repo: ArchitectureRepository,
+        paths: ProjectPaths,
+        config: ProjectConfig,
+    ) -> dict[str, object]:
+        del paths, config
+        scopes: dict[str, dict[str, object]] = {}
+        for record in repo.load_all_records(include_sections=True):
+            if record.scope is None:
+                continue
+            s = record.scope
+            if s.name not in scopes:
+                scopes[s.name] = {
+                    "name": s.name,
+                    "kind": s.kind,
+                    "lifecycle": s.lifecycle,
+                    "applies_to": list(s.applies_to),
+                    "excludes": list(s.excludes),
+                    "records": [],
+                }
+            scopes[s.name]["records"].append(record.id)  # type: ignore[union-attr]
+        return {"scopes": list(scopes.values())}
+
+    def _fmt(p: dict[str, object]) -> str:
+        scopes = p.get("scopes", [])
+        if not scopes:
+            return "No scopes defined."
+        lines = []
+        for s in scopes:
+            if isinstance(s, dict):
+                lines.append(
+                    f"  {s.get('name')} (kind={s.get('kind')}, "
+                    f"lifecycle={s.get('lifecycle')}, "
+                    f"records={len(s.get('records', []))})"
+                )
+        return "Scopes:\n" + "\n".join(lines)
+
+    _run_configured_command(state, "scope list", _build, _fmt)
+
+
+@scope_app.command("show")
+def scope_show(
+    ctx: typer.Context,
+    name: Annotated[str, typer.Argument(help="Scope name.")],
+) -> None:
+    state = _state(ctx)
+
+    def _build(
+        repo: ArchitectureRepository,
+        paths: ProjectPaths,
+        config: ProjectConfig,
+    ) -> dict[str, object]:
+        del paths, config
+        matched_records = []
+        scope_obj = None
+        for record in repo.load_all_records(include_sections=True):
+            if record.scope is not None and record.scope.name == name:
+                scope_obj = record.scope
+                matched_records.append(
+                    {"id": record.id, "type": record.type, "title": record.title}
+                )
+        if scope_obj is None:
+            return {"error": f"No scope named {name!r} found."}
+        return {
+            "scope": {
+                "name": scope_obj.name,
+                "kind": scope_obj.kind,
+                "lifecycle": scope_obj.lifecycle,
+                "applies_to": list(scope_obj.applies_to),
+                "excludes": list(scope_obj.excludes),
+            },
+            "records": matched_records,
+        }
+
+    def _fmt(p: dict[str, object]) -> str:
+        if "error" in p:
+            return str(p["error"])
+        s = p.get("scope", {})
+        lines = [
+            f"Scope: {s.get('name')}",
+            f"  Kind: {s.get('kind')}",
+            f"  Lifecycle: {s.get('lifecycle')}",
+            f"  Applies to: {', '.join(s.get('applies_to', []))}",
+            f"  Excludes: {', '.join(s.get('excludes', [])) or '(none)'}",
+            f"  Records:",
+        ]
+        for r in p.get("records", []):
+            if isinstance(r, dict):
+                lines.append(f"    {r.get('id')}: {r.get('title')} ({r.get('type')})")
+        return "\n".join(lines)
+
+    _run_configured_command(state, "scope show", _build, _fmt)
+
+
+@scope_app.command("affected")
+def scope_affected(
+    ctx: typer.Context,
+    path: Annotated[str, typer.Argument(help="File or directory path to check.")],
+) -> None:
+    state = _state(ctx)
+
+    def _build(
+        repo: ArchitectureRepository,
+        paths: ProjectPaths,
+        config: ProjectConfig,
+    ) -> dict[str, object]:
+        del paths, config
+        from archledger.scopes import scope_matches_path
+
+        normalized_path = path.replace("\\", "/").strip()
+        affected = []
+        for record in repo.load_all_records(include_sections=True):
+            if record.scope is None:
+                continue
+            if scope_matches_path(record.scope, normalized_path):
+                affected.append(
+                    {"id": record.id, "type": record.type, "title": record.title,
+                     "scope_name": record.scope.name}
+                )
+        return {"path": normalized_path, "affected_records": affected}
+
+    def _fmt(p: dict[str, object]) -> str:
+        records = p.get("affected_records", [])
+        if not records:
+            return f"No scoped records affected for {p.get('path')}."
+        lines = [f"Scoped records affected by {p.get('path')}:"]
+        for r in records:
+            if isinstance(r, dict):
+                lines.append(
+                    f"  {r.get('id')}: {r.get('title')} "
+                    f"(scope={r.get('scope_name')}, {r.get('type')})"
+                )
+        return "\n".join(lines)
+
+    _run_configured_command(state, "scope affected", _build, _fmt)
 
 
 @ac_app.command("add")

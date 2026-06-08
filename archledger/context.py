@@ -11,6 +11,7 @@ from typing import Any
 
 from archledger.model import ArchitectureRecord, record_sort_key
 from archledger.repository import ArchitectureRepository
+from archledger.scopes import scope_matches_path
 from archledger.source_tracking import ChangeSet
 
 
@@ -45,6 +46,12 @@ def build_context_for_file(
             ):
                 matched.add(r.id)
                 break
+
+    # Step 1b: records whose scope matches the file
+    for r in records:
+        if r.id not in matched and r.scope is not None:
+            if scope_matches_path(r.scope, file_path_normalized):
+                matched.add(r.id)
 
     # Step 2: records linked to matched records
     linked: set[str] = set()

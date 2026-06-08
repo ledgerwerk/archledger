@@ -41,6 +41,7 @@ from archledger.model import (
     validate_record,
 )
 from archledger.record_types import RecordContextInput
+from archledger.scopes import normalize_scope
 from archledger.source_refs import normalize_source_refs
 from archledger.storage.common import ensure_dir, utc_now_iso, write_text_atomic
 from archledger.storage.frontmatter import (
@@ -307,7 +308,12 @@ class ArchitectureRepository:
         include_draft: bool = False,
         include_superseded: bool = False,
         kind: str | None = None,
+        scope: str | None = None,
+        scope_kind: str | None = None,
+        addon: str | None = None,
     ) -> list[ArchitectureRecord]:
+        from archledger.scopes import VALID_SCOPE_KINDS
+
         self._ensure_storage_ready()
         all_records = self._load_records(include_sections=False)
         if kind is not None:
@@ -315,6 +321,26 @@ class ArchitectureRepository:
             all_records = [
                 record for record in all_records if record.type == normalized_kind
             ]
+        if scope is not None or scope_kind is not None or addon is not None:
+            filtered: list[ArchitectureRecord] = []
+            for record in all_records:
+                if record.scope is None:
+                    continue
+                if scope is not None and record.scope.name != scope:
+                    continue
+                if scope_kind is not None and scope_kind not in VALID_SCOPE_KINDS:
+                    continue
+                if scope_kind is not None and record.scope.kind != scope_kind:
+                    continue
+                if addon is not None:
+                    addon_dir = addon if addon.endswith("/") else addon + "/"
+                    if not any(
+                        addon_dir == apply_to or addon_dir.startswith(apply_to.rstrip("/") + "/") or apply_to.rstrip("/") == addon
+                        for apply_to in record.scope.applies_to
+                    ):
+                        continue
+                filtered.append(record)
+            all_records = filtered
         visible_records = [
             record
             for record in all_records
@@ -926,6 +952,7 @@ class ArchitectureRepository:
                 cast(str, record_id),
                 metadata.get("source_refs"),
                 workspace_root=self.paths.workspace_root,
+                require_exists=cast(str, status) != "archived",
             )[0],
             links=normalize_links(
                 cast(str, record_id),
@@ -934,6 +961,11 @@ class ArchitectureRepository:
             test_refs=normalize_test_refs(
                 cast(str, record_id),
                 metadata.get("test_refs"),
+                workspace_root=self.paths.workspace_root,
+            )[0],
+            scope=normalize_scope(
+                cast(str, record_id),
+                metadata.get("scope"),
                 workspace_root=self.paths.workspace_root,
             )[0],
         )
@@ -1042,6 +1074,7 @@ class ArchitectureRepository:
             record.id,
             record.metadata.get("source_refs"),
             workspace_root=self.paths.workspace_root,
+            require_exists=record.status != "archived",
         )
         warnings.extend(source_ref_warnings)
 

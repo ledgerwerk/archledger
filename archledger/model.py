@@ -241,6 +241,7 @@ class ArchitectureRecord:
     source_refs: tuple[SourceRef, ...] = ()
     links: tuple = ()  # tuple[RecordLink, ...] — forward ref to links module
     test_refs: tuple = ()  # tuple[TestRef, ...] — forward ref to test_refs module
+    scope: object = None  # RecordScope | None — forward ref to scopes module
 
 
 def normalize_kind(kind: str) -> str:

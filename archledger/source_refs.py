@@ -43,6 +43,7 @@ def normalize_source_refs(
     value: object,
     *,
     workspace_root: Path,
+    require_exists: bool = True,
 ) -> tuple[tuple[SourceRef, ...], list[str]]:
     if value is None:
         return (), []
@@ -57,6 +58,7 @@ def normalize_source_refs(
             entry,
             index=index,
             workspace_root=workspace_root,
+            require_exists=require_exists,
         )
         warnings.extend(entry_warnings)
         if normalized_ref is not None:
@@ -70,6 +72,7 @@ def _normalize_source_ref_entry(
     *,
     index: int,
     workspace_root: Path,
+    require_exists: bool = True,
 ) -> tuple[SourceRef | None, list[str]]:
     if isinstance(entry, str):
         path_text, _, symbol = entry.partition("#")
@@ -81,6 +84,7 @@ def _normalize_source_ref_entry(
             "",
             index=index,
             workspace_root=workspace_root,
+            require_exists=require_exists,
         )
 
     if not isinstance(entry, dict):
@@ -138,6 +142,7 @@ def _normalize_source_ref_entry(
         role,
         index=index,
         workspace_root=workspace_root,
+        require_exists=require_exists,
     )
 
 
@@ -150,6 +155,7 @@ def _build_source_ref(
     *,
     index: int,
     workspace_root: Path,
+    require_exists: bool = True,
 ) -> tuple[SourceRef | None, list[str]]:
     if not isinstance(raw_path, str) or not raw_path.strip():
         return (
@@ -172,25 +178,28 @@ def _build_source_ref(
             _format_source_ref_path_error(record_id, index, original_path, exc)
         ]
 
-    absolute_ref = workspace_root / Path(normalized_path)
-    if is_directory_ref:
-        if not absolute_ref.is_dir():
+    if require_exists:
+        absolute_ref = workspace_root / Path(normalized_path)
+        if is_directory_ref:
+            if not absolute_ref.is_dir():
+                return (
+                    None,
+                    [
+                        f"Record {record_id} source_refs entry {index} "
+                        f"directory does not exist: {normalized_path}/"
+                    ],
+                )
+            normalized_path = f"{normalized_path}/"
+        elif not absolute_ref.exists():
             return (
                 None,
                 [
                     f"Record {record_id} source_refs entry {index} "
-                    f"directory does not exist: {normalized_path}/"
+                    f"path does not exist: {normalized_path}"
                 ],
             )
+    elif is_directory_ref:
         normalized_path = f"{normalized_path}/"
-    elif not absolute_ref.exists():
-        return (
-            None,
-            [
-                f"Record {record_id} source_refs entry {index} "
-                f"path does not exist: {normalized_path}"
-            ],
-        )
     return (
         SourceRef(path=normalized_path, symbols=symbols, reason=reason, role=role),
         [],

@@ -222,7 +222,12 @@ def read_payload(
     include_superseded: bool,
     section: str | None,
     kind: str | None,
+    scope: str | None = None,
+    scope_kind: str | None = None,
+    addon: str | None = None,
 ) -> dict[str, object]:
+    from archledger.scopes import scope_matches_path, VALID_SCOPE_KINDS
+
     normalized_kind = None
     if kind is not None:
         normalized_kind = (
@@ -240,6 +245,23 @@ def read_payload(
             continue
         if normalized_kind is not None and record.type != normalized_kind:
             continue
+        if scope is not None or scope_kind is not None or addon is not None:
+            if record.scope is None:
+                continue
+            if scope is not None and record.scope.name != scope:
+                continue
+            if scope_kind is not None:
+                if scope_kind not in VALID_SCOPE_KINDS:
+                    continue
+                if record.scope.kind != scope_kind:
+                    continue
+            if addon is not None:
+                addon_dir = addon if addon.endswith("/") else addon + "/"
+                if not any(
+                    addon_dir == apply_to or addon_dir.startswith(apply_to.rstrip("/") + "/") or apply_to.rstrip("/") == addon
+                    for apply_to in record.scope.applies_to
+                ):
+                    continue
         item: dict[str, object] = {
             "id": record.id,
             "type": record.type,
