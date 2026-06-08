@@ -477,12 +477,19 @@ def renumber_payload(result: RenumberResult) -> dict[str, object]:
             }
             for item in result.rewritten
         ],
+        "quarantined_generated_tombstones_count": len(result.quarantined_generated_tombstones),
+        "quarantined_generated_tombstones": [
+            {
+                "path": str(item.path),
+                "quarantine_path": str(item.quarantine_path),
+                "reason": item.reason,
+            }
+            for item in result.quarantined_generated_tombstones
+        ],
         "config_path": str(result.config_path),
         "storage_next_number_before": result.storage_next_number_before,
         "storage_next_number_after": result.storage_next_number_after,
     }
-
-
 def finding_payload(finding: CheckFinding) -> dict[str, object]:
     payload: dict[str, object] = {"level": finding.level, "message": finding.message}
     if finding.path is not None:

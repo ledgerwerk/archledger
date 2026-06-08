@@ -21,6 +21,10 @@ from archledger.storage.meta import (
 from archledger.storage.paths import ProjectPaths
 from archledger.storage.project_config import ProjectConfig, render_project_config
 
+GENERATED_TOMBSTONE_REASON = (
+    "Created by archledger doctor --repair for a missing ledger number."
+)
+
 
 @dataclass(frozen=True, slots=True)
 class RenumberedPath:
@@ -37,6 +41,13 @@ class RewrittenFile:
 
 
 @dataclass(frozen=True, slots=True)
+class QuarantinedPath:
+    path: Path
+    quarantine_path: Path
+    reason: str
+
+
+@dataclass(frozen=True, slots=True)
 class RenumberResult:
     apply: bool
     old_prefix: str
@@ -47,6 +58,7 @@ class RenumberResult:
     new_segment_mode: str
     renamed: tuple[RenumberedPath, ...]
     rewritten: tuple[RewrittenFile, ...]
+    quarantined_generated_tombstones: tuple[QuarantinedPath, ...]
     config_path: Path
     storage_next_number_before: int
     storage_next_number_after: int
@@ -71,12 +83,24 @@ def renumber_project(
     paths: ProjectPaths,
     config: ProjectConfig,
     *,
+    old_prefix: str | None = None,
+    old_width: int | None = None,
+    old_segment_mode: str | None = None,
     new_prefix: str | None = None,
     new_width: int | None = None,
     new_segment_mode: str | None = None,
     apply: bool,
+    prune_generated_tombstones: bool = False,
 ) -> RenumberResult:
-    old_format = config.id_format
+    old_format: LedgerIdFormat
+    if old_prefix is not None or old_width is not None or old_segment_mode is not None:
+        old_format = LedgerIdFormat(
+            prefix=old_prefix or config.id_prefix,
+            width=old_width if old_width is not None else config.id_width,
+            segment_mode=old_segment_mode or config.id_segment_mode,
+        )
+    else:
+        old_format = config.id_format
     try:
         new_format = LedgerIdFormat(
             prefix=new_prefix or config.id_prefix,
@@ -92,7 +116,7 @@ def renumber_project(
         raise ValidationError("No source files match the current ledger ID format.")
 
     rename_plan, id_mapping = _build_rename_plan(numbered_paths, config, new_format)
-    _validate_no_target_collisions(rename_plan)
+    _validate_no_target_collisions(rename_plan, paths, config)
 
     rewrite_plan = _build_rewrite_plan(
         paths.archledger_dir,
@@ -103,11 +127,25 @@ def renumber_project(
     if old_format == new_format and not rename_plan and not rewrite_plan:
         raise ValidationError("New ledger ID format is identical to current format.")
 
+    # Detect stale generated tombstones that collide with living records after rename.
+    quarantined = _detect_generated_tombstone_collisions(
+        paths, rename_plan, old_format, new_format, config, source_extensions
+    )
+    if quarantined and not prune_generated_tombstones:
+        count = len(quarantined)
+        raise ValidationError(
+            f"Renumbering would create {count} stale generated tombstone collision(s). "
+            f"Re-run with --prune-generated-tombstones to quarantine them.\n"
+            + "\n".join(f"  {q.path}" for q in quarantined)
+        )
+
     meta_before = read_storage_meta(paths.storage_meta_path)
 
     if apply:
         _rewrite_files(rewrite_plan)
         _rename_files(rename_plan)
+        if prune_generated_tombstones and quarantined:
+            _quarantine_tombstones(quarantined)
         new_config = dataclass_replace(
             config,
             id_prefix=new_format.prefix,
@@ -142,6 +180,7 @@ def renumber_project(
             RewrittenFile(path=item.path, replacement_count=item.replacement_count)
             for item in rewrite_plan
         ),
+        quarantined_generated_tombstones=quarantined,
         config_path=paths.config_path,
         storage_next_number_before=meta_before.next_number,
         storage_next_number_after=next_after,
@@ -209,7 +248,11 @@ def _build_rename_plan(
     return tuple(items), id_mapping
 
 
-def _validate_no_target_collisions(rename_plan: tuple[RenumberedPath, ...]) -> None:
+def _validate_no_target_collisions(
+    rename_plan: tuple[RenumberedPath, ...],
+    paths: ProjectPaths,
+    config: ProjectConfig,
+) -> None:
     if not rename_plan:
         return
 
@@ -220,8 +263,29 @@ def _validate_no_target_collisions(rename_plan: tuple[RenumberedPath, ...]) -> N
 
     for target in target_paths:
         if target.exists() and target not in old_paths:
+            # Check if the target looks like a generated artifact.
+            try:
+                metadata, _ = read_front_matter_document(target)
+            except Exception:
+                metadata = {}
+            artifact_hint = ""
+            if metadata.get("type") == "archive_tombstone":
+                reason = str(metadata.get("archived_reason", ""))
+                if GENERATED_TOMBSTONE_REASON in reason:
+                    artifact_hint = (
+                        "This looks like a generated artifact from a previous "
+                        "ID-format mismatch repair. Restore it from VCS or run "
+                        "renumber with --prune-generated-tombstones before retrying."
+                    )
+            if not artifact_hint:
+                artifact_hint = (
+                    "Restore it from VCS or run an explicit generated-artifact "
+                    "cleanup before renumbering."
+                )
             raise ValidationError(
-                f"Renumbering would overwrite existing file: {target}"
+                f"Renumber target already exists: {target}.\n"
+                f"{artifact_hint}\n"
+                "No files were changed."
             )
 
 
@@ -261,6 +325,80 @@ def _build_rewrite_plan(
             )
 
     return tuple(rewrites)
+
+
+def _detect_generated_tombstone_collisions(
+    paths: ProjectPaths,
+    rename_plan: tuple[RenumberedPath, ...],
+    old_format: LedgerIdFormat,
+    new_format: LedgerIdFormat,
+    config: ProjectConfig,
+    source_extensions: tuple[str, ...],
+) -> tuple[QuarantinedPath, ...]:
+    """Detect generated tombstones that will collide with living record numbers."""
+    # Collect numbers occupied by living records after rename (non-archive paths).
+    living_numbers_after: set[int] = set()
+    for item in rename_plan:
+        if not item.old_path.is_relative_to(paths.archive_dir):
+            number = new_format.parse(item.new_id)
+            living_numbers_after.add(number)
+
+    if not living_numbers_after:
+        return ()
+
+    found: list[QuarantinedPath] = []
+    tombstone_dir = paths.archive_dir / "tombstones"
+
+    if not tombstone_dir.is_dir():
+        return ()
+
+    for path in iter_source_files(tombstone_dir, source_extensions):
+        try:
+            metadata, _ = read_front_matter_document(path)
+        except Exception:
+            continue
+        if metadata.get("type") != "archive_tombstone":
+            continue
+        archived_reason = str(metadata.get("archived_reason", ""))
+        if GENERATED_TOMBSTONE_REASON not in archived_reason:
+            continue
+        try:
+            number = old_format.parse(path.stem)
+        except ValueError:
+            try:
+                number = new_format.parse(path.stem)
+            except ValueError:
+                continue
+        if number in living_numbers_after:
+            quarantine_dir = (
+                paths.archive_dir
+                / "quarantine"
+                / "generated-tombstones"
+                / utc_now_ts()
+            )
+            quarantine_path = quarantine_dir / path.name
+            found.append(
+                QuarantinedPath(
+                    path=path,
+                    quarantine_path=quarantine_path,
+                    reason=f"Collides with living record number {number} after renumber",
+                )
+            )
+
+    return tuple(found)
+
+
+def _quarantine_tombstones(quarantined: tuple[QuarantinedPath, ...]) -> None:
+    for item in quarantined:
+        ensure_dir(item.quarantine_path.parent)
+        item.path.rename(item.quarantine_path)
+
+
+def utc_now_ts() -> str:
+    """Return a UTC timestamp string safe for directory names."""
+    from datetime import datetime, timezone
+
+    return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 
 
 def _rewrite_files(rewrite_plan: Iterable[_RewritePreview]) -> None:

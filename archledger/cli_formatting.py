@@ -274,6 +274,12 @@ def format_renumber_message(payload: dict[str, object]) -> str:
         f"Files to rename: {payload['renamed_count']}",
         f"Files to rewrite: {payload['rewritten_count']}",
     ]
+    quarantined = payload.get("quarantined_generated_tombstones_count", 0)
+    if isinstance(quarantined, int) and quarantined > 0:
+        quarantined_list = payload.get("quarantined_generated_tombstones", [])
+        lines.append(f"Generated tombstones quarantined: {quarantined}")
+        for q in quarantined_list:
+            lines.append(f"  {q.get('path')} -> {q.get('quarantine_path')}")
     if not payload.get("apply"):
         lines.append("Re-run with --apply to apply the renumbering.")
     return "\n".join(lines)

@@ -1196,3 +1196,35 @@ def init_project(tmp_path: Path) -> None:
         app, ["--root", str(tmp_path), "init", "--source-format", "asciidoc"]
     )
     assert result.exit_code == 0
+
+
+def test_doctor_repair_refuses_after_manual_segment_mode_change(tmp_path: Path) -> None:
+    init_project(tmp_path)
+    # create some records
+    runner.invoke(app, ["--root", str(tmp_path), "new", "requirement", "A"])
+    runner.invoke(app, ["--root", str(tmp_path), "new", "risk", "B"])
+
+    config_path = tmp_path / "archledger.toml"
+    config_path.write_text(
+        config_path.read_text(encoding="utf-8").replace(
+            'segment_mode = "none"',
+            'segment_mode = "type"',
+        ),
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(
+        app,
+        ["--root", str(tmp_path), "--json", "doctor", "--repair"],
+    )
+
+    assert result.exit_code == 1, result.stdout
+    payload = json.loads(result.stdout)
+    messages = [item["message"] for item in payload["error"]["details"]["errors"]]
+    assert any("ID format mismatch" in message for message in messages)
+    assert any(
+        "renumber --from-id-segment-mode none --id-segment-mode type" in message
+        for message in messages
+    )
+
+    assert not list((tmp_path / ".archledger" / "archive" / "tombstones").glob("al_archive_*.md"))

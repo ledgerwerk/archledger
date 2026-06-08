@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from dataclasses import replace as dataclass_replace
 from pathlib import Path
+from archledger.id_format_drift import find_id_format_drift
 from typing import cast
 
 from jinja2 import Environment, PackageLoader, select_autoescape
@@ -629,6 +630,47 @@ class ArchitectureRepository:
                     path=self.paths.archive_dir,
                 )
             )
+
+        if repair:
+            drift = find_id_format_drift(
+                self.paths,
+                self.config,
+                self._known_source_extensions(),
+            )
+            if drift:
+                drift_paths = "\n".join(
+                    f"  - {d.path} (uses {d.detected_format.segment_mode} format, "
+                    f"config expects {d.configured_format.segment_mode})"
+                    for d in drift
+                )
+                errors_list: list[CheckFinding] = []
+                errors_list.append(
+                    CheckFinding(
+                        "error",
+                        (
+                            "ID format mismatch: config uses "
+                            f"{self.config.id_format.prefix}/{self.config.id_format.width}/"
+                            f"{self.config.id_format.segment_mode},\n"
+                            f"but {len(drift)} source files still use the alternate format.\n"
+                            f"{drift_paths}\n"
+                            "Run: archledger renumber "
+                            f"--from-id-segment-mode {drift[0].detected_format.segment_mode} "
+                            f"--id-segment-mode {self.config.id_segment_mode} --apply\n"
+                            "Do not run doctor --repair until renumber succeeds."
+                        ),
+                        None,
+                    )
+                )
+                return DoctorResult(
+                    errors=tuple(errors_list),
+                    warnings=(),
+                    repairs=(),
+                    storage_next_number_before=meta_before.next_number,
+                    storage_next_number_after=meta_before.next_number,
+                    highest_seen=0,
+                    missing_numbers=(),
+                    duplicate_numbers=(),
+                )
 
         (
             sequence_errors,

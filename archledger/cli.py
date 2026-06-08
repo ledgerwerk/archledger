@@ -964,6 +964,18 @@ def doctor(
 @app.command("renumber")
 def renumber(
     ctx: typer.Context,
+    from_prefix: Annotated[
+        str | None,
+        typer.Option("--from-prefix", help="Old ledger ID prefix."),
+    ] = None,
+    from_width: Annotated[
+        int | None,
+        typer.Option("--from-width", help="Old ledger ID digit width."),
+    ] = None,
+    from_id_segment_mode: Annotated[
+        str | None,
+        typer.Option("--from-id-segment-mode", help="Old ID segment mode: none or type."),
+    ] = None,
     prefix: Annotated[
         str | None,
         typer.Option("--prefix", help="New ledger ID prefix."),
@@ -980,6 +992,10 @@ def renumber(
         bool,
         typer.Option("--apply", help="Apply the renumbering plan."),
     ] = False,
+    prune_generated_tombstones: Annotated[
+        bool,
+        typer.Option("--prune-generated-tombstones", help="Quarantine generated tombstones that collide with living records."),
+    ] = False,
 ) -> None:
     state = _state(ctx)
 
@@ -988,25 +1004,31 @@ def renumber(
         paths: ProjectPaths,
         config: ProjectConfig,
     ) -> dict[str, object]:
-        doctor_result = repo.doctor(repair=False)
-        if doctor_result.errors:
-            raise ArchledgerError(
-                (
-                    "Ledger numbering is inconsistent."
-                    " Run archledger doctor --repair first."
-                ),
-                details=_doctor_payload(
-                    doctor_result,
-                    id_format=config.id_format,
-                ),
-            )
+        explicit_from = from_prefix is not None or from_width is not None or from_id_segment_mode is not None
+        if not explicit_from:
+            doctor_result = repo.doctor(repair=False)
+            if doctor_result.errors:
+                raise ArchledgerError(
+                    (
+                        "Ledger numbering is inconsistent."
+                        " Run archledger doctor --repair first."
+                    ),
+                    details=_doctor_payload(
+                        doctor_result,
+                        id_format=config.id_format,
+                    ),
+                )
         result = renumber_project(
             paths,
             config,
+            old_prefix=from_prefix,
+            old_width=from_width,
+            old_segment_mode=from_id_segment_mode,
             new_prefix=prefix,
             new_width=width,
             new_segment_mode=id_segment_mode,
             apply=apply,
+            prune_generated_tombstones=prune_generated_tombstones,
         )
         return _renumber_payload(result)
 
@@ -1016,7 +1038,6 @@ def renumber(
         _build_renumber_result,
         _format_renumber_message,
     )
-
 
 @source_app.command("snapshot")
 def snapshot(

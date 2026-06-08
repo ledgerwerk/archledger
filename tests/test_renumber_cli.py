@@ -325,3 +325,133 @@ def test_renumber_rejects_existing_target_file(tmp_path: Path) -> None:
 
     assert result.exit_code == 1
     assert target.read_text(encoding="utf-8") == "do not overwrite\n"
+    assert target.read_text(encoding="utf-8") == "do not overwrite\n"
+
+
+def test_renumber_from_flat_to_type_after_config_already_changed(tmp_path: Path) -> None:
+    init_project(tmp_path, source_format="markdown")
+    runner.invoke(app, ["--root", str(tmp_path), "new", "requirement", "A"])
+    runner.invoke(app, ["--root", str(tmp_path), "new", "risk", "B"])
+
+    config_path = tmp_path / "archledger.toml"
+    config_path.write_text(
+        config_path.read_text(encoding="utf-8").replace(
+            'segment_mode = "none"',
+            'segment_mode = "type"',
+        ),
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "--root", str(tmp_path),
+            "--json", "renumber",
+            "--from-id-segment-mode", "none",
+            "--id-segment-mode", "type",
+            "--apply",
+        ],
+    )
+
+    assert result.exit_code == 0, result.stdout
+    assert (tmp_path / ".archledger" / "records" / "requirements" / "al_content_0013.md").is_file()
+    assert (tmp_path / ".archledger" / "records" / "risks" / "al_risk_0014.md").is_file()
+    assert not (tmp_path / ".archledger" / "records" / "requirements" / "al_0013.md").exists()
+
+    check = runner.invoke(app, ["--root", str(tmp_path), "check"])
+    assert check.exit_code == 0, check.stdout
+
+
+def test_renumber_refuses_stale_generated_tombstone_collision_without_explicit_prune(tmp_path: Path) -> None:
+    init_project(tmp_path, source_format="markdown")
+    runner.invoke(app, ["--root", str(tmp_path), "new", "requirement", "A"])
+
+    # Simulate bad prior repair after config was changed to type.
+    tombstone_dir = tmp_path / ".archledger" / "archive" / "tombstones"
+    tombstone_dir.mkdir(parents=True, exist_ok=True)
+    (tombstone_dir / "al_archive_0013.md").write_text(
+        "---\n"
+        "schema_version: 2\n"
+        "id: al_archive_0013\n"
+        "type: archive_tombstone\n"
+        "title: Archived placeholder for missing ledger ID al_archive_0013\n"
+        "status: archived\n"
+        "section: risks_and_technical_debt\n"
+        "order: 13\n"
+        'date: "2026-06-08"\n'
+        "body_format: markdown\n"
+        'created_at: "2026-06-08T00:00:00Z"\n'
+        'updated_at: "2026-06-08T00:00:00Z"\n'
+        'archived_at: "2026-06-08T00:00:00Z"\n'
+        'archived_reason: Created by archledger doctor --repair for a missing ledger number.\n'
+        "---\n\n"
+        "This tombstone preserves a ledger number whose original source fragment is no longer present. "
+        "It was created automatically by `archledger doctor --repair`.\n",
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "--root", str(tmp_path),
+            "renumber",
+            "--from-id-segment-mode", "none",
+            "--id-segment-mode", "type",
+            "--apply",
+        ],
+    )
+
+    assert result.exit_code == 1
+    assert "generated tombstone" in result.output.lower()
+    assert "--prune-generated-tombstones" in result.output
+    assert (tombstone_dir / "al_archive_0013.md").is_file()
+
+
+def test_renumber_prune_generated_tombstones_moves_to_quarantine(tmp_path: Path) -> None:
+    init_project(tmp_path, source_format="markdown")
+    runner.invoke(app, ["--root", str(tmp_path), "new", "requirement", "A"])
+
+    # Simulate bad prior repair after config was changed to type.
+    tombstone_dir = tmp_path / ".archledger" / "archive" / "tombstones"
+    tombstone_dir.mkdir(parents=True, exist_ok=True)
+    (tombstone_dir / "al_archive_0013.md").write_text(
+        "---\n"
+        "schema_version: 2\n"
+        "id: al_archive_0013\n"
+        "type: archive_tombstone\n"
+        "title: Archived placeholder for missing ledger ID al_archive_0013\n"
+        "status: archived\n"
+        "section: risks_and_technical_debt\n"
+        "order: 13\n"
+        'date: "2026-06-08"\n'
+        "body_format: markdown\n"
+        'created_at: "2026-06-08T00:00:00Z"\n'
+        'updated_at: "2026-06-08T00:00:00Z"\n'
+        'archived_at: "2026-06-08T00:00:00Z"\n'
+        'archived_reason: Created by archledger doctor --repair for a missing ledger number.\n'
+        "---\n\n"
+        "This tombstone preserves a ledger number whose original source fragment is no longer present. "
+        "It was created automatically by `archledger doctor --repair`.\n",
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "--root", str(tmp_path),
+            "--json", "renumber",
+            "--from-id-segment-mode", "none",
+            "--id-segment-mode", "type",
+            "--prune-generated-tombstones",
+            "--apply",
+        ],
+    )
+
+    assert result.exit_code == 0, result.stdout
+    assert not (tombstone_dir / "al_archive_0013.md").exists()
+    payload = json.loads(result.stdout)
+    quarantined = payload["result"].get("quarantined_generated_tombstones", [])
+    assert len(quarantined) == 1
+    qpath = Path(quarantined[0]["quarantine_path"])
+    assert "archive" in qpath.parts
+    assert "quarantine" in qpath.parts
