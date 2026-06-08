@@ -474,3 +474,17 @@ def test_bdd_link_refuses_without_bdd_metadata(tmp_path: Path) -> None:
         ],
     )
     assert result.exit_code != 0
+
+
+def test_bdd_validate_missing_target_returns_json_error(tmp_path: Path) -> None:
+    """P0: bdd validate with no target returns a JSON error envelope."""
+    _init(tmp_path)
+    result = runner.invoke(
+        app,
+        ["--root", str(tmp_path), "--json", "bdd", "validate"],
+    )
+    assert result.exit_code != 0
+    payload = json.loads(result.stdout)
+    assert payload["ok"] is False
+    assert payload["command"] == "bdd validate"
+    assert "Provide a RECORD_ID" in payload["error"]["message"]

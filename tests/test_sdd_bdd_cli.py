@@ -305,3 +305,117 @@ def test_sdd_bdd_feature_ref_passes_for_imported_records(tmp_path: Path) -> None
     result = _run_sdd_check(tmp_path)
     codes = {f["code"] for f in result["data"]["errors"] + result["data"]["warnings"]}
     assert "SDD-BDD-FEATURE-REF" not in codes
+
+
+def _enable_required_automation(tmp_path: Path) -> None:
+    """Flip require_bdd_automation_for_accepted_records to true in config."""
+    for candidate in (tmp_path / "archledger.toml", tmp_path / ".archledger.toml"):
+        if candidate.exists():
+            config_path = candidate
+            break
+    else:
+        raise AssertionError("No config file found")
+    text = config_path.read_text()
+    text = text.replace(
+        "require_bdd_automation_for_accepted_records = false",
+        "require_bdd_automation_for_accepted_records = true",
+    )
+    config_path.write_text(text)
+
+
+def test_sdd_bdd_automation_linked_fails_when_required(tmp_path: Path) -> None:
+    """ac-0006: under strict policy, status=linked is an error (Option A)."""
+    _init_sdd(tmp_path)
+    record_path = _create_runtime_scenario(tmp_path)
+    _accept_record(record_path)
+    _set_bdd(
+        record_path,
+        {
+            "feature": "F",
+            "scenario": "S",
+            "given": ["g"],
+            "when": ["w"],
+            "then": ["t"],
+            "automation": {
+                "status": "linked",
+                "feature_file": "tests/bdd/features/lifecycle.feature",
+            },
+            "source_refs": [
+                {"path": "tests/bdd/features/lifecycle.feature", "role": "documents"},
+            ],
+        },
+    )
+    _enable_required_automation(tmp_path)
+
+    result = _run_sdd_check(tmp_path)
+    errors = result["data"]["errors"]
+    automation = [e for e in errors if e["code"] == "SDD-BDD-AUTOMATION"]
+    assert automation, "expected an SDD-BDD-AUTOMATION error for status=linked"
+    assert "linked" in automation[0]["message"]
+
+
+def test_sdd_bdd_automation_automated_passes_when_required(tmp_path: Path) -> None:
+    """ac-0006: status=automated satisfies the strict policy; not_applicable too."""
+    _init_sdd(tmp_path)
+    record_path = _create_runtime_scenario(tmp_path)
+    _accept_record(record_path)
+    _set_bdd(
+        record_path,
+        {
+            "feature": "F",
+            "scenario": "S",
+            "given": ["g"],
+            "when": ["w"],
+            "then": ["t"],
+            "automation": {
+                "status": "automated",
+                "feature_file": "tests/bdd/features/lifecycle.feature",
+                "command": "pytest -q",
+            },
+            "source_refs": [
+                {"path": "tests/bdd/features/lifecycle.feature", "role": "documents"},
+            ],
+        },
+    )
+    _enable_required_automation(tmp_path)
+
+    result = _run_sdd_check(tmp_path)
+    errors = result["data"]["errors"]
+    assert not any(e["code"] == "SDD-BDD-AUTOMATION" for e in errors)
+
+
+def test_sdd_bdd_gwt_fails_for_quality_scenario_when_policy_enabled(
+    tmp_path: Path,
+) -> None:
+    """ac-0007: SDD-BDD-GWT applies to quality_scenario too, not just runtime."""
+    _init_sdd(tmp_path)
+    created = runner.invoke(
+        app,
+        [
+            "--root",
+            str(tmp_path),
+            "--json",
+            "new",
+            "quality_scenario",
+            "Q",
+        ],
+    )
+    assert created.exit_code == 0, created.stdout
+    record_path = Path(json.loads(created.stdout)["result"]["path"])
+    _accept_record(record_path)
+    _set_bdd(
+        record_path,
+        {
+            "feature": "F",
+            "scenario": "Q",
+            "given": [],
+            "when": ["w"],
+            "then": ["t"],
+        },
+    )
+
+    result = _run_sdd_check(tmp_path)
+    errors = result["data"]["errors"]
+    gwt = [e for e in errors if e["code"] == "SDD-BDD-GWT"]
+    assert gwt, "expected an SDD-BDD-GWT error for quality_scenario"
+    assert "quality_scenario" in gwt[0]["message"]

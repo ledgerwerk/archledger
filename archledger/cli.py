@@ -1771,7 +1771,7 @@ def sdd_init(
         typer.Option("--dry-run", help="Plan without writing any changes."),
     ] = False,
 ) -> None:
-    """Enable the SDD profile, ensure [profiles.sdd], and print policy."""
+    """Enable the SDD profile, ensure profiles.sdd, and print policy."""
     state = _state(ctx)
 
     def _build(
@@ -1872,7 +1872,7 @@ def sdd_init(
 
 @sdd_policy_app.command("show")
 def sdd_policy_show(ctx: typer.Context) -> None:
-    """Print the effective [profiles.sdd] policy in human and JSON form."""
+    """Print the effective profiles.sdd policy in human and JSON form."""
     state = _state(ctx)
 
     def _build(
@@ -1939,7 +1939,7 @@ def sdd_policy_set(
         typer.Option("--require-bdd-automation/--no-require-bdd-automation"),
     ] = None,
 ) -> None:
-    """Update [profiles.sdd] policy flags in .archledger.toml."""
+    """Update profiles.sdd policy flags in .archledger.toml."""
     state = _state(ctx)
     overrides: dict[str, bool] = {}
     for flag, value in (
@@ -2504,6 +2504,7 @@ def sdd_coverage(
             "totals": result.totals,
             "coverage": dim_payload,
             "gaps": list(result.gaps),
+            "by_record": [dict(row) for row in result.by_record],
         }
 
     def _fmt(p: dict[str, object]) -> str:

@@ -146,7 +146,12 @@ def test_sdd_check_uses_config_policy_flags(
         "require_bdd_gwt_for_behavior_records": True,
         "require_bdd_automation_for_accepted_records": False,
     }
-    assert payload["profile_enabled"] is True
+    assert payload["schema"] == "archledger.sdd-check.v2"
+    assert "profile" not in payload
+    assert "profile_enabled" not in payload
+    assert payload["sdd_enabled"] is True
+    assert payload["default_profile"] == "sdd"
+    assert "sdd" in payload["enabled_profiles"]
 
 
 def test_sdd_check_cli_overrides_config_policy_flags(
@@ -1165,7 +1170,54 @@ def test_sdd_coverage_include_bdd(tmp_path: Path) -> None:
     assert "behavior_with_gwt" in cov
     assert cov["behavior_with_gwt"]["covered"] == 1
     assert cov["behavior_with_feature_file"]["covered"] == 1
-    assert cov["behavior_automated"]["covered"] == 1
+    # Option A semantics: linked is not automated.
+    assert cov["behavior_linked"]["covered"] == 1
+    assert cov["behavior_automated"]["covered"] == 0
+
+
+def test_sdd_coverage_by_record_lists_per_record_detail(tmp_path: Path) -> None:
+    """ac-0008: --by-record emits per-record covered flags and gaps."""
+    _init(tmp_path)
+    created = runner.invoke(
+        app,
+        [
+            "--root",
+            str(tmp_path),
+            "--json",
+            "new",
+            "requirement",
+            "Uncovered req",
+            "--status",
+            "accepted",
+        ],
+    )
+    assert created.exit_code == 0, created.stdout
+    rid = json.loads(created.stdout)["result"]["id"]
+
+    result = runner.invoke(
+        app,
+        ["--root", str(tmp_path), "--json", "sdd", "coverage", "--by-record"],
+    )
+    assert result.exit_code == 0, result.stdout
+    payload = json.loads(result.stdout)["result"]
+    rows = payload["by_record"]
+    assert rows, "expected at least one by_record row"
+    req_row = next(r for r in rows if r["record_id"] == rid)
+    assert req_row["type"] == "requirement"
+    assert req_row["covered"] == {
+        "acceptance_criteria": False,
+        "implementation_refs": False,
+        "validation": False,
+    }
+    assert "acceptance_criteria" in req_row["gaps"]
+
+    # Without the flag the list is still present but empty (no per-record work).
+    plain = runner.invoke(
+        app,
+        ["--root", str(tmp_path), "--json", "sdd", "coverage"],
+    )
+    assert plain.exit_code == 0, plain.stdout
+    assert json.loads(plain.stdout)["result"]["by_record"] == []
 
 
 # ---- Phase 3: scoped sdd check ----

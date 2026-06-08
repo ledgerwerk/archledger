@@ -52,6 +52,16 @@ to ``automation.status=linked`` since a feature file and scenario are now bound.
 ``source_refs`` and ``test_refs`` are used to bind features, tests, and code
 for drift detection.
 
+Automation status semantics: ``pending`` (no wiring yet), ``linked`` (a feature
+file/scenario is bound but no executable runner), ``automated`` (a runner command
+is recorded and intended to be executed externally), and ``not_applicable``
+(deliberately manual). Under ``require_bdd_automation_for_accepted_records``
+(enabled by ``sdd init --strict-defaults``), a record must reach ``automated`` or
+``not_applicable``; ``linked`` alone is treated as not-yet-automated and produces
+an ``SDD-BDD-AUTOMATION`` error. SDD coverage reports ``behavior_linked`` and
+``behavior_automated`` as separate dimensions for the same reason.
+for drift detection.
+
 **Canonical ownership**: Archledger record metadata is the canonical source
 after import. Gherkin ``.feature`` files are exchange and automation artifacts
 unless a project explicitly changes ownership. ``bdd sync --check`` reports

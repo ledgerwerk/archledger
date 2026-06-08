@@ -215,7 +215,8 @@ _SDD_RULES: tuple[SddRuleInfo, ...] = (
     SddRuleInfo(
         code="SDD-BDD-GWT",
         severity="error",
-        meaning="Accepted runtime_scenario with bdd is missing given/when/then steps.",
+        meaning="Accepted runtime_scenario or quality_scenario with bdd "
+        "is missing given/when/then steps.",
         fix="Populate non-empty given/when/then in the bdd block "
         "(or disable the policy).",
         waivable=True,
@@ -223,10 +224,11 @@ _SDD_RULES: tuple[SddRuleInfo, ...] = (
     ),
     SddRuleInfo(
         code="SDD-BDD-AUTOMATION",
-        severity="warning by default, error when "
+        severity="warning by default; error when "
         "require_bdd_automation_for_accepted_records=true",
-        meaning="Accepted record has bdd with automation.status=pending.",
-        fix="Set automation.status to linked/automated and add feature_file/test refs.",
+        meaning="Accepted record has bdd with automation.status=pending or linked.",
+        fix="Reach automation.status=automated (runner wired) or not_applicable, "
+        "or waive the rule. Under the strict policy, linked alone is not enough.",
         waivable=True,
         waiver_example=_waiver("SDD-BDD-AUTOMATION", "Manual verification only."),
     ),

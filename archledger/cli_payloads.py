@@ -497,9 +497,10 @@ def sdd_check_payload(
             require_test_refs=sdd.require_test_refs,
         )
     return {
-        "schema": "archledger.sdd-check.v1",
-        "profile": config.profile,
-        "profile_enabled": "sdd" in config.profiles.profiles.enabled,
+        "schema": "archledger.sdd-check.v2",
+        "default_profile": config.profiles.profiles.default,
+        "enabled_profiles": list(config.profiles.profiles.enabled),
+        "sdd_enabled": "sdd" in config.profiles.profiles.enabled,
         "policy": {
             "require_acceptance_criteria": options.require_acceptance_criteria,
             "require_implementation_refs": options.require_implementation_refs,

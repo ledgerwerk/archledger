@@ -9,15 +9,25 @@ output formatting.
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Annotated
 
 import typer
 
+from archledger.bdd.exporter import (
+    export_bdd_record,
+    render_feature_with_rules,
+    safe_feature_filename,
+    safe_output_file,
+)
 from archledger.bdd.gherkin import (
     GherkinSyntaxError,
     UnsupportedGherkinError,
 )
+from archledger.bdd.inspect import list_bdd_records
+from archledger.bdd.normalize import normalize_bdd_metadata
 from archledger.errors import ArchledgerError
+from archledger.source_refs import validate_relative_posix_path
 
 bdd_app = typer.Typer(add_completion=False, no_args_is_help=True)
 
@@ -169,6 +179,235 @@ def import_command(
     )
 
 
+def _validate_export_options(
+    *,
+    record_id: str | None,
+    all_records: bool,
+    feature: str | None,
+    out: str | None,
+    out_dir: str | None,
+) -> None:
+    """Reject ambiguous or incomplete export mode combinations."""
+    modes = sum(bool(x) for x in (record_id, all_records, feature))
+    if modes == 0:
+        raise ArchledgerError("Provide a RECORD_ID, --all, or --feature.")
+    if modes > 1:
+        raise ArchledgerError("Use only one of RECORD_ID, --all, or --feature.")
+    if (all_records or feature) and not out_dir:
+        raise ArchledgerError("--all and --feature require --out-dir.")
+    if record_id and not out:
+        raise ArchledgerError("Single-record export requires --out.")
+
+
+def _export_single_record(
+    repo, record_id: str, out: str, *, force: bool
+) -> dict[str, object]:
+    """Export one record to a single .feature file; return the v1 payload."""
+    response = export_bdd_record(repo, record_id, out, force=force)
+    rel_out = response.output_file
+    record = repo.get_record(record_id)
+    raw_bdd = record.metadata.get("bdd")
+    feat_name = ""
+    if isinstance(raw_bdd, dict):
+        feat_name = str(raw_bdd.get("feature") or "")
+    return {
+        "schema": "archledger.bdd-export.v1",
+        "exported": [
+            {
+                "record_id": response.record_id,
+                "feature": feat_name,
+                "file": rel_out,
+            }
+        ],
+        "feature_files": [rel_out],
+        "warnings": list(response.warnings),
+    }
+
+
+def _collect_export_targets(
+    repo, entries, *, workspace_root, out_path
+) -> list[dict[str, object]]:
+    """Group entries by feature/rule and build write targets (no writing yet)."""
+    feature_groups: dict[str, dict[str, list[str]]] = {}
+    for entry in entries.entries:
+        feat = entry.feature
+        if feat not in feature_groups:
+            feature_groups[feat] = {}
+        feature_groups[feat].setdefault(entry.rule, []).append(entry.record_id)
+
+    targets: list[dict[str, object]] = []
+    used_filenames: dict[str, str] = {}  # filename -> owning feature
+    for feat in sorted(feature_groups):
+        rule_map = feature_groups[feat]
+        # Build rule groups with their examples, sorted deterministically.
+        rule_groups: list[tuple[str, list[object], list[str]]] = []
+        feature_record_ids: list[str] = []
+        for rule in sorted(rule_map):
+            rids = rule_map[rule]
+            examples: list[object] = []
+            for rid in rids:
+                record = repo.get_record(rid)
+                raw_bdd = record.metadata.get("bdd")
+                if raw_bdd is None:
+                    continue
+                example, _ = normalize_bdd_metadata(rid, raw_bdd)
+                if example is None:
+                    continue
+                examples.append(example)
+            if not examples:
+                continue
+            rule_groups.append((rule, examples, list(rids)))
+            feature_record_ids.extend(rids)
+        if not rule_groups:
+            continue
+
+        base_filename = safe_feature_filename(
+            feat, fallback=f"feature_{len(targets) + 1}"
+        )
+        filename = base_filename
+        # Deterministic collision handling: distinct feature names that
+        # sanitize to the same basename must be renamed by the author.
+        if filename in used_filenames:
+            owner = used_filenames[filename]
+            raise ArchledgerError(
+                f"Feature name collision: {feat!r} and {owner!r} both"
+                f" sanitize to {filename!r}. Rename one feature or use"
+                " --out with per-record export."
+            )
+        used_filenames[filename] = feat
+
+        content = render_feature_with_rules(feat, rule_groups, feature_record_ids)
+        file_path = safe_output_file(workspace_root, out_path, filename)
+        targets.append(
+            {
+                "filename": filename,
+                "path": file_path,
+                "content": content,
+                "feature": feat,
+                "record_ids": feature_record_ids,
+            }
+        )
+    return targets
+
+
+def _write_export_targets(
+    targets: list[dict[str, object]], *, workspace_root, force: bool
+) -> dict[str, object]:
+    """Detect existing-file collisions, then write every validated target."""
+    if not force:
+        existing = [
+            str(t["path"].relative_to(workspace_root))
+            for t in targets
+            if t["path"].exists()
+        ]
+        if existing:
+            raise ArchledgerError(
+                "Feature file already exists: " + ", ".join(existing) + " (use --force)"
+            )
+
+    exported: list[dict[str, object]] = []
+    feature_files: list[str] = []
+    for t in targets:
+        t["path"].write_text(t["content"], encoding="utf-8")
+        rel = str(t["path"].relative_to(workspace_root))
+        feature_files.append(rel)
+        exported.extend(
+            {"record_id": rid, "feature": t["feature"], "file": rel}
+            for rid in t["record_ids"]
+        )
+    return {
+        "schema": "archledger.bdd-export.v1",
+        "exported": exported,
+        "feature_files": feature_files,
+        "warnings": [],
+    }
+
+
+def _export_batch(
+    repo,
+    paths,
+    *,
+    all_records: bool,
+    feature: str | None,
+    out_dir: str | None,
+    force: bool,
+) -> dict[str, object]:
+    """Export --all or --feature into a directory of .feature files."""
+    entries = list_bdd_records(
+        repo, feature_filter=feature if not all_records else None
+    )
+    if not entries.entries:
+        return {
+            "schema": "archledger.bdd-export.v1",
+            "exported": [],
+            "feature_files": [],
+            "warnings": [],
+        }
+
+    safe_dir = validate_relative_posix_path(out_dir or ".", field_name="out-dir")
+    out_path = paths.workspace_root / Path(safe_dir)
+    out_path.mkdir(parents=True, exist_ok=True)
+
+    targets = _collect_export_targets(
+        repo, entries, workspace_root=paths.workspace_root, out_path=out_path
+    )
+    return _write_export_targets(
+        targets, workspace_root=paths.workspace_root, force=force
+    )
+
+
+def _build_export_result(
+    repo,
+    paths,
+    config,
+    *,
+    record_id: str | None,
+    all_records: bool,
+    feature: str | None,
+    out: str | None,
+    out_dir: str | None,
+    force: bool,
+) -> dict[str, object]:
+    """Build the ``bdd export`` payload, mapping errors to ArchledgerError."""
+    del config
+    try:
+        _validate_export_options(
+            record_id=record_id,
+            all_records=all_records,
+            feature=feature,
+            out=out,
+            out_dir=out_dir,
+        )
+        if record_id and out:
+            return _export_single_record(repo, record_id, out, force=force)
+        return _export_batch(
+            repo,
+            paths,
+            all_records=all_records,
+            feature=feature,
+            out_dir=out_dir,
+            force=force,
+        )
+    except UnsupportedGherkinError as exc:
+        raise _translate_gherkin_error(exc, feature_file=out or out_dir or "") from exc
+    except GherkinSyntaxError as exc:
+        raise _translate_gherkin_error(exc, feature_file=out or out_dir or "") from exc
+    except (ValueError, FileNotFoundError, ArchledgerError) as exc:
+        raise ArchledgerError(str(exc)) from exc
+
+
+def _fmt_export(p: dict[str, object]) -> str:
+    """Render a human-readable summary line for an export payload."""
+    if p.get("record_id"):
+        return f"Exported {p['record_id']} to {p.get('output_file', p.get('file', ''))}"
+    exported = p.get("exported", [])
+    feature_files = p.get("feature_files", [])
+    return (
+        f"Exported {len(exported)} scenario(s) into "
+        f"{len(feature_files)} feature file(s)."
+    )
+
+
 @bdd_app.command("export")
 def export_command(
     ctx: typer.Context,
@@ -206,125 +445,24 @@ def export_command(
     ] = False,
 ) -> None:
     """Export archledger record(s) with bdd metadata as Gherkin feature files."""
-    from archledger.bdd.exporter import export_bdd_record, render_feature_from_example
-    from archledger.bdd.inspect import list_bdd_records
-    from archledger.bdd.normalize import normalize_bdd_metadata
     from archledger.cli import _run_configured_command, _state
-    from archledger.cli_payloads import bdd_export_payload
-    from archledger.source_refs import validate_relative_posix_path
 
     state = _state(ctx)
 
-    # Validate option combinations.
-    modes = sum(bool(x) for x in (record_id, all_records, feature))
-    if modes == 0:
-        raise ArchledgerError("Provide a RECORD_ID, --all, or --feature.")
-    if modes > 1:
-        raise ArchledgerError("Use only one of RECORD_ID, --all, or --feature.")
-    if (all_records or feature) and not out_dir:
-        raise ArchledgerError("--all and --feature require --out-dir.")
-    if record_id and not out:
-        raise ArchledgerError("Single-record export requires --out.")
-
-    def _build_export_result(repo, paths, config):  # noqa: ANN001
-        del config
-        try:
-            # Single-record mode
-            if record_id and out:
-                response = export_bdd_record(repo, record_id, out, force=force)
-                return bdd_export_payload(response)
-
-            # Batch mode (--all or --feature)
-            from pathlib import Path
-
-            entries = list_bdd_records(
-                repo, feature_filter=feature if not all_records else None
-            )
-            if not entries.entries:
-                return {
-                    "schema": "archledger.bdd-export.v1",
-                    "exported": [],
-                    "feature_files": [],
-                }
-
-            exported: list[dict[str, object]] = []
-            feature_files: list[str] = []
-            safe_dir = validate_relative_posix_path(
-                out_dir or ".", field_name="out-dir"
-            )
-            out_path = paths.workspace_root / Path(safe_dir)
-            out_path.mkdir(parents=True, exist_ok=True)
-
-            # Group by feature+rule for deterministic multi-scenario files
-            groups: dict[tuple[str, str], list[str]] = {}
-            for entry in entries.entries:
-                groups.setdefault((entry.feature, entry.rule), []).append(
-                    entry.record_id
-                )
-
-            for (feat, rule), rids in sorted(groups.items()):
-                scenario_parts = []
-                for rid in rids:
-                    record = repo.get_record(rid)
-                    raw_bdd = record.metadata.get("bdd")
-                    if raw_bdd is None:
-                        continue
-                    example, _ = normalize_bdd_metadata(rid, raw_bdd)
-                    if example is None:
-                        continue
-                    scenario_parts.append(example)
-                if not scenario_parts:
-                    continue
-                content = render_feature_from_example(feat, rule, scenario_parts, rids)
-                feat_filename = feat.lower().replace(" ", "_") + ".feature"
-                file_path = out_path / feat_filename
-                if file_path.exists() and not force:
-                    raise ValueError(
-                        f"Feature file already exists: {safe_dir}/{feat_filename}"
-                        " (use --force)"
-                    )
-                file_path.write_text(content, encoding="utf-8")
-                rel = str(file_path.relative_to(paths.workspace_root))
-                feature_files.append(rel)
-                exported.extend(
-                    {"record_id": rid, "feature": feat, "file": rel} for rid in rids
-                )
-
-            return {
-                "schema": "archledger.bdd-export.v1",
-                "exported": exported,
-                "feature_files": feature_files,
-            }
-        except UnsupportedGherkinError as exc:
-            raise _translate_gherkin_error(
-                exc, feature_file=out or out_dir or ""
-            ) from exc
-        except GherkinSyntaxError as exc:
-            raise _translate_gherkin_error(
-                exc, feature_file=out or out_dir or ""
-            ) from exc
-        except (ValueError, FileNotFoundError, ArchledgerError) as exc:
-            raise ArchledgerError(str(exc)) from exc
-
-    def _fmt_export(p: dict[str, object]) -> str:
-        if p.get("record_id"):
-            return (
-                f"Exported {p['record_id']} to "
-                f"{p.get('output_file', p.get('file', ''))}"
-            )
-        exported = p.get("exported", [])
-        feature_files = p.get("feature_files", [])
-        return (
-            f"Exported {len(exported)} scenario(s) into "
-            f"{len(feature_files)} feature file(s)."
+    def _build(repo, paths, config):  # noqa: ANN001
+        return _build_export_result(
+            repo,
+            paths,
+            config,
+            record_id=record_id,
+            all_records=all_records,
+            feature=feature,
+            out=out,
+            out_dir=out_dir,
+            force=force,
         )
 
-    _run_configured_command(
-        state,
-        "bdd export",
-        _build_export_result,
-        _fmt_export,
-    )
+    _run_configured_command(state, "bdd export", _build, _fmt_export)
 
 
 @bdd_app.command("validate")
@@ -356,13 +494,15 @@ def validate_command(
     from archledger.cli_payloads import bdd_validate_payload
 
     state = _state(ctx)
-    if not record_id and not feature_file and not all_records:
-        raise ArchledgerError("Provide a RECORD_ID, --feature-file, or --all.")
-    if sum(bool(x) for x in (record_id, feature_file, all_records)) > 1:
-        raise ArchledgerError("Pass only one of RECORD_ID, --feature-file, or --all.")
 
     def _build(repo, paths, config):  # noqa: ANN001
         del paths, config
+        if not record_id and not feature_file and not all_records:
+            raise ArchledgerError("Provide a RECORD_ID, --feature-file, or --all.")
+        if sum(bool(x) for x in (record_id, feature_file, all_records)) > 1:
+            raise ArchledgerError(
+                "Pass only one of RECORD_ID, --feature-file, or --all."
+            )
         if feature_file:
             response = validate_bdd_feature_file(repo, feature_file)
         elif all_records:
@@ -413,6 +553,15 @@ def list_command(
 
     def _build(repo, paths, config):  # noqa: ANN001
         del paths, config
+        if automation is not None:
+            from archledger.bdd.models import BDD_AUTOMATION_STATUSES
+
+            if automation not in BDD_AUTOMATION_STATUSES:
+                raise ArchledgerError(
+                    "Unknown --automation status "
+                    f"{automation!r}. Use one of: "
+                    + ", ".join(sorted(BDD_AUTOMATION_STATUSES))
+                )
         response = list_bdd_records(
             repo,
             status_filter=status,
@@ -662,11 +811,13 @@ def sync_command(
     from archledger.cli_payloads import bdd_sync_payload
 
     state = _state(ctx)
-    if not check:
-        raise ArchledgerError("Pass --check to compare feature files against records.")
 
     def _build(repo, paths, config):  # noqa: ANN001
         del paths, config
+        if not check:
+            raise ArchledgerError(
+                "Pass --check to compare feature files against records."
+            )
         response = check_bdd_sync(repo)
         return bdd_sync_payload(response)
 

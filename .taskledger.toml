@@ -9,7 +9,7 @@ project_name = "archledger"
 # Taskledger branch-scoped state. This block is intentionally safe to commit.
 ledger_ref = "main"
 ledger_parent_ref = ""
-ledger_next_task_number = 32
+ledger_next_task_number = 33
 ledger_branch_guard = "off"
 
 # Project-local taskledger overrides.

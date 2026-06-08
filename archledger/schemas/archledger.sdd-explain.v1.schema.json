@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://archledger.dev/schemas/archledger.sdd-explain.v1.schema.json",
+  "title": "Archledger SDD explain result",
+  "type": "object",
+  "required": ["schema"],
+  "properties": {
+    "schema": { "const": "archledger.sdd-explain.v1" }
+  },
+  "oneOf": [
+    {
+      "title": "Single rule",
+      "required": [
+        "code",
+        "severity",
+        "meaning",
+        "fix",
+        "waivable",
+        "waiver_example"
+      ],
+      "properties": {
+        "code": { "type": "string" },
+        "severity": { "type": "string" },
+        "meaning": { "type": "string" },
+        "fix": { "type": "string" },
+        "waivable": { "type": "boolean" },
+        "waiver_example": { "type": "string" }
+      }
+    },
+    {
+      "title": "All rules",
+      "required": ["rules"],
+      "properties": {
+        "rules": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "code",
+              "severity",
+              "meaning",
+              "fix",
+              "waivable",
+              "waiver_example"
+            ],
+            "properties": {
+              "code": { "type": "string" },
+              "severity": { "type": "string" },
+              "meaning": { "type": "string" },
+              "fix": { "type": "string" },
+              "waivable": { "type": "boolean" },
+              "waiver_example": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

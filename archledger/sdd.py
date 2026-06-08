@@ -599,6 +599,7 @@ class SddCoverageResult:
     totals: dict[str, int]
     coverage: dict[str, SddCoverageDimension]
     gaps: tuple[str, ...]
+    by_record: tuple[dict[str, object], ...] = ()
 
 
 def check_sdd_coverage(
@@ -680,32 +681,7 @@ def check_sdd_coverage(
     }
 
     if include_bdd:
-        from archledger.bdd.models import DEFAULT_BDD_AUTOMATION_STATUS
-        from archledger.bdd.normalize import normalize_bdd_metadata
-
-        behavior_with_gwt = 0
-        behavior_with_feature = 0
-        behavior_automated = 0
-        for br in behavior_records:
-            raw_bdd = br.metadata.get("bdd")
-            if raw_bdd is None:
-                continue
-            example, _warnings = normalize_bdd_metadata(br.id, raw_bdd)
-            if example is None:
-                continue
-            if example.given and example.when and example.then:
-                behavior_with_gwt += 1
-            auto = example.automation
-            auto_status = auto.status if auto else DEFAULT_BDD_AUTOMATION_STATUS
-            if auto and auto.feature_file:
-                behavior_with_feature += 1
-            if auto_status in ("automated", "linked"):
-                behavior_automated += 1
-        cov["behavior_with_gwt"] = _dim(behavior_with_gwt, len(behavior_records))
-        cov["behavior_with_feature_file"] = _dim(
-            behavior_with_feature, len(behavior_records)
-        )
-        cov["behavior_automated"] = _dim(behavior_automated, len(behavior_records))
+        cov.update(_count_bdd_coverage(behavior_records))
 
     gaps: list[str] = []
     if reqs_with_ac < len(accepted_reqs):
@@ -728,6 +704,13 @@ def check_sdd_coverage(
             " missing traceability."
         )
 
+    # Per-record detail (only when requested). Mirrors the aggregate counters
+    # so each accepted requirement/ADR/behavior record lists its covered flags
+    # and the gaps that keep it from full coverage.
+    by_record_rows = (
+        _coverage_record_rows(records, acceptance_by_req) if by_record else []
+    )
+
     return SddCoverageResult(
         default_profile=default_profile,
         enabled_profiles=enabled_profiles,
@@ -740,7 +723,138 @@ def check_sdd_coverage(
         },
         coverage=cov,
         gaps=tuple(gaps),
+        by_record=tuple(by_record_rows),
     )
+
+
+def _count_bdd_coverage(
+    behavior_records: list[ArchitectureRecord],
+) -> dict[str, SddCoverageDimension]:
+    """Count BDD coverage dimensions for accepted behavior records."""
+    behavior_with_gwt = 0
+    behavior_with_feature = 0
+    behavior_linked = 0
+    behavior_automated = 0
+    for br in behavior_records:
+        raw_bdd = br.metadata.get("bdd")
+        if raw_bdd is None:
+            continue
+        example, _warnings = normalize_bdd_metadata(br.id, raw_bdd)
+        if example is None:
+            continue
+        if example.given and example.when and example.then:
+            behavior_with_gwt += 1
+        auto = example.automation
+        auto_status = auto.status if auto else DEFAULT_BDD_AUTOMATION_STATUS
+        if auto and auto.feature_file:
+            behavior_with_feature += 1
+        if auto_status == "linked":
+            behavior_linked += 1
+        if auto_status == "automated":
+            behavior_automated += 1
+    total = len(behavior_records)
+    return {
+        "behavior_with_gwt": SddCoverageDimension(
+            covered=behavior_with_gwt, total=total
+        ),
+        "behavior_with_feature_file": SddCoverageDimension(
+            covered=behavior_with_feature, total=total
+        ),
+        "behavior_linked": SddCoverageDimension(covered=behavior_linked, total=total),
+        "behavior_automated": SddCoverageDimension(
+            covered=behavior_automated, total=total
+        ),
+    }
+
+
+def _coverage_record_rows(
+    records: list[ArchitectureRecord],
+    acceptance_by_req: dict[str, list[ArchitectureRecord]],
+) -> list[dict[str, object]]:
+    """Per-record coverage detail for accepted requirements/ADRs/behavior."""
+    records_by_id = {r.id: r for r in records}
+    rows: list[dict[str, object]] = []
+    for r in records:
+        if r.status != "accepted":
+            continue
+        if r.type == "requirement":
+            has_ac = _has_inline_acceptance_criteria(r) or r.id in acceptance_by_req
+            has_impl = any(ref.role == "implements" for ref in r.source_refs)
+            has_val = _has_validation(r, acceptance_by_req, records_by_id)
+            rec_gaps = [
+                name
+                for present, name in [
+                    (has_ac, "acceptance_criteria"),
+                    (has_impl, "implementation_refs"),
+                    (has_val, "validation"),
+                ]
+                if not present
+            ]
+            rows.append(
+                {
+                    "record_id": r.id,
+                    "type": r.type,
+                    "status": r.status,
+                    "covered": {
+                        "acceptance_criteria": has_ac,
+                        "implementation_refs": has_impl,
+                        "validation": has_val,
+                    },
+                    "gaps": rec_gaps,
+                }
+            )
+        elif r.type == "adr":
+            has_trace = bool(r.links or r.metadata.get("related") or r.source_refs)
+            rows.append(
+                {
+                    "record_id": r.id,
+                    "type": r.type,
+                    "status": r.status,
+                    "covered": {"traceability": has_trace},
+                    "gaps": [] if has_trace else ["traceability"],
+                }
+            )
+        elif r.type in ("runtime_scenario", "quality_scenario"):
+            rows.append(_coverage_behavior_row(r))
+    return rows
+
+
+def _coverage_behavior_row(record: ArchitectureRecord) -> dict[str, object]:
+    """Coverage row for a runtime/quality scenario with optional bdd metadata."""
+    raw_bdd = record.metadata.get("bdd")
+    covered: dict[str, object] = {
+        "gwt": False,
+        "feature_file": False,
+        "automation": False,
+    }
+    rec_gaps: list[str] = ["bdd_metadata"]
+    if isinstance(raw_bdd, dict):
+        example, _w = normalize_bdd_metadata(record.id, raw_bdd)
+        if example is not None:
+            gwt = bool(example.given and example.when and example.then)
+            auto = example.automation
+            auto_status = auto.status if auto else DEFAULT_BDD_AUTOMATION_STATUS
+            covered = {
+                "gwt": gwt,
+                "feature_file": bool(auto and auto.feature_file),
+                "automation": auto_status == "automated",
+            }
+            rec_gaps = [
+                name
+                for present, name in [
+                    (gwt, "gwt"),
+                    (bool(auto and auto.feature_file), "feature_file"),
+                    (auto_status == "automated", "automation"),
+                ]
+                if not present
+            ]
+    return {
+        "record_id": record.id,
+        "type": record.type,
+        "status": record.status,
+        "covered": covered,
+        "gaps": rec_gaps,
+    }
 
 
 # ── helpers ─────────────────────────────────────────────────────────────
@@ -974,8 +1088,9 @@ def _check_bdd(
     if example is None:
         return findings
 
-    # SDD-BDD-GWT: required for runtime_scenario records
-    if r.type == "runtime_scenario":
+    # SDD-BDD-GWT: required for accepted behavior records (runtime and quality
+    # scenarios) that carry bdd metadata.
+    if r.type in ("runtime_scenario", "quality_scenario"):
         _require_gwt = ctx.options.require_bdd_gwt_for_behavior_records
         if _require_gwt and not _has_waiver(ctx, r.id, "SDD-BDD-GWT"):
             missing = [
@@ -993,7 +1108,7 @@ def _check_bdd(
                         level="error",
                         code="SDD-BDD-GWT",
                         message=(
-                            f"Accepted runtime_scenario {r.id} bdd metadata is "
+                            f"Accepted {r.type} {r.id} bdd metadata is "
                             f"missing: {', '.join(missing)}."
                         ),
                         record_id=r.id,
@@ -1001,13 +1116,35 @@ def _check_bdd(
                     )
                 )
 
-    # SDD-BDD-AUTOMATION: warn on pending unless profile requires it
+    # SDD-BDD-AUTOMATION: under strict policy only automated / not_applicable
+    # satisfy the requirement; pending and linked are failing. Under the lenient
+    # default, pending is a warning and linked is acceptable (feature file
+    # present, runner not yet wired).
     if example.automation is not None:
         auto_status = example.automation.status
     else:
         auto_status = DEFAULT_BDD_AUTOMATION_STATUS
     require_automation = ctx.options.require_bdd_automation_for_accepted_records
+    not_satisfied = auto_status in ("pending", "linked")
     if (
+        not_satisfied
+        and require_automation
+        and not _has_waiver(ctx, r.id, "SDD-BDD-AUTOMATION")
+    ):
+        findings.append(
+            SddFinding(
+                level="error",
+                code="SDD-BDD-AUTOMATION",
+                message=(
+                    f"Record {r.id} has bdd with automation.status={auto_status};"
+                    " automation is required by profile policy"
+                    " (reach status automated or not_applicable, or waive the rule)."
+                ),
+                record_id=r.id,
+                path=r.path,
+            )
+        )
+    elif (
         auto_status == "pending"
         and not require_automation
         and not _has_waiver(ctx, r.id, "SDD-BDD-AUTOMATION")
@@ -1019,23 +1156,6 @@ def _check_bdd(
                 message=(
                     f"Record {r.id} has bdd with automation.status=pending; "
                     "link to a feature file when automation is wired."
-                ),
-                record_id=r.id,
-                path=r.path,
-            )
-        )
-    elif (
-        auto_status == "pending"
-        and require_automation
-        and not _has_waiver(ctx, r.id, "SDD-BDD-AUTOMATION")
-    ):
-        findings.append(
-            SddFinding(
-                level="error",
-                code="SDD-BDD-AUTOMATION",
-                message=(
-                    f"Record {r.id} has bdd with automation.status=pending; "
-                    "automation is required by profile policy."
                 ),
                 record_id=r.id,
                 path=r.path,

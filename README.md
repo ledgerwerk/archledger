@@ -82,6 +82,9 @@ archledger sdd init --strict-defaults --seed minimal
 # Show and set policy without manual TOML editing
 archledger sdd policy show
 archledger sdd policy set --require-bdd-automation
+# Under --require-bdd-automation, accepted behavior records must reach
+# automation.status=automated (or not_applicable); linked alone is not enough.
+
 
 # Explain rule codes and manage waivers
 archledger sdd explain SDD-BDD-AUTOMATION

@@ -3,11 +3,25 @@
   "$id": "https://archledger.dev/schemas/archledger.bdd-export.v1.schema.json",
   "title": "Archledger BDD export result",
   "type": "object",
-  "required": ["schema", "record_id", "output_file", "warnings"],
+  "required": ["schema", "exported", "feature_files", "warnings"],
   "properties": {
     "schema": { "const": "archledger.bdd-export.v1" },
-    "record_id": { "type": "string" },
-    "output_file": { "type": "string" },
+    "exported": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["record_id", "feature", "file"],
+        "properties": {
+          "record_id": { "type": "string" },
+          "feature": { "type": "string" },
+          "file": { "type": "string" }
+        }
+      }
+    },
+    "feature_files": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
     "warnings": {
       "type": "array",
       "items": { "type": "string" }

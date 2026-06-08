@@ -14,6 +14,9 @@ SCHEMA_FILES = {
     "sdd-policy": "archledger.sdd-policy.v1.schema.json",
     "sdd-coverage": "archledger.sdd-coverage.v1.schema.json",
     "sdd-pr": "archledger.sdd-pr.v1.schema.json",
+    "sdd-init": "archledger.sdd-init.v1.schema.json",
+    "sdd-explain": "archledger.sdd-explain.v1.schema.json",
+    "sdd-check": "archledger.sdd-check.v2.schema.json",
     "context": "archledger.context.v1.schema.json",
     "trace": "archledger.trace.v1.schema.json",
     "changed": "archledger.changed.v1.schema.json",
@@ -22,6 +25,7 @@ SCHEMA_FILES = {
     "bdd-status": "archledger.bdd-status.v1.schema.json",
     "bdd-list": "archledger.bdd-list.v1.schema.json",
     "bdd-validate": "archledger.bdd-validate.v1.schema.json",
+    "bdd-sync": "archledger.bdd-sync.v1.schema.json",
 }
 
 
