@@ -236,11 +236,36 @@ _SDD_RULES: tuple[SddRuleInfo, ...] = (
         code="SDD-BDD-FEATURE-REF",
         severity="error",
         meaning="bdd.automation.feature_file is not linked "
-        "via source_refs or test_refs.",
-        fix="Add a source_ref (role documents) or test_ref for the feature file path.",
+        "via source_refs with role documents.",
+        fix="Add a source_ref with role documents for the behavior spec path.",
         waivable=True,
         waiver_example=_waiver(
             "SDD-BDD-FEATURE-REF", "Feature file lives outside the workspace."
+        ),
+    ),
+    SddRuleInfo(
+        code="SDD-BDD-TEST-REF",
+        severity="warning by default; error when "
+        "require_bdd_automation_for_accepted_records=true",
+        meaning="Accepted record has bdd.automation.status=automated but no "
+        "executable test_refs entry.",
+        fix="Add a test_refs entry pointing at the executable pytest test, or "
+        "waive the rule when automation evidence lives elsewhere.",
+        waivable=True,
+        waiver_example=_waiver("SDD-BDD-TEST-REF", "Automation is tracked externally."),
+    ),
+    SddRuleInfo(
+        code="SDD-BDD-FEATURE-PATH-CONVENTION",
+        severity="warning",
+        meaning="bdd.automation.feature_file uses a deprecated feature-file path.",
+        fix=(
+            "Move the behavior spec to "
+            "specs/behavior/features/<area>/<feature>.feature."
+        ),
+        waivable=True,
+        waiver_example=_waiver(
+            "SDD-BDD-FEATURE-PATH-CONVENTION",
+            "Legacy repository layout is still being migrated.",
         ),
     ),
     SddRuleInfo(

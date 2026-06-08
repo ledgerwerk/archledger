@@ -331,7 +331,7 @@ def test_bdd_import_sets_automation_feature_file_and_scenario(tmp_path: Path) ->
     _init(tmp_path)
     rel = _write_feature(
         tmp_path,
-        "tests/bdd/features/lifecycle.feature",
+        "specs/behavior/features/task-management/lifecycle.feature",
         "Feature: Task lifecycle\n"
         "  Scenario: Blocked\n"
         "    Given g\n    When w\n    Then t\n",
@@ -355,6 +355,27 @@ def test_bdd_import_sets_automation_feature_file_and_scenario(tmp_path: Path) ->
     auto = metadata["bdd"]["automation"]
     assert auto["feature_file"] == rel
     assert auto["scenario"] == "Blocked"
+
+
+def test_bdd_import_warns_for_deprecated_feature_path(tmp_path: Path) -> None:
+    _init(tmp_path)
+    rel = _write_feature(
+        tmp_path,
+        "tests/bdd/features/lifecycle.feature",
+        "Feature: Task lifecycle\n"
+        "  Scenario: Blocked\n"
+        "    Given g\n    When w\n    Then t\n",
+    )
+    result = runner.invoke(
+        app,
+        ["--root", str(tmp_path), "--json", "bdd", "import", rel],
+    )
+    assert result.exit_code == 0, result.stdout
+    payload = json.loads(result.stdout)["result"]
+    assert any(
+        "deprecated BDD feature-file location" in warning
+        for warning in payload["warnings"]
+    )
 
 
 def test_bdd_import_sets_automation_status_linked_by_default(tmp_path: Path) -> None:

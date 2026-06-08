@@ -46,8 +46,10 @@ agent-consumable specifications.
 - **Context service** selects bounded record sets from a file, record, or source
   drift query.
 - **Trace service** traverses links and evidence around a record.
-- **BDD service** parses a constrained Gherkin subset and imports or exports
-  behavior metadata without executing test runners.
+- **BDD service** parses a constrained Gherkin subset, imports or exports
+  behavior metadata, links SpecWeave-owned feature files through `source_refs`,
+  links plain pytest enforcement through `test_refs`, and never executes test
+  runners.
 - **Mutation service** updates status, metadata, bodies, links, references, and
   acceptance criteria while reusing repository validation.
 

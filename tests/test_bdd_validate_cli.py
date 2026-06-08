@@ -143,6 +143,32 @@ def test_bdd_validate_feature_file_ok(tmp_path: Path) -> None:
     assert len(payload["scenarios"]) == 1
 
 
+def test_bdd_validate_feature_file_warns_for_deprecated_path(tmp_path: Path) -> None:
+    _init(tmp_path)
+    feat = tmp_path / "tests" / "bdd" / "features" / "legacy.feature"
+    feat.parent.mkdir(parents=True, exist_ok=True)
+    feat.write_text(
+        "Feature: F\n  Scenario: A\n    Given g\n    When w\n    Then t\n",
+        encoding="utf-8",
+    )
+    result = runner.invoke(
+        app,
+        [
+            "--root",
+            str(tmp_path),
+            "--json",
+            "bdd",
+            "validate",
+            "--feature-file",
+            "tests/bdd/features/legacy.feature",
+        ],
+    )
+    assert result.exit_code == 0, result.stdout
+    payload = json.loads(result.stdout)["result"]
+    codes = {f["code"] for f in payload["findings"]}
+    assert "BDD-FEATURE-PATH-CONVENTION" in codes
+
+
 def test_bdd_validate_all(tmp_path: Path) -> None:
     _init(tmp_path)
     _create_record_with_bdd(
@@ -451,6 +477,119 @@ def test_bdd_link_sets_automation_and_source_ref(tmp_path: Path) -> None:
     assert auto["status"] == "automated"
     metadata, _body = read_front_matter_document(rp)
     assert any(ref["role"] == "documents" for ref in metadata.get("source_refs", []))
+
+
+def test_bdd_link_adds_pytest_test_ref(tmp_path: Path) -> None:
+    _init(tmp_path)
+    created = runner.invoke(
+        app,
+        ["--root", str(tmp_path), "--json", "new", "runtime_scenario", "S"],
+    )
+    rid = json.loads(created.stdout)["result"]["id"]
+    rp = Path(json.loads(created.stdout)["result"]["path"])
+    runner.invoke(
+        app,
+        [
+            "--root",
+            str(tmp_path),
+            "--json",
+            "bdd",
+            "set",
+            rid,
+            "--feature",
+            "F",
+            "--scenario",
+            "A",
+            "--given",
+            "g",
+            "--when",
+            "w",
+            "--then",
+            "t",
+        ],
+    )
+    result = runner.invoke(
+        app,
+        [
+            "--root",
+            str(tmp_path),
+            "--json",
+            "bdd",
+            "link",
+            rid,
+            "--feature-file",
+            "specs/behavior/features/task-management/plan-gates.feature",
+            "--scenario",
+            "@bdd-implementation-blocked-before-plan-acceptance",
+            "--test",
+            "tests/test_task_management_plan_gates.py::test_agent_cannot_start_implementation_before_plan_approval",
+            "--status",
+            "automated",
+        ],
+    )
+    assert result.exit_code == 0, result.stdout
+    payload = json.loads(result.stdout)["result"]
+    assert payload["tests"] == [
+        "tests/test_task_management_plan_gates.py::test_agent_cannot_start_implementation_before_plan_approval"
+    ]
+    metadata, _body = read_front_matter_document(rp)
+    assert any(ref["role"] == "documents" for ref in metadata.get("source_refs", []))
+    assert metadata["test_refs"] == [
+        {
+            "path": "tests/test_task_management_plan_gates.py",
+            "nodeid": "test_agent_cannot_start_implementation_before_plan_approval",
+            "role": "validates",
+            "reason": "Plain pytest enforcement.",
+        }
+    ]
+
+
+def test_bdd_link_rejects_automated_without_command_or_test_ref(tmp_path: Path) -> None:
+    _init(tmp_path)
+    created = runner.invoke(
+        app,
+        ["--root", str(tmp_path), "--json", "new", "runtime_scenario", "S"],
+    )
+    rid = json.loads(created.stdout)["result"]["id"]
+    runner.invoke(
+        app,
+        [
+            "--root",
+            str(tmp_path),
+            "--json",
+            "bdd",
+            "set",
+            rid,
+            "--feature",
+            "F",
+            "--scenario",
+            "A",
+            "--given",
+            "g",
+            "--when",
+            "w",
+            "--then",
+            "t",
+        ],
+    )
+    result = runner.invoke(
+        app,
+        [
+            "--root",
+            str(tmp_path),
+            "--json",
+            "bdd",
+            "link",
+            rid,
+            "--feature-file",
+            "specs/behavior/features/task-management/plan-gates.feature",
+            "--status",
+            "automated",
+        ],
+    )
+    assert result.exit_code != 0
+    payload = json.loads(result.stdout)
+    assert "--command, --test, or existing test_refs" in payload["error"]["message"]
 
 
 def test_bdd_link_refuses_without_bdd_metadata(tmp_path: Path) -> None:

@@ -76,7 +76,14 @@ def _no_drift_bdd(feature_file: str, scenario: str = "Scenario") -> dict:
 def test_bdd_sync_no_drift_after_import(tmp_path: Path) -> None:
     """A clean imported feature has no sync findings."""
     _init(tmp_path)
-    feature = tmp_path / "tests" / "bdd" / "features" / "lifecycle.feature"
+    feature = (
+        tmp_path
+        / "specs"
+        / "behavior"
+        / "features"
+        / "task-management"
+        / "lifecycle.feature"
+    )
     feature.parent.mkdir(parents=True, exist_ok=True)
     feature.write_text(
         "Feature: Lifecycle\n"
@@ -117,7 +124,8 @@ def test_bdd_sync_missing_feature_file(tmp_path: Path) -> None:
     """A linked feature file that does not exist is BDD-SYNC-FILE-MISSING."""
     _init(tmp_path)
     _create_bdd_record(
-        tmp_path, bdd=_no_drift_bdd("tests/bdd/features/missing.feature")
+        tmp_path,
+        bdd=_no_drift_bdd("specs/behavior/features/task-management/missing.feature"),
     )
 
     result = _sync(tmp_path)
@@ -130,7 +138,14 @@ def test_bdd_sync_missing_feature_file(tmp_path: Path) -> None:
 def test_bdd_sync_scenario_missing_from_feature(tmp_path: Path) -> None:
     """A record's scenario absent from the feature file is reported."""
     _init(tmp_path)
-    feature = tmp_path / "tests" / "bdd" / "features" / "lifecycle.feature"
+    feature = (
+        tmp_path
+        / "specs"
+        / "behavior"
+        / "features"
+        / "task-management"
+        / "lifecycle.feature"
+    )
     feature.parent.mkdir(parents=True, exist_ok=True)
     # The feature has a different scenario name than the record expects.
     feature.write_text(
@@ -143,7 +158,8 @@ def test_bdd_sync_scenario_missing_from_feature(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     _create_bdd_record(
-        tmp_path, bdd=_no_drift_bdd("tests/bdd/features/lifecycle.feature")
+        tmp_path,
+        bdd=_no_drift_bdd("specs/behavior/features/task-management/lifecycle.feature"),
     )
 
     result = _sync(tmp_path)
@@ -156,7 +172,14 @@ def test_bdd_sync_scenario_missing_from_feature(tmp_path: Path) -> None:
 def test_bdd_sync_gwt_mismatch(tmp_path: Path) -> None:
     """A modified Given/When/Then step is BDD-SYNC-GWT-MISMATCH."""
     _init(tmp_path)
-    feature = tmp_path / "tests" / "bdd" / "features" / "lifecycle.feature"
+    feature = (
+        tmp_path
+        / "specs"
+        / "behavior"
+        / "features"
+        / "task-management"
+        / "lifecycle.feature"
+    )
     feature.parent.mkdir(parents=True, exist_ok=True)
     feature.write_text(
         "Feature: Lifecycle\n"
@@ -168,7 +191,8 @@ def test_bdd_sync_gwt_mismatch(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     _create_bdd_record(
-        tmp_path, bdd=_no_drift_bdd("tests/bdd/features/lifecycle.feature")
+        tmp_path,
+        bdd=_no_drift_bdd("specs/behavior/features/task-management/lifecycle.feature"),
     )
 
     result = _sync(tmp_path)
@@ -181,7 +205,14 @@ def test_bdd_sync_gwt_mismatch(tmp_path: Path) -> None:
 def test_bdd_sync_orphan_scenario_in_feature(tmp_path: Path) -> None:
     """An extra scenario in the feature file with no matching record is orphan."""
     _init(tmp_path)
-    feature = tmp_path / "tests" / "bdd" / "features" / "lifecycle.feature"
+    feature = (
+        tmp_path
+        / "specs"
+        / "behavior"
+        / "features"
+        / "task-management"
+        / "lifecycle.feature"
+    )
     feature.parent.mkdir(parents=True, exist_ok=True)
     feature.write_text(
         "Feature: Lifecycle\n"
@@ -195,7 +226,8 @@ def test_bdd_sync_orphan_scenario_in_feature(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     _create_bdd_record(
-        tmp_path, bdd=_no_drift_bdd("tests/bdd/features/lifecycle.feature")
+        tmp_path,
+        bdd=_no_drift_bdd("specs/behavior/features/task-management/lifecycle.feature"),
     )
 
     result = _sync(tmp_path)
@@ -221,10 +253,15 @@ def test_bdd_sync_invalid_feature_file_returns_structured_error(
 ) -> None:
     """An unparseable feature file yields a structured JSON error envelope."""
     _init(tmp_path)
-    feature = tmp_path / "tests" / "bdd" / "features" / "bad.feature"
+    feature = (
+        tmp_path / "specs" / "behavior" / "features" / "task-management" / "bad.feature"
+    )
     feature.parent.mkdir(parents=True, exist_ok=True)
     feature.write_text("Background:\n  this is unsupported\n", encoding="utf-8")
-    _create_bdd_record(tmp_path, bdd=_no_drift_bdd("tests/bdd/features/bad.feature"))
+    _create_bdd_record(
+        tmp_path,
+        bdd=_no_drift_bdd("specs/behavior/features/task-management/bad.feature"),
+    )
 
     result = _sync(tmp_path)
     # Sync reports findings for the linked file; it should not crash with a
@@ -232,3 +269,14 @@ def test_bdd_sync_invalid_feature_file_returns_structured_error(
     payload = json.loads(result.stdout)
     assert payload["command"] == "bdd sync"
     assert "findings" in payload.get("result", payload)
+
+
+def test_bdd_sync_warns_for_deprecated_feature_path(tmp_path: Path) -> None:
+    _init(tmp_path)
+    _create_bdd_record(tmp_path, bdd=_no_drift_bdd("tests/bdd/features/legacy.feature"))
+
+    result = _sync(tmp_path)
+    assert result.exit_code == 0, result.stdout
+    payload = json.loads(result.stdout)["result"]
+    codes = [f["code"] for f in payload["findings"]]
+    assert "BDD-FEATURE-PATH-CONVENTION" in codes

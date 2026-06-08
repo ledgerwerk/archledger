@@ -59,7 +59,7 @@ archledger to enforce BDD metadata quality.
 archledger init --profile arc42
 archledger profile enable sdd
 
-archledger bdd import tests/bdd/features/lifecycle.feature \
+archledger bdd import specs/behavior/features/task-management/plan-gates.feature \
   --kind runtime-scenario \
   --status proposed
 
@@ -68,10 +68,11 @@ archledger sdd check --strict
 
 Imported BDD records carry a `bdd` front-matter block with feature, rule,
 scenario, tags, Given/When/Then steps, and optional automation metadata. Imported
-records default to `automation.status=linked`. Link feature files through `source_refs`
-and executable tests through `test_refs`.
+records default to `automation.status=linked`. Keep feature files in `source_refs`
+with role `documents` and link plain pytest validation through `test_refs`.
 
-Archledger does not run Cucumber and does not require a Cucumber dependency.
+Archledger does not run Cucumber, behave, pytest, or any BDD runner. Commands
+and test refs are traceability only.
 
 ### SDD lifecycle commands
 
@@ -103,21 +104,30 @@ archledger sdd check --kind requirement
 ```bash
 # Validate without importing/exporting
 archledger bdd validate al_runtime_0042
-archledger bdd validate --feature-file tests/bdd/features/lifecycle.feature
+archledger bdd validate --feature-file specs/behavior/features/task-management/plan-gates.feature
 
 # List, status, set, link
 archledger bdd list --automation pending
 archledger bdd status
 archledger bdd set al_runtime_0042 --feature "F" --scenario "S" --given g --when w --then t
-archledger bdd link al_runtime_0042 --feature-file path.feature --status automated
+archledger bdd link al_runtime_0042 \
+  --feature-file specs/behavior/features/task-management/plan-gates.feature \
+  --scenario "@bdd-implementation-blocked-before-plan-acceptance" \
+  --test tests/test_task_management_plan_gates.py::test_agent_cannot_start_implementation_before_plan_approval \
+  --status automated
 
 # Dry-run import and batch export
-archledger bdd import path.feature --dry-run
-archledger bdd export --all --out-dir tests/bdd/features
+archledger bdd import specs/behavior/features/task-management/plan-gates.feature --dry-run
+archledger bdd export al_runtime_0123 \
+  --out specs/behavior/features/task-management/plan-gates.derived.feature
+archledger bdd export --all --out-dir specs/behavior/features/derived
 ```
 
-Archledger record metadata is the canonical source after import. Feature files
-are exchange and automation artifacts. `bdd sync --check` reports drift.
+Archledger records are the canonical source for architecture/specification
+records. SpecWeave-owned files under `specs/behavior/features` may be the
+canonical behavior specifications. Archledger-exported `.feature` files are
+derived unless a project explicitly changes ownership. `bdd sync --check`
+reports drift between linked behavior specs and Archledger metadata.
 
 Safe mutation commands update front matter and re-run repository validation:
 

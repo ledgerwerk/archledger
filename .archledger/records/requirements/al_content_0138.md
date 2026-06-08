@@ -27,7 +27,7 @@ test_refs:
   - tests/test_bdd_checks.py
 acceptance_criteria:
   - id: AC-001
-    statement: Supported Gherkin features import as behavior records with normalized BDD metadata and export back to a feature file without executing automation commands.
+    statement: Supported Gherkin features import as behavior records with normalized BDD metadata, preserve behavior-spec links through source_refs, preserve executable pytest links through test_refs, and export derived feature files without executing automation commands.
     validation:
       command: pytest -q tests/test_bdd_import_cli.py tests/test_bdd_export_cli.py tests/test_bdd_checks.py
       expected: passes
@@ -36,11 +36,12 @@ acceptance_criteria:
 ## Requirement
 
 Archledger must import the supported Gherkin subset into runtime or quality
-scenario records and export records with valid `bdd` metadata as feature files.
-Automation metadata is stored only for traceability; Archledger never invokes a
-BDD runner.
+scenario records and export records with valid `bdd` metadata as derived feature
+files. Automation metadata is stored only for traceability; Archledger never
+invokes a BDD runner or pytest.
 
 ## Rationale
 
-Behavior examples remain part of the canonical architecture ledger while teams
-can exchange Gherkin artifacts with existing discovery and test workflows.
+Behavior examples remain part of the canonical architecture/specification ledger
+while teams can reference SpecWeave-owned canonical behavior specs under
+`specs/behavior/features` and plain pytest enforcement under `tests/test_*.py`.

@@ -173,7 +173,7 @@ def test_sdd_bdd_automation_error_when_required_by_config(tmp_path: Path) -> Non
 def test_sdd_bdd_feature_ref_fails_when_feature_file_not_linked(
     tmp_path: Path,
 ) -> None:
-    """SDD-BDD-FEATURE-REF: feature_file must be in source_refs or test_refs."""
+    """SDD-BDD-FEATURE-REF: feature_file must be in source_refs role=documents."""
     _init_sdd(tmp_path)
     record_path = _create_runtime_scenario(tmp_path)
     _accept_record(record_path)
@@ -187,7 +187,9 @@ def test_sdd_bdd_feature_ref_fails_when_feature_file_not_linked(
             "then": ["t"],
             "automation": {
                 "status": "linked",
-                "feature_file": "tests/bdd/features/lifecycle.feature",
+                "feature_file": (
+                    "specs/behavior/features/task-management/lifecycle.feature"
+                ),
             },
         },
     )
@@ -214,24 +216,76 @@ def test_sdd_bdd_feature_ref_passes_when_feature_file_in_source_refs(
             "then": ["t"],
             "automation": {
                 "status": "linked",
-                "feature_file": "tests/bdd/features/lifecycle.feature",
+                "feature_file": (
+                    "specs/behavior/features/task-management/lifecycle.feature"
+                ),
             },
         },
     )
     # Create the feature file and add a source_ref
-    feat_path = tmp_path / "tests" / "bdd" / "features" / "lifecycle.feature"
+    feat_path = (
+        tmp_path
+        / "specs"
+        / "behavior"
+        / "features"
+        / "task-management"
+        / "lifecycle.feature"
+    )
     feat_path.parent.mkdir(parents=True, exist_ok=True)
     feat_path.write_text("Feature: lifecycle\n")
 
     metadata, body = read_front_matter_document(record_path)
     refs = metadata.get("source_refs", [])
-    refs.append({"path": "tests/bdd/features/lifecycle.feature", "role": "documents"})
+    refs.append(
+        {
+            "path": "specs/behavior/features/task-management/lifecycle.feature",
+            "role": "documents",
+        }
+    )
     metadata["source_refs"] = refs
     write_front_matter_document(record_path, metadata, body)
 
     result = _run_sdd_check(tmp_path)
     errors = result["data"]["errors"]
     assert not any(e["code"] == "SDD-BDD-FEATURE-REF" for e in errors)
+
+
+def test_sdd_bdd_feature_ref_fails_when_feature_file_only_in_test_refs(
+    tmp_path: Path,
+) -> None:
+    """Feature files do not satisfy SDD-BDD-FEATURE-REF via test_refs."""
+    _init_sdd(tmp_path)
+    record_path = _create_runtime_scenario(tmp_path)
+    _accept_record(record_path)
+    _set_bdd(
+        record_path,
+        {
+            "feature": "F",
+            "scenario": "S",
+            "given": ["g"],
+            "when": ["w"],
+            "then": ["t"],
+            "automation": {
+                "status": "linked",
+                "feature_file": (
+                    "specs/behavior/features/task-management/lifecycle.feature"
+                ),
+            },
+        },
+    )
+    metadata, body = read_front_matter_document(record_path)
+    metadata["test_refs"] = [
+        {
+            "path": "specs/behavior/features/task-management/lifecycle.feature",
+            "nodeid": "",
+            "role": "validates",
+        }
+    ]
+    write_front_matter_document(record_path, metadata, body)
+
+    result = _run_sdd_check(tmp_path)
+    errors = result["data"]["errors"]
+    assert any(e["code"] == "SDD-BDD-FEATURE-REF" for e in errors)
 
 
 def test_sdd_bdd_ac_link_warns_for_nonexistent_ac(tmp_path: Path) -> None:
@@ -277,7 +331,7 @@ def test_sdd_bdd_feature_ref_passes_for_imported_records(tmp_path: Path) -> None
     accepted record must not raise SDD-BDD-FEATURE-REF.
     """
     _init_sdd(tmp_path)
-    feature_rel = "tests/bdd/features/lifecycle.feature"
+    feature_rel = "specs/behavior/features/task-management/lifecycle.feature"
     feat_path = tmp_path / feature_rel
     feat_path.parent.mkdir(parents=True, exist_ok=True)
     feat_path.write_text(
@@ -338,10 +392,15 @@ def test_sdd_bdd_automation_linked_fails_when_required(tmp_path: Path) -> None:
             "then": ["t"],
             "automation": {
                 "status": "linked",
-                "feature_file": "tests/bdd/features/lifecycle.feature",
+                "feature_file": (
+                    "specs/behavior/features/task-management/lifecycle.feature"
+                ),
             },
             "source_refs": [
-                {"path": "tests/bdd/features/lifecycle.feature", "role": "documents"},
+                {
+                    "path": "specs/behavior/features/task-management/lifecycle.feature",
+                    "role": "documents",
+                },
             ],
         },
     )
@@ -369,19 +428,134 @@ def test_sdd_bdd_automation_automated_passes_when_required(tmp_path: Path) -> No
             "then": ["t"],
             "automation": {
                 "status": "automated",
-                "feature_file": "tests/bdd/features/lifecycle.feature",
+                "feature_file": (
+                    "specs/behavior/features/task-management/lifecycle.feature"
+                ),
                 "command": "pytest -q",
             },
-            "source_refs": [
-                {"path": "tests/bdd/features/lifecycle.feature", "role": "documents"},
-            ],
         },
     )
+    metadata, body = read_front_matter_document(record_path)
+    metadata["source_refs"] = [
+        {
+            "path": "specs/behavior/features/task-management/lifecycle.feature",
+            "role": "documents",
+        }
+    ]
+    metadata["test_refs"] = [
+        "tests/test_task_management_lifecycle.py::test_lifecycle_gate"
+    ]
+    write_front_matter_document(record_path, metadata, body)
     _enable_required_automation(tmp_path)
 
     result = _run_sdd_check(tmp_path)
     errors = result["data"]["errors"]
     assert not any(e["code"] == "SDD-BDD-AUTOMATION" for e in errors)
+    assert not any(e["code"] == "SDD-BDD-TEST-REF" for e in errors)
+
+
+def test_sdd_bdd_test_ref_warns_when_automated_without_test_refs(
+    tmp_path: Path,
+) -> None:
+    _init_sdd(tmp_path)
+    record_path = _create_runtime_scenario(tmp_path)
+    _accept_record(record_path)
+    _set_bdd(
+        record_path,
+        {
+            "feature": "F",
+            "scenario": "S",
+            "given": ["g"],
+            "when": ["w"],
+            "then": ["t"],
+            "automation": {
+                "status": "automated",
+                "feature_file": (
+                    "specs/behavior/features/task-management/lifecycle.feature"
+                ),
+                "command": "pytest -q",
+            },
+        },
+    )
+    metadata, body = read_front_matter_document(record_path)
+    metadata["source_refs"] = [
+        {
+            "path": "specs/behavior/features/task-management/lifecycle.feature",
+            "role": "documents",
+        }
+    ]
+    write_front_matter_document(record_path, metadata, body)
+
+    result = _run_sdd_check(tmp_path)
+    warnings = result["data"]["warnings"]
+    assert any(w["code"] == "SDD-BDD-TEST-REF" for w in warnings)
+
+
+def test_sdd_bdd_test_ref_errors_when_required_and_missing(tmp_path: Path) -> None:
+    _init_sdd(tmp_path)
+    record_path = _create_runtime_scenario(tmp_path)
+    _accept_record(record_path)
+    _set_bdd(
+        record_path,
+        {
+            "feature": "F",
+            "scenario": "S",
+            "given": ["g"],
+            "when": ["w"],
+            "then": ["t"],
+            "automation": {
+                "status": "automated",
+                "feature_file": (
+                    "specs/behavior/features/task-management/lifecycle.feature"
+                ),
+                "command": "pytest -q",
+            },
+        },
+    )
+    metadata, body = read_front_matter_document(record_path)
+    metadata["source_refs"] = [
+        {
+            "path": "specs/behavior/features/task-management/lifecycle.feature",
+            "role": "documents",
+        }
+    ]
+    write_front_matter_document(record_path, metadata, body)
+    _enable_required_automation(tmp_path)
+
+    result = _run_sdd_check(tmp_path)
+    errors = result["data"]["errors"]
+    assert any(e["code"] == "SDD-BDD-TEST-REF" for e in errors)
+
+
+def test_sdd_bdd_feature_path_convention_warns_for_deprecated_path(
+    tmp_path: Path,
+) -> None:
+    _init_sdd(tmp_path)
+    record_path = _create_runtime_scenario(tmp_path)
+    _accept_record(record_path)
+    _set_bdd(
+        record_path,
+        {
+            "feature": "F",
+            "scenario": "S",
+            "given": ["g"],
+            "when": ["w"],
+            "then": ["t"],
+            "automation": {
+                "status": "linked",
+                "feature_file": "tests/bdd/features/lifecycle.feature",
+            },
+        },
+    )
+    metadata, body = read_front_matter_document(record_path)
+    metadata["source_refs"] = [
+        {"path": "tests/bdd/features/lifecycle.feature", "role": "documents"}
+    ]
+    write_front_matter_document(record_path, metadata, body)
+
+    result = _run_sdd_check(tmp_path)
+    warnings = result["data"]["warnings"]
+    assert any(w["code"] == "SDD-BDD-FEATURE-PATH-CONVENTION" for w in warnings)
 
 
 def test_sdd_bdd_gwt_fails_for_quality_scenario_when_policy_enabled(

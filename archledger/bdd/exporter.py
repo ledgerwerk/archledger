@@ -12,6 +12,10 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from archledger.bdd.models import BddExample
+from archledger.bdd.paths import (
+    deprecated_bdd_feature_path_message,
+    is_deprecated_bdd_feature_path,
+)
 from archledger.repository import ArchitectureRepository
 
 # Characters that are not allowed in a safe feature-file basename.
@@ -123,6 +127,8 @@ def export_bdd_record(
 
     content = _render_feature(example, record_id)
     output_path.write_text(content, encoding="utf-8")
+    if is_deprecated_bdd_feature_path(safe_rel):
+        warnings = [*warnings, deprecated_bdd_feature_path_message(safe_rel)]
 
     return BddExportResponse(
         record_id=record_id,

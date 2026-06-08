@@ -13,6 +13,10 @@ from pathlib import Path
 
 from archledger.bdd.gherkin import parse_gherkin
 from archledger.bdd.normalize import normalize_bdd_metadata
+from archledger.bdd.paths import (
+    deprecated_bdd_feature_path_message,
+    is_deprecated_bdd_feature_path,
+)
 from archledger.repository import ArchitectureRepository
 
 
@@ -78,6 +82,16 @@ def check_bdd_sync(repo: ArchitectureRepository) -> BddSyncResponse:
         feature_files_with_records.setdefault(feature_file, []).append(
             (record_id, example)
         )
+        if is_deprecated_bdd_feature_path(feature_file):
+            findings.append(
+                BddSyncFinding(
+                    code="BDD-FEATURE-PATH-CONVENTION",
+                    severity="warning",
+                    message=deprecated_bdd_feature_path_message(feature_file),
+                    record_id=record_id,
+                    feature_file=feature_file,
+                )
+            )
         safe_path = repo.paths.workspace_root / Path(feature_file)
         files_checked.add(feature_file)
         if not safe_path.is_file():

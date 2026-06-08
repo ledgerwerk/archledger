@@ -118,6 +118,35 @@ def add_source_ref(
     return metadata, body
 
 
+def add_test_ref(
+    path: Path,
+    record_id: str,
+    ref_path: str,
+    *,
+    nodeid: str = "",
+    role: str = "validates",
+    reason: str = "",
+    workspace_root: Path,
+) -> tuple[dict[str, object], str]:
+    metadata, body = read_front_matter_document(path)
+    _assert_record_id(metadata, record_id)
+    now = utc_now_iso()
+    existing = metadata.get("test_refs", [])
+    if not isinstance(existing, list):
+        existing = []
+    new_ref: dict[str, object] = {"path": ref_path}
+    if nodeid:
+        new_ref["nodeid"] = nodeid
+    if role:
+        new_ref["role"] = role
+    if reason:
+        new_ref["reason"] = reason
+    existing.append(new_ref)
+    metadata = {**metadata, "test_refs": existing, "updated_at": now}
+    write_front_matter_document(path, metadata, body)
+    return metadata, body
+
+
 def add_link(
     path: Path,
     record_id: str,
@@ -268,6 +297,7 @@ __all__ = [
     "add_acceptance_criterion",
     "add_link",
     "add_source_ref",
+    "add_test_ref",
     "add_sdd_waiver",
     "append_record_body",
     "list_sdd_waivers",

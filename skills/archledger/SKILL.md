@@ -29,7 +29,7 @@ Use this skill when a coding agent needs to create, inspect, enrich, repair, or 
 - Do not migrate source dialects unless the user explicitly asks for `source convert`.
 - Do not invent architecture facts without repository evidence.
 - Do not leave placeholder bodies in accepted records.
-- Do not treat `.feature` files as canonical source; archledger records are the source of truth.
+- Do not assume every `.feature` file is a derived Archledger artifact; SpecWeave-owned files under `specs/behavior/features` may be canonical behavior specs, while Archledger records remain canonical for architecture/specification records.
 - Do not run Cucumber or any BDD runner from archledger; automation commands are stored but never executed.
 
 ## Fresh-context entry protocol
@@ -56,21 +56,25 @@ run Cucumber or any BDD runner. Use the SDD profile to enforce BDD metadata qual
 
 ```bash
 # Import (dry-run first to preview)
-archledger bdd import tests/bdd/features/lifecycle.feature --dry-run
-archledger bdd import tests/bdd/features/lifecycle.feature \
+archledger bdd import specs/behavior/features/task-management/plan-gates.feature --dry-run
+archledger bdd import specs/behavior/features/task-management/plan-gates.feature \
   --kind runtime-scenario --status accepted  # defaults to automation.status=linked
 
 # Validate, list, status, set, link
 archledger bdd validate al_runtime_0042
-archledger bdd validate --feature-file tests/bdd/features/lifecycle.feature
+archledger bdd validate --feature-file specs/behavior/features/task-management/plan-gates.feature
 archledger bdd list --automation pending
 archledger bdd status
 archledger bdd set al_runtime_0042 --feature "F" --scenario "S" --given g --when w --then t
-archledger bdd link al_runtime_0042 --feature-file path.feature --status automated
+archledger bdd link al_runtime_0042 \
+  --feature-file specs/behavior/features/task-management/plan-gates.feature \
+  --scenario "@bdd-implementation-blocked-before-plan-acceptance" \
+  --test tests/test_task_management_plan_gates.py::test_agent_cannot_start_implementation_before_plan_approval \
+  --status automated
 
 # Export single or batch
-archledger bdd export al_runtime_0123 --out tests/bdd/features/lifecycle.feature
-archledger bdd export --all --out-dir tests/bdd/features
+archledger bdd export al_runtime_0123 --out specs/behavior/features/task-management/plan-gates.derived.feature
+archledger bdd export --all --out-dir specs/behavior/features/derived
 ```
 
 Imported records carry a `bdd` front-matter block (feature, rule, scenario, tags,
@@ -78,9 +82,12 @@ given/when/then, automation) and a `source_refs` entry with role `documents`
 linking to the originating feature file. Imported records default to
 `automation.status=linked`.
 
-**Canonical ownership**: Archledger record metadata is the canonical source after
-import. Feature files are exchange and automation artifacts. `bdd sync --check`
-reports drift between the two views.
+**Canonical ownership**: Archledger records are the canonical
+architecture/specification records. SpecWeave-owned files under
+`specs/behavior/features` may be canonical behavior specs. Archledger-exported
+`.feature` files are derived unless ownership is explicitly changed.
+`bdd sync --check` reports drift between linked behavior specs and Archledger
+metadata.
 
 SDD lifecycle commands:
 
@@ -101,10 +108,14 @@ Cross-ledger Taskledger guidance:
 - Preserve `@task-*`, `@bdd-*`, and `@ac-*` tags as traceability when
   importing. These tags are emitted by Taskledger's `bdd gherkin-export`.
 - For accepted records, run `archledger sdd check --strict`.
-- `.feature` files are exchange/automation artifacts, not Archledger's
-  canonical source unless ownership is explicitly changed.
+- Treat SpecWeave-owned `.feature` files under `specs/behavior/features` as
+  canonical behavior specs when the project says so; treat Archledger exports as
+  derived unless ownership is explicitly changed.
 
-Use `archledger --json read --body` as the agent source of truth; the `.feature` file is a derived artifact.
+Use `archledger --json read --body` as the agent source of truth for Archledger
+records. When the project uses SpecWeave-owned files under
+`specs/behavior/features`, treat those as canonical behavior specs and treat
+Archledger-exported `.feature` files as derived artifacts.
 
 Use `record set`, `record meta set`, `record body append`, `refs add`,
 `links add`, and `ac add` instead of hand-editing front matter when the

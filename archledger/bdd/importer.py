@@ -16,6 +16,10 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from archledger.bdd.gherkin import ParsedFeature, ParsedScenario, parse_gherkin
+from archledger.bdd.paths import (
+    deprecated_bdd_feature_path_message,
+    is_deprecated_bdd_feature_path,
+)
 from archledger.mutations import (
     add_source_ref,
     replace_record_body,
@@ -81,6 +85,8 @@ def import_bdd_feature(
 
     warnings: list[str] = []
     results: list[BddImportResult] = []
+    if is_deprecated_bdd_feature_path(safe_path):
+        warnings.append(deprecated_bdd_feature_path_message(safe_path))
 
     # Use the feature-level tags as default tags for all scenarios
     feature_tags = list(feature.tags)

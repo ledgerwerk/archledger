@@ -16,6 +16,10 @@ if TYPE_CHECKING:
 
 from archledger.bdd.models import DEFAULT_BDD_AUTOMATION_STATUS
 from archledger.bdd.normalize import normalize_bdd_metadata
+from archledger.bdd.paths import (
+    deprecated_bdd_feature_path_message,
+    is_deprecated_bdd_feature_path,
+)
 from archledger.checks import PLACEHOLDER_SNIPPETS
 from archledger.model import (
     VALID_SOURCE_REF_ROLES,
@@ -1049,7 +1053,9 @@ def _check_bdd(
     * SDD-BDD-GWT: accepted runtime_scenario with bdd must have non-empty given,
       when, and then.
     * SDD-BDD-AUTOMATION: warn on pending automation unless the profile requires it.
-    * SDD-BDD-FEATURE-REF: feature_file must be linked via source_refs or test_refs.
+    * SDD-BDD-FEATURE-REF: feature_file must be linked via source_refs role=documents.
+    * SDD-BDD-TEST-REF: automated behavior should link executable pytest tests.
+    * SDD-BDD-FEATURE-PATH-CONVENTION: deprecated feature file locations warn.
     * SDD-BDD-AC-LINK: referenced AC IDs should exist.
     """
     findings: list[SddFinding] = []
@@ -1162,15 +1168,15 @@ def _check_bdd(
             )
         )
 
-    # SDD-BDD-FEATURE-REF: feature_file must be linked via source_refs or test_refs
+    # SDD-BDD-FEATURE-REF: feature_file must be linked via source_refs role=documents
     if (
         example.automation is not None
         and example.automation.feature_file
         and not _has_waiver(ctx, r.id, "SDD-BDD-FEATURE-REF")
     ):
         feat_path = example.automation.feature_file
-        is_linked = any(ref.path == feat_path for ref in r.source_refs) or any(
-            ref.path == feat_path for ref in r.test_refs
+        is_linked = any(
+            ref.path == feat_path and ref.role == "documents" for ref in r.source_refs
         )
         if not is_linked:
             findings.append(
@@ -1179,12 +1185,46 @@ def _check_bdd(
                     code="SDD-BDD-FEATURE-REF",
                     message=(
                         f"Record {r.id} bdd.automation.feature_file "
-                        f"{feat_path!r} is not linked via source_refs or test_refs."
+                        f"{feat_path!r} is not linked via source_refs with role "
+                        "'documents'."
                     ),
                     record_id=r.id,
                     path=r.path,
                 )
             )
+        if is_deprecated_bdd_feature_path(feat_path) and not _has_waiver(
+            ctx, r.id, "SDD-BDD-FEATURE-PATH-CONVENTION"
+        ):
+            findings.append(
+                SddFinding(
+                    level="warning",
+                    code="SDD-BDD-FEATURE-PATH-CONVENTION",
+                    message=(
+                        f"Record {r.id} bdd.automation.feature_file "
+                        + deprecated_bdd_feature_path_message(feat_path)
+                    ),
+                    record_id=r.id,
+                    path=r.path,
+                )
+            )
+
+    if (
+        auto_status == "automated"
+        and not r.test_refs
+        and not _has_waiver(ctx, r.id, "SDD-BDD-TEST-REF")
+    ):
+        findings.append(
+            SddFinding(
+                level="error" if require_automation else "warning",
+                code="SDD-BDD-TEST-REF",
+                message=(
+                    f"Record {r.id} has bdd with automation.status=automated but "
+                    "no executable test_refs are recorded."
+                ),
+                record_id=r.id,
+                path=r.path,
+            )
+        )
 
     # SDD-BDD-AC-LINK: referenced AC IDs should exist
     if example.acceptance_criteria and not _has_waiver(ctx, r.id, "SDD-BDD-AC-LINK"):

@@ -8,10 +8,14 @@ validation.
 from __future__ import annotations
 
 import dataclasses
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-import tomllib
+if sys.version_info >= (3, 11):
+    import tomllib
+else:  # pragma: no cover
+    import tomli as tomllib
 
 from archledger.config.model import (
     DEFAULT_ARC42_SECTIONS_DIR,

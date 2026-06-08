@@ -66,9 +66,11 @@ def test_normalize_accepts_complete_bdd_block() -> None:
             "acceptance_criteria": ["ac-0001"],
             "automation": {
                 "status": "pending",
-                "feature_file": "tests/bdd/features/lifecycle.feature",
+                "feature_file": (
+                    "specs/behavior/features/task-management/lifecycle.feature"
+                ),
                 "scenario": "Agent tries to implement before approval",
-                "command": "pytest -q tests/bdd",
+                "command": "pytest -q tests/test_task_management_lifecycle.py",
             },
         },
     )
@@ -85,9 +87,9 @@ def test_normalize_accepts_complete_bdd_block() -> None:
     assert example.acceptance_criteria == ("ac-0001",)
     assert example.automation == BddAutomation(
         status="pending",
-        feature_file="tests/bdd/features/lifecycle.feature",
+        feature_file="specs/behavior/features/task-management/lifecycle.feature",
         scenario="Agent tries to implement before approval",
-        command="pytest -q tests/bdd",
+        command="pytest -q tests/test_task_management_lifecycle.py",
     )
 
 
@@ -194,12 +196,17 @@ def test_normalize_automation_feature_file_accepts_relative_posix() -> None:
             "given": ["g"],
             "when": ["w"],
             "then": ["t"],
-            "automation": {"feature_file": "tests/bdd/features/x.feature"},
+            "automation": {
+                "feature_file": "specs/behavior/features/task-management/x.feature"
+            },
         },
     )
     assert example is not None
     assert example.automation is not None
-    assert example.automation.feature_file == "tests/bdd/features/x.feature"
+    assert (
+        example.automation.feature_file
+        == "specs/behavior/features/task-management/x.feature"
+    )
     assert not any("feature_file" in w for w in warnings)
 
 

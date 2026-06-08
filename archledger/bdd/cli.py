@@ -722,6 +722,16 @@ def link_command(
         str | None,
         typer.Option("--command", help="Runner command (never executed)."),
     ] = None,
+    test: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--test",
+            help=(
+                "Executable pytest reference to add to test_refs "
+                "(path or path::nodeid)."
+            ),
+        ),
+    ] = None,
     link_status: Annotated[
         str | None,
         typer.Option(
@@ -733,7 +743,7 @@ def link_command(
     """Link automation metadata and source_refs without executing anything."""
     from archledger.cli import _find_record_path, _state, _validate_mutation
     from archledger.cli import _run_configured_command as _run
-    from archledger.mutations import add_source_ref, set_record_meta
+    from archledger.mutations import add_source_ref, add_test_ref, set_record_meta
     from archledger.storage.frontmatter import read_front_matter_document
 
     state = _state(ctx)
@@ -760,6 +770,20 @@ def link_command(
         elif feature_file and auto.get("status") in ("pending", "", None):
             # Auto-advance to linked when a feature file is provided.
             auto["status"] = "linked"
+
+        existing_tests = metadata.get("test_refs", [])
+        has_existing_test_ref = isinstance(existing_tests, list) and bool(
+            existing_tests
+        )
+        has_new_test_ref = bool(test)
+        has_command = bool(auto.get("command"))
+        if auto.get("status") == "automated" and not (
+            has_command or has_existing_test_ref or has_new_test_ref
+        ):
+            raise ArchledgerError(
+                "bdd link with --status automated requires --command, --test, "
+                "or existing test_refs."
+            )
         existing["automation"] = auto
 
         set_record_meta(
@@ -781,15 +805,32 @@ def link_command(
                 workspace_root=paths.workspace_root,
             )
 
+        if test:
+            for entry in test:
+                test_path, _separator, nodeid = entry.strip().partition("::")
+                add_test_ref(
+                    target_path,
+                    record_id,
+                    test_path.strip(),
+                    nodeid=nodeid.strip(),
+                    role="validates",
+                    reason="Plain pytest enforcement.",
+                    workspace_root=paths.workspace_root,
+                )
+
         _validate_mutation(repo, target_path)
-        return {"id": record_id, "automation": auto}
+        return {"id": record_id, "automation": auto, "tests": list(test or [])}
 
     def _fmt(p: dict[str, object]) -> str:
         auto = p.get("automation", {})
+        tests = p.get("tests", [])
+        tests_suffix = (
+            f" tests={len(tests)}" if isinstance(tests, list) and tests else ""
+        )
         return (
             f"Linked {p.get('id')}: "
             f"automation.status={auto.get('status')} "
-            f"feature_file={auto.get('feature_file', '')}"
+            f"feature_file={auto.get('feature_file', '')}{tests_suffix}"
         )
 
     _run(state, "bdd link", _build, _fmt)

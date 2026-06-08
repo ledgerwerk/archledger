@@ -35,7 +35,7 @@ Import a feature file as behavior records:
 
 .. code-block:: bash
 
-   archledger bdd import tests/bdd/features/lifecycle.feature \
+   archledger bdd import specs/behavior/features/task-management/plan-gates.feature \
      --kind runtime-scenario --status proposed
 
 Export a record with ``bdd`` metadata as a deterministic ``.feature`` file:
@@ -43,14 +43,14 @@ Export a record with ``bdd`` metadata as a deterministic ``.feature`` file:
 .. code-block:: bash
 
    archledger bdd export al_runtime_0123 \
-     --out tests/bdd/features/lifecycle.feature
+     --out specs/behavior/features/task-management/plan-gates.derived.feature
 
 Imported records carry a ``bdd`` front-matter block (feature, rule, scenario,
 tags, given/when/then, automation) and a ``source_refs`` entry with role
 ``documents`` linking to the originating feature file.  Imported records default
 to ``automation.status=linked`` since a feature file and scenario are now bound.
-``source_refs`` and ``test_refs`` are used to bind features, tests, and code
-for drift detection.
+Keep behavior specs in ``source_refs`` and plain pytest enforcement in
+``test_refs``.
 
 Automation status semantics: ``pending`` (no wiring yet), ``linked`` (a feature
 file/scenario is bound but no executable runner), ``automated`` (a runner command
@@ -62,10 +62,12 @@ an ``SDD-BDD-AUTOMATION`` error. SDD coverage reports ``behavior_linked`` and
 ``behavior_automated`` as separate dimensions for the same reason.
 for drift detection.
 
-**Canonical ownership**: Archledger record metadata is the canonical source
-after import. Gherkin ``.feature`` files are exchange and automation artifacts
-unless a project explicitly changes ownership. ``bdd sync --check`` reports
-drift between the two views.
+**Canonical ownership**: Archledger records are the canonical
+architecture/specification records. SpecWeave-owned files under
+``specs/behavior/features`` may be the canonical behavior specifications.
+Archledger-exported ``.feature`` files are derived unless a project explicitly
+changes ownership. ``bdd sync --check`` reports drift between linked behavior
+specs and Archledger metadata.
 
 Additional BDD commands:
 
@@ -73,7 +75,7 @@ Additional BDD commands:
 
    # Validate BDD metadata on a record or feature file
    archledger bdd validate al_runtime_0042
-   archledger bdd validate --feature-file tests/bdd/features/lifecycle.feature
+   archledger bdd validate --feature-file specs/behavior/features/task-management/plan-gates.feature
    archledger bdd validate --all
 
    # List all records with BDD metadata (filterable)
@@ -92,20 +94,21 @@ Additional BDD commands:
      --then "implementation is blocked" \
      --tag task-0001
 
-   # Link automation metadata and source_refs
+   # Link automation metadata, source_refs, and pytest test_refs
    archledger bdd link al_runtime_0042 \
-     --feature-file tests/bdd/features/lifecycle.feature \
-     --scenario "Blocked" --command "pytest -q tests/bdd" \
+     --feature-file specs/behavior/features/task-management/plan-gates.feature \
+     --scenario "@bdd-implementation-blocked-before-plan-acceptance" \
+     --test tests/test_task_management_plan_gates.py::test_agent_cannot_start_implementation_before_plan_approval \
      --status automated
 
    # Dry-run import (parse without creating records)
-   archledger bdd import tests/bdd/features/lifecycle.feature --dry-run
+   archledger bdd import specs/behavior/features/task-management/plan-gates.feature --dry-run
 
    # Batch export all BDD records grouped by feature+rule
-   archledger bdd export --all --out-dir tests/bdd/features
+   archledger bdd export --all --out-dir specs/behavior/features/derived
 
 Use ``archledger --json read --body`` as the agent source of truth for BDD
-records; the ``.feature`` file is a derived artifact.
+records; Archledger-exported ``.feature`` files are derived artifacts.
 
 
 .. _init:

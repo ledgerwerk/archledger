@@ -250,9 +250,35 @@ def test_bdd_export_refuses_overwrite_without_force(tmp_path: Path) -> None:
     assert "PRE-EXISTING" not in existing.read_text(encoding="utf-8")
 
 
+def test_bdd_export_warns_for_deprecated_output_path(tmp_path: Path) -> None:
+    _init(tmp_path)
+    record_id, _record_path = _create_record_with_bdd(tmp_path)
+    result = runner.invoke(
+        app,
+        [
+            "--root",
+            str(tmp_path),
+            "--json",
+            "bdd",
+            "export",
+            record_id,
+            "--out",
+            "tests/bdd/features/legacy.feature",
+        ],
+    )
+    assert result.exit_code == 0, result.stdout
+    payload = json.loads(result.stdout)["result"]
+    assert any(
+        "deprecated BDD feature-file location" in warning
+        for warning in payload["warnings"]
+    )
+
+
 def _import_feature(tmp_path: Path, text: str) -> None:
     """Write a .feature file and import it via the CLI."""
-    feature_path = tmp_path / "tests" / "bdd" / "features" / "src.feature"
+    feature_path = (
+        tmp_path / "specs" / "behavior" / "features" / "task-management" / "src.feature"
+    )
     feature_path.parent.mkdir(parents=True, exist_ok=True)
     feature_path.write_text(text, encoding="utf-8")
     rel = str(feature_path.relative_to(tmp_path))

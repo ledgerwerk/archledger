@@ -19,6 +19,10 @@ from archledger.bdd.gherkin import (
 )
 from archledger.bdd.models import BDD_AUTOMATION_STATUSES
 from archledger.bdd.normalize import normalize_bdd_metadata
+from archledger.bdd.paths import (
+    deprecated_bdd_feature_path_message,
+    is_deprecated_bdd_feature_path,
+)
 from archledger.repository import ArchitectureRepository
 from archledger.source_refs import RelativePosixPathError, validate_relative_posix_path
 
@@ -120,6 +124,16 @@ def validate_bdd_feature_file(
             ),
         )
 
+    if is_deprecated_bdd_feature_path(safe_path):
+        findings.append(
+            BddValidateFinding(
+                code="BDD-FEATURE-PATH-CONVENTION",
+                severity="warning",
+                message=deprecated_bdd_feature_path_message(safe_path),
+                feature_file=safe_path,
+            )
+        )
+
     text = absolute_path.read_text(encoding="utf-8")
     try:
         feature = parse_gherkin(text)
@@ -127,32 +141,38 @@ def validate_bdd_feature_file(
         return BddValidateResponse(
             target=f"feature-file:{safe_path}",
             valid=False,
-            findings=(
-                BddValidateFinding(
-                    code="BDD-GHERKIN-UNSUPPORTED",
-                    severity="error",
-                    message=str(exc),
-                    feature_file=safe_path,
-                    line=getattr(exc, "line", 0),
-                ),
+            findings=tuple(
+                findings
+                + [
+                    BddValidateFinding(
+                        code="BDD-GHERKIN-UNSUPPORTED",
+                        severity="error",
+                        message=str(exc),
+                        feature_file=safe_path,
+                        line=getattr(exc, "line", 0),
+                    )
+                ]
             ),
         )
     except GherkinSyntaxError as exc:
         return BddValidateResponse(
             target=f"feature-file:{safe_path}",
             valid=False,
-            findings=(
-                BddValidateFinding(
-                    code="BDD-GHERKIN-SYNTAX",
-                    severity="error",
-                    message=str(exc),
-                    feature_file=safe_path,
-                    line=getattr(exc, "line", 0),
-                ),
+            findings=tuple(
+                findings
+                + [
+                    BddValidateFinding(
+                        code="BDD-GHERKIN-SYNTAX",
+                        severity="error",
+                        message=str(exc),
+                        feature_file=safe_path,
+                        line=getattr(exc, "line", 0),
+                    )
+                ]
             ),
         )
 
-    findings = _validate_parsed_feature(feature, safe_path)
+    findings.extend(_validate_parsed_feature(feature, safe_path))
     scenarios = tuple(
         {
             "name": s.name,
@@ -203,6 +223,23 @@ def _validate_record_metadata(record: object) -> list[BddValidateFinding]:
         )
     if example is None:
         return findings
+
+    if (
+        example.automation is not None
+        and example.automation.feature_file
+        and is_deprecated_bdd_feature_path(example.automation.feature_file)
+    ):
+        findings.append(
+            BddValidateFinding(
+                code="BDD-FEATURE-PATH-CONVENTION",
+                severity="warning",
+                message=deprecated_bdd_feature_path_message(
+                    example.automation.feature_file
+                ),
+                record_id=record_id,
+                feature_file=example.automation.feature_file,
+            )
+        )
 
     # GWT completeness
     missing = [

@@ -12,6 +12,8 @@ def test_archledger_skill_exists() -> None:
     assert "archledger --json read --body" in text
     assert "archledger seed arc42-minimal" in text
     assert "generated build output" in text.lower()
+    assert "specs/behavior/features" in text
+    assert "--test tests/test_task_management_plan_gates.py" in text
 
 
 def test_skill_file_mentions_markdown_and_asciidoc() -> None:
@@ -25,6 +27,7 @@ def test_skill_file_instructs_read_without_export() -> None:
     assert "archledger --json read --body" in text
     assert "configured build output directory" in text
     assert "source of truth" in text
+    assert "canonical behavior specs" in text
 
 
 def test_skill_file_does_not_call_markdown_legacy() -> None:
