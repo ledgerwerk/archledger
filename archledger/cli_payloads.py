@@ -226,7 +226,7 @@ def read_payload(
     scope_kind: str | None = None,
     addon: str | None = None,
 ) -> dict[str, object]:
-    from archledger.scopes import scope_matches_path, VALID_SCOPE_KINDS
+    from archledger.scopes import VALID_SCOPE_KINDS
 
     normalized_kind = None
     if kind is not None:

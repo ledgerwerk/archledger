@@ -580,3 +580,15 @@ The repository-provided coding-agent protocol lives at `skills/archledger/SKILL.
 ## Security and trust
 
 `archledger` reads local project files and only invokes external converters when you request output formats that need them. It does not sync or send project content anywhere by itself.
+
+### Three-tool traceability boundary
+
+Archledger is the durable architecture/specification ledger. It stores external
+Taskledger IDs, SpecWeave feature references, pytest references, and evidence
+references as data only. It does not execute Taskledger, SpecWeave, pytest,
+behave, or Cucumber commands.
+
+Taskledger owns active task lifecycle state. SpecWeave owns canonical Gherkin
+behavior specs and normalized behavior evidence. Use `source_refs` for
+SpecWeave feature files under `specs/behavior/features` and `test_refs` for
+plain pytest tests that validate an Archledger record.

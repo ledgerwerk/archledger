@@ -139,9 +139,9 @@ from archledger.cli_payloads import (
 from archledger.errors import ArchledgerError, StorageError
 from archledger.id_format_drift import find_id_format_drift
 from archledger.ids import DEFAULT_ID_PREFIX, DEFAULT_ID_SEGMENT_MODE, DEFAULT_ID_WIDTH
-from archledger.renumber import renumber_project
-from archledger.render import build_document
 from archledger.model import ArchitectureRecord, known_source_extensions
+from archledger.render import build_document
+from archledger.renumber import renumber_project
 from archledger.repository import (
     ArchitectureRepository,
     CheckResult,
@@ -1347,6 +1347,9 @@ def context_cmd(
 def trace_cmd(
     ctx: typer.Context,
     record_id: Annotated[str, typer.Argument()],
+    output_format: Annotated[
+        str, typer.Option("--format", help="Output format: trace-json or combo-json."),
+    ] = "trace-json",
 ) -> None:
     state = _state(ctx)
 
@@ -1358,12 +1361,24 @@ def trace_cmd(
         del paths, config
         from archledger.trace import build_trace
 
-        return build_trace(repo, record_id)
+        trace_payload = build_trace(repo, record_id)
+        if output_format == "combo-json":
+            from archledger.combo_trace import build_combo_trace
+
+            return build_combo_trace(trace_payload)
+        if output_format != "trace-json":
+            raise ArchledgerError("--format must be trace-json or combo-json.")
+        return trace_payload
 
     def _format_trace(payload: dict[str, object]) -> str:
+        if payload.get("schema") == "combi.trace.v1":
+            subject = payload.get("subject")
+            if isinstance(subject, dict):
+                return f"Combo trace for {subject.get('id')}"
+            return "Combo trace complete."
         root = payload.get("root")
         if root is None:
-            return payload.get("error", "Record not found.")
+            return str(payload.get("error", "Record not found."))
         if isinstance(root, dict):
             return f"Trace for {root.get('id')}: {root.get('title')}"
         return "Trace complete."
@@ -1700,7 +1715,7 @@ def scope_show(
             f"  Lifecycle: {s.get('lifecycle')}",
             f"  Applies to: {', '.join(s.get('applies_to', []))}",
             f"  Excludes: {', '.join(s.get('excludes', [])) or '(none)'}",
-            f"  Records:",
+            "  Records:",
         ]
         for r in p.get("records", []):
             if isinstance(r, dict):

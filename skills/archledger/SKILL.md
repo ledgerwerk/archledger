@@ -314,3 +314,12 @@ Good archledger content is concrete, traceable, and concise:
 
 Avoid generic filler. Prefer precise source-backed statements over broad architecture boilerplate.
 ````
+
+## Three-tool boundary
+
+- Archledger owns durable architecture and specification records.
+- SpecWeave owns canonical Gherkin behavior specs and normalized evidence.
+- Taskledger owns active work state and task lifecycle.
+- Archledger stores external IDs and references, but it does not execute external tools.
+- Use `source_refs` for SpecWeave feature files that explain a record.
+- Use `test_refs` for plain pytest tests that validate a record.

@@ -233,6 +233,22 @@ _SDD_RULES: tuple[SddRuleInfo, ...] = (
         waiver_example=_waiver("SDD-BDD-AUTOMATION", "Manual verification only."),
     ),
     SddRuleInfo(
+        code="SDD-BDD-AUTOMATION-REF",
+        severity="error",
+        meaning=(
+            "Accepted record has bdd.automation.status=linked without an "
+            "executable test_ref or manual marker."
+        ),
+        fix=(
+            "Add a pytest test_ref, set automation.status=not_applicable "
+            "for manual validation, or waive the rule."
+        ),
+        waivable=True,
+        waiver_example=_waiver(
+            "SDD-BDD-AUTOMATION-REF", "Manual validation evidence is stored externally."
+        ),
+    ),
+    SddRuleInfo(
         code="SDD-BDD-FEATURE-REF",
         severity="error",
         meaning="bdd.automation.feature_file is not linked "
@@ -275,6 +291,20 @@ _SDD_RULES: tuple[SddRuleInfo, ...] = (
         fix="Create the referenced acceptance_criterion record or fix the id.",
         waivable=True,
         waiver_example=_waiver("SDD-BDD-AC-LINK", "AC record lives in another ledger."),
+    ),
+    SddRuleInfo(
+        code="SDD-TASKLEDGER-ID-SHAPE",
+        severity="error",
+        meaning="Taskledger provenance metadata does not use the task-NNNN id shape.",
+        fix=(
+            "Store Taskledger provenance as stable task ids such as task-0037; "
+            "do not require local task existence."
+        ),
+        waivable=True,
+        waiver_example=_waiver(
+            "SDD-TASKLEDGER-ID-SHAPE",
+            "External task id format kept for migration.",
+        ),
     ),
     SddRuleInfo(
         code="SDD-WAIVER-NO-REASON",

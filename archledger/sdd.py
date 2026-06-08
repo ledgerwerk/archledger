@@ -7,6 +7,7 @@ call into this module.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -28,6 +29,8 @@ from archledger.model import (
 from archledger.repository import ArchitectureRepository
 from archledger.source_refs import normalize_source_refs
 from archledger.test_refs import normalize_test_refs
+
+_TASKLEDGER_ID_RE = re.compile(r"^task-\d{4,}$")
 
 # ── data classes ────────────────────────────────────────────────────────
 
@@ -347,7 +350,71 @@ def _check_record(
     if r.status == "accepted" and r.metadata.get("bdd") is not None:
         findings.extend(_check_bdd(r, ctx))
 
+    if r.status == "accepted":
+        findings.extend(_check_taskledger_provenance(r, ctx))
+
     return findings
+
+
+def _check_taskledger_provenance(
+    r: ArchitectureRecord,
+    ctx: SddContext,
+ ) -> list[SddFinding]:
+    findings: list[SddFinding] = []
+    values = _taskledger_ids(r.metadata)
+    for value in values:
+        if not _TASKLEDGER_ID_RE.match(value) and not _has_waiver(
+            ctx, r.id, "SDD-TASKLEDGER-ID-SHAPE"
+        ):
+            findings.append(
+                SddFinding(
+                    level="error",
+                    code="SDD-TASKLEDGER-ID-SHAPE",
+                    message=(
+                        f"Record {r.id} has Taskledger provenance id {value!r}; "
+                        "expected task-NNNN shape."
+                    ),
+                    record_id=r.id,
+                    path=r.path,
+                )
+            )
+    return findings
+
+
+def _taskledger_ids(value: object) -> list[str]:
+    ids: list[str] = []
+    if isinstance(value, dict):
+        for key, item in value.items():
+            lowered = str(key).lower()
+            if lowered in {
+                "task_id",
+                "taskledger_id",
+                "task_ids",
+                "taskledger_ids",
+            }:
+                ids.extend(_taskledger_ids(item))
+            elif lowered in {"links", "related"}:
+                ids.extend(_taskledger_link_ids(item))
+    elif isinstance(value, list):
+        for item in value:
+            ids.extend(_taskledger_ids(item))
+    elif isinstance(value, str):
+        ids.append(value)
+    return ids
+
+
+def _taskledger_link_ids(value: object) -> list[str]:
+    if isinstance(value, dict):
+        return [
+            found
+            for item in value.values()
+            for found in _taskledger_link_ids(item)
+        ]
+    if isinstance(value, list):
+        return [found for item in value for found in _taskledger_link_ids(item)]
+    if isinstance(value, str) and "task" in value.lower():
+        return [value]
+    return []
 
 
 def _check_requirement(
@@ -1026,7 +1093,7 @@ def _reference_findings(
         )
     raw_test = record.metadata.get("test_refs")
     if raw_test is not None:
-        _refs, warnings = normalize_test_refs(
+        _test_refs, warnings = normalize_test_refs(
             record.id, raw_test, workspace_root=workspace_root
         )
         findings.extend(
@@ -1162,6 +1229,26 @@ def _check_bdd(
                 message=(
                     f"Record {r.id} has bdd with automation.status=pending; "
                     "link to a feature file when automation is wired."
+                ),
+                record_id=r.id,
+                path=r.path,
+            )
+        )
+
+    if (
+        auto_status == "linked"
+        and not r.test_refs
+        and not _has_waiver(ctx, r.id, "SDD-BDD-AUTOMATION-REF")
+    ):
+        findings.append(
+            SddFinding(
+                level="error",
+                code="SDD-BDD-AUTOMATION-REF",
+                message=(
+                    f"Record {r.id} has bdd with automation.status=linked but "
+                    "no executable test_refs are recorded; add a pytest test_ref, "
+                    "use automation.status=not_applicable for manual validation, "
+                    "or waive the rule."
                 ),
                 record_id=r.id,
                 path=r.path,

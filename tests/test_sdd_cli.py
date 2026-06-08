@@ -1322,3 +1322,137 @@ def test_sdd_check_scoped_to_kind(tmp_path: Path) -> None:
     codes = {e["code"] for e in data["errors"]}
     assert "SDD-REQ-AC" in codes
     assert "SDD-ADR-LINK" not in codes
+
+
+def test_sdd_strict_reports_linked_bdd_without_test_ref(tmp_path: Path) -> None:
+    _init(tmp_path)
+    feature = tmp_path / "specs/behavior/features/payments/pay.feature"
+    feature.parent.mkdir(parents=True)
+    feature.write_text("Feature: Pay\n", encoding="utf-8")
+    _accepted_requirement_with(
+        tmp_path,
+        BODY,
+        {
+            "source_refs": [
+                {
+                    "path": "specs/behavior/features/payments/pay.feature",
+                    "role": "documents",
+                }
+            ],
+            "acceptance_criteria": [{"statement": "Payment works."}],
+            "bdd": {
+                "feature": "Pay",
+                "scenario": "Pay invoice",
+                "given": ["an invoice"],
+                "when": ["it is paid"],
+                "then": ["the invoice is settled"],
+                "automation": {
+                    "status": "linked",
+                    "feature_file": "specs/behavior/features/payments/pay.feature",
+                },
+            },
+        },
+    )
+
+    checked = runner.invoke(
+        app, ["--root", str(tmp_path), "--json", "sdd", "check", "--strict"]
+    )
+
+    assert checked.exit_code == 1
+    codes = {
+        item["code"]
+        for item in json.loads(checked.stdout)["error"]["details"]["errors"]
+    }
+    assert "SDD-BDD-AUTOMATION-REF" in codes
+
+
+def test_sdd_strict_accepts_not_applicable_bdd_without_test_ref(tmp_path: Path) -> None:
+    _init(tmp_path)
+    feature = tmp_path / "specs/behavior/features/payments/manual.feature"
+    feature.parent.mkdir(parents=True)
+    feature.write_text("Feature: Manual payment\n", encoding="utf-8")
+    impl = tmp_path / "src/manual.py"
+    impl.parent.mkdir(parents=True)
+    impl.write_text("# implementation\n", encoding="utf-8")
+    test_file = tmp_path / "tests/test_manual.py"
+    test_file.parent.mkdir(parents=True)
+    test_file.write_text("def test_manual():\n    assert True\n", encoding="utf-8")
+    _accepted_requirement_with(
+        tmp_path,
+        BODY,
+        {
+            "source_refs": [
+                {
+                    "path": "specs/behavior/features/payments/manual.feature",
+                    "role": "documents",
+                },
+                {"path": "src/manual.py", "role": "implements"},
+            ],
+            "test_refs": ["tests/test_manual.py::test_manual"],
+            "acceptance_criteria": [{"statement": "Manual payment works."}],
+            "bdd": {
+                "feature": "Manual payment",
+                "scenario": "Pay manually",
+                "given": ["an invoice"],
+                "when": ["it is paid manually"],
+                "then": ["the invoice is settled"],
+                "automation": {
+                    "status": "not_applicable",
+                    "feature_file": "specs/behavior/features/payments/manual.feature",
+                },
+            },
+        },
+    )
+
+    checked = runner.invoke(
+        app, ["--root", str(tmp_path), "--json", "sdd", "check", "--strict"]
+    )
+
+    assert checked.exit_code == 0, checked.stdout
+
+
+def test_sdd_reports_invalid_taskledger_id_shape_but_not_missing_task(
+    tmp_path: Path,
+) -> None:
+    _init(tmp_path)
+    impl = tmp_path / "todo.md"
+    impl.write_text("todo\n", encoding="utf-8")
+    test_file = tmp_path / "tests/test_sdd_cli.py"
+    test_file.parent.mkdir(parents=True)
+    test_file.write_text(
+        "def test_sdd_reports_invalid_taskledger_id_shape_but_not_missing_task():\n"
+        "    assert True\n",
+        encoding="utf-8",
+    )
+    _accepted_requirement_with(
+        tmp_path,
+        BODY,
+        {
+            "task_id": "TL-37",
+            "acceptance_criteria": [{"statement": "It works."}],
+            "source_refs": [{"path": "todo.md", "role": "implements"}],
+            "test_refs": [
+                "tests/test_sdd_cli.py::test_sdd_reports_invalid_taskledger_id_shape_but_not_missing_task"
+            ],
+        },
+    )
+
+    checked = runner.invoke(
+        app, ["--root", str(tmp_path), "--json", "sdd", "check", "--strict"]
+    )
+
+    assert checked.exit_code == 1
+    codes = {
+        item["code"]
+        for item in json.loads(checked.stdout)["error"]["details"]["errors"]
+    }
+    assert "SDD-TASKLEDGER-ID-SHAPE" in codes
+
+    record = next((tmp_path / ".archledger" / "records" / "requirements").glob("*.md"))
+    metadata, body = read_front_matter_document(record)
+    metadata["task_id"] = "task-9999"
+    write_front_matter_document(record, metadata, body)
+    valid = runner.invoke(
+        app, ["--root", str(tmp_path), "--json", "sdd", "check", "--strict"]
+    )
+    assert valid.exit_code == 0, valid.stdout

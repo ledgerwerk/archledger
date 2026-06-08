@@ -29,11 +29,11 @@ def build_trace(repo: ArchitectureRepository, record_id: str) -> dict[str, Any]:
     # Gather linked records by walking links both directions
     outgoing: list[dict[str, Any]] = []
     incoming: list[dict[str, Any]] = []
-    requirements: list[dict[str, Any]] = []
-    acceptance_criteria: list[dict[str, Any]] = []
-    decisions: list[dict[str, Any]] = []
-    constraints: list[dict[str, Any]] = []
-    risks: list[dict[str, Any]] = []
+    requirements: list[ArchitectureRecord] = []
+    acceptance_criteria: list[ArchitectureRecord] = []
+    decisions: list[ArchitectureRecord] = []
+    constraints: list[ArchitectureRecord] = []
+    risks: list[ArchitectureRecord] = []
     source_refs: list[dict[str, Any]] = []
     test_refs: list[dict[str, Any]] = []
 
@@ -100,6 +100,7 @@ def build_trace(repo: ArchitectureRepository, record_id: str) -> dict[str, Any]:
             "type": root.type,
             "title": root.title,
             "status": root.status,
+            "metadata": dict(root.metadata),
         },
         "requirements": [_record_ref(r) for r in requirements],
         "acceptance_criteria": [_record_ref(r) for r in acceptance_criteria],

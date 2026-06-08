@@ -3,17 +3,13 @@
 from __future__ import annotations
 
 import shutil
-import textwrap
 from pathlib import Path
 
-import pytest
 import yaml
 from typer.testing import CliRunner
 
 from archledger.cli import app
 from archledger.scopes import (
-    VALID_SCOPE_KINDS,
-    VALID_SCOPE_LIFECYCLES,
     RecordScope,
     normalize_scope,
     scope_matches_path,

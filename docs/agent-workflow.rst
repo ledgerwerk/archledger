@@ -33,3 +33,20 @@ Rules
 - Treat the fragment tree as the source of truth.
 - Do not edit generated build output as source; determine its location from ``archledger --json paths`` and ``[build].default_output_dir``.
 - Add ``source_refs`` when a fragment describes concrete implementation artifacts.
+
+Three-tool boundary
+-------------------
+
+Archledger owns durable architecture and specification records. It may store
+external Taskledger IDs, SpecWeave behavior references, pytest references, and
+evidence paths as traceability data, but it does not execute Taskledger,
+SpecWeave, pytest, behave, or Cucumber commands.
+
+Taskledger owns active work state and task lifecycle. Store Taskledger
+provenance as stable IDs such as ``task-0037`` only. Archledger validates the ID
+shape and does not require the task to exist locally.
+
+SpecWeave owns canonical Gherkin behavior specs and normalized behavior
+evidence. When behavior specs explain an Archledger record, use ``source_refs``
+that point at ``specs/behavior/features/.../*.feature``. When automation
+validates a record, use ``test_refs`` that point at plain pytest tests.

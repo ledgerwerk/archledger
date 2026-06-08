@@ -3,7 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from dataclasses import replace as dataclass_replace
 from pathlib import Path
-from archledger.id_format_drift import find_id_format_drift
 from typing import cast
 
 from jinja2 import Environment, PackageLoader, select_autoescape
@@ -11,6 +10,7 @@ from jinja2 import Environment, PackageLoader, select_autoescape
 from archledger import __version__
 from archledger.checks import content_warnings
 from archledger.errors import StorageError, ValidationError
+from archledger.id_format_drift import find_id_format_drift
 from archledger.id_segments import id_segment_for_metadata
 from archledger.ids import validate_id_segment
 from archledger.ledger_sequence import (
