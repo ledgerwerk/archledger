@@ -455,3 +455,56 @@ def test_renumber_prune_generated_tombstones_moves_to_quarantine(tmp_path: Path)
     qpath = Path(quarantined[0]["quarantine_path"])
     assert "archive" in qpath.parts
     assert "quarantine" in qpath.parts
+
+
+def test_renumber_infers_hidden_flat_to_type(tmp_path: Path) -> None:
+    init_project(tmp_path, source_format="markdown")
+    runner.invoke(app, ["--root", str(tmp_path), "new", "requirement", "A"])
+    runner.invoke(app, ["--root", str(tmp_path), "new", "risk", "B"])
+
+    canonical_config = tmp_path / "archledger.toml"
+    hidden_config = tmp_path / ".archledger.toml"
+    hidden_config.write_text(
+        canonical_config.read_text(encoding="utf-8").replace(
+            'segment_mode = "none"',
+            'segment_mode = "type"',
+        ),
+        encoding="utf-8",
+    )
+    canonical_config.unlink()
+
+    result = runner.invoke(
+        app,
+        [
+            "--root",
+            str(tmp_path),
+            "--json",
+            "renumber",
+            "--apply",
+        ],
+    )
+
+    assert result.exit_code == 0, result.stdout
+    payload = json.loads(result.stdout)
+    assert payload["result"]["old_format"]["segment_mode"] == "none"
+    assert payload["result"]["new_format"]["segment_mode"] == "type"
+    assert (
+        tmp_path
+        / ".archledger"
+        / "profiles"
+        / "arc42"
+        / "sections"
+        / "al_content_0001.md"
+    ).is_file()
+    assert (
+        tmp_path / ".archledger" / "records" / "requirements" / "al_content_0013.md"
+    ).is_file()
+    assert (
+        tmp_path / ".archledger" / "records" / "risks" / "al_risk_0014.md"
+    ).is_file()
+    assert not (
+        tmp_path / ".archledger" / "records" / "requirements" / "al_0013.md"
+    ).exists()
+    assert not canonical_config.exists()
+    assert hidden_config.exists()
+

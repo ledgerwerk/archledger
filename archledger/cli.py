@@ -137,11 +137,11 @@ from archledger.cli_payloads import (
     where_payload as _where_payload,
 )
 from archledger.errors import ArchledgerError, StorageError
+from archledger.id_format_drift import find_id_format_drift
 from archledger.ids import DEFAULT_ID_PREFIX, DEFAULT_ID_SEGMENT_MODE, DEFAULT_ID_WIDTH
-from archledger.migration import convert_sources
-from archledger.model import ArchitectureRecord
-from archledger.render import build_document
 from archledger.renumber import renumber_project
+from archledger.render import build_document
+from archledger.model import ArchitectureRecord, known_source_extensions
 from archledger.repository import (
     ArchitectureRepository,
     CheckResult,
@@ -156,6 +156,7 @@ from archledger.storage.common import write_text_atomic
 from archledger.storage.paths import (
     CANONICAL_PROJECT_CONFIG_FILENAME,
     DEFAULT_ARCHLEDGER_DIR_NAME,
+    HIDDEN_PROJECT_CONFIG_FILENAME,
     ProjectPaths,
     resolve_project_paths,
 )
@@ -493,11 +494,18 @@ def init(
     state = _state(ctx)
     workspace_root = state.root.resolve()
     config_path = workspace_root / CANONICAL_PROJECT_CONFIG_FILENAME
-    if config_path.exists():
+    hidden_config_path = workspace_root / HIDDEN_PROJECT_CONFIG_FILENAME
+    existing_configs = [
+        path for path in (config_path, hidden_config_path) if path.exists()
+    ]
+    if existing_configs:
         _emit_error(
             state,
             "init",
-            ArchledgerError(f"Config file already exists: {config_path}"),
+            ArchledgerError(
+                "Config file already exists: "
+                + ", ".join(str(path) for path in existing_configs)
+            ),
         )
     try:
         opts = InitOptions(
@@ -1004,26 +1012,59 @@ def renumber(
         paths: ProjectPaths,
         config: ProjectConfig,
     ) -> dict[str, object]:
-        explicit_from = from_prefix is not None or from_width is not None or from_id_segment_mode is not None
+        explicit_from = (
+            from_prefix is not None
+            or from_width is not None
+            or from_id_segment_mode is not None
+        )
+        effective_from_prefix = from_prefix
+        effective_from_width = from_width
+        effective_from_segment_mode = from_id_segment_mode
         if not explicit_from:
-            doctor_result = repo.doctor(repair=False)
-            if doctor_result.errors:
-                raise ArchledgerError(
+            drift = find_id_format_drift(
+                paths,
+                config,
+                known_source_extensions(config),
+            )
+            if drift:
+                detected_formats = {
                     (
-                        "Ledger numbering is inconsistent."
-                        " Run archledger doctor --repair first."
-                    ),
-                    details=_doctor_payload(
-                        doctor_result,
-                        id_format=config.id_format,
-                    ),
+                        item.detected_format.prefix,
+                        item.detected_format.width,
+                        item.detected_format.segment_mode,
+                    )
+                    for item in drift
+                }
+                if len(detected_formats) != 1:
+                    raise ArchledgerError(
+                        "Cannot infer previous ledger ID format from mixed source "
+                        "files. Re-run renumber with explicit --from-* options."
+                    )
+                detected_prefix, detected_width, detected_segment_mode = next(
+                    iter(detected_formats)
                 )
+                effective_from_prefix = detected_prefix
+                effective_from_width = detected_width
+                effective_from_segment_mode = detected_segment_mode
+            else:
+                doctor_result = repo.doctor(repair=False)
+                if doctor_result.errors:
+                    raise ArchledgerError(
+                        (
+                            "Ledger numbering is inconsistent."
+                            " Run archledger doctor --repair first."
+                        ),
+                        details=_doctor_payload(
+                            doctor_result,
+                            id_format=config.id_format,
+                        ),
+                    )
         result = renumber_project(
             paths,
             config,
-            old_prefix=from_prefix,
-            old_width=from_width,
-            old_segment_mode=from_id_segment_mode,
+            old_prefix=effective_from_prefix,
+            old_width=effective_from_width,
+            old_segment_mode=effective_from_segment_mode,
             new_prefix=prefix,
             new_width=width,
             new_segment_mode=id_segment_mode,
