@@ -6,6 +6,43 @@ All notable changes to `archledger` will be documented in this file.
 
 _(No unreleased changes.)_
 
+## 0.3.0 — 2026-06-09
+
+SDD contract and profile upgrade, BDD/Gherkin metadata and tooling (import, export, validate, sync), scope metadata and monorepo support, combo trace, ID format drift repair, and release-hardening fixes.
+
+### Added
+
+- **SDD contract and profile upgrade** (task-0026) — SDD profile with enforceable traceability policy (`require_acceptance_criteria`, `require_implementation_refs`, `require_test_refs`), effective config policy merging, `sdd check`/`check-pr`/`status` CLI commands, profile gate, link-target-status warning, expanded JSON schemas (`sdd.v1`, `sdd-status.v1`, `sdd-pr.v1`), and `init --profile sdd`.
+- **SDD review fixes** (task-0027) — hardened inline acceptance-criteria handling, normalized source/test reference checks, real PR gate for `check-pr`, `--include-drafts`/`--include-superseded`/`--all-statuses` flags, `sdd_options_from_config` merging config+CLI overrides, AC ergonomics (`--requirement`/`--validation-command`/`--validation-expected`), and `SddContext` refactored module.
+- **BDD/Gherkin metadata and tooling** (task-0028) — BDD front-matter model (`BddAutomation`/`BddExample`), `normalize_bdd_metadata`, SDD-BDD checks (shape, GWT, automation, feature-ref, AC-link), minimal Gherkin parser, `bdd import`/`export` CLI, config flags (`require_bdd_gwt_for_behavior_records`, `require_bdd_automation_for_accepted_records`), JSON schemas (`bdd-import.v1`, `bdd-export.v1`), and docs/skill updates. Phases 0-5.
+- **SDD/BDD review fixes** (task-0029) — P0 Gherkin parser fixes (removed `matched_scenario`, fixed `UnsupportedGherkinError`, fixed step bucket sharing), P1 profile UX (`bdd` is not a standalone profile, config preservation on enable/disable), P2 docs/stale-reference cleanup.
+- **SDD/BDD integration review fixes** (task-0032) — safe/atomic/multi-rule batch export with path sanitization, JSON error envelopes for `bdd validate`/`sync`/`export` misuse, normalized export payloads, Option A linked/automated semantics, `behavior_linked` coverage dimension, GWT for `quality_scenario`, `sdd coverage --by-record`, `sdd-check.v2` schema, and new `bdd-sync`/`sdd-init`/`sdd-explain` schemas.
+- **BDD/spec workflow alignment** (task-0033) — SpecWeave-owned `specs/behavior/features` convention, separate `source_refs` (feature files) from `test_refs` (pytest), deprecated path warnings across import/export/validate/sync, `bdd link` test_refs support, SDD BDD test-ref and path-convention rules.
+- **Scope metadata and monorepo support** (task-0034) — `RecordScope` dataclass with `kind`/`name`/`applies_to`/`excludes`/`lifecycle`, scope normalization and context matching, `applies_to` link rel, `--scope`/`--scope-kind`/`--addon` CLI filters, `scope list`/`show`/`affected` subcommands, relaxed source-ref existence for archived records.
+- **Combo trace** (task-0037) — `archledger trace --format combo-json` emitting `combi.trace.v1` bundles with source/test refs, BDD IDs, AC IDs, and Taskledger provenance; SDD external reference checks for Taskledger ID shapes and linked BDD automation; three-tool boundary documentation.
+- **P0-P2 release hardening** (task-0038) — shared BDD mutation validation helpers, safe `bdd set`/`link` pre-validation, tightened Gherkin parser, cached feature-file parsing in sync, structured sync findings, extracted `sdd_support.py`/`sdd_indexes.py` modules, `sdd-check.v2` schema aliasing, markdown coverage formatting, JSON envelopes for early SDD validation errors, dedicated `docs/sdd.rst` and `docs/bdd-gherkin.rst` guide pages.
+
+### Changed
+
+- **Config version v7 → v8** — profile layout (`[profiles]`/`[profiles.arc42]`/`[profiles.sdd]`) introduced via `archledger profile migrate` (task-0028).
+- **SDD linked-automation policy** — linked imports accepted by default; warns in `--strict`; errors only when `require_bdd_automation_for_accepted_records` is enabled (task-0032, task-0038).
+- **BDD export payload** — normalized to `{schema, exported[], feature_files[], warnings[]}` for both single and batch (task-0032, task-0038).
+- **`sdd check` payload** — migrated to `archledger.sdd-check.v2` with `default_profile`/`enabled_profiles`/`sdd_enabled` (task-0032).
+
+### Fixed
+
+- Test failures from markdown default source format change (task-0024).
+- Archive tombstones rejected by check/build; added `archive_tombstone` to valid record types (task-0030).
+- ID format drift: `doctor --repair` now refuses when ID format mismatches config; `renumber` supports `--from-prefix`/`--from-width`/`--from-id-segment-mode` for explicit migration; stale generated tombstone collision detection and quarantine (task-0035).
+- Hidden config init guard: `init` checks both `archledger.toml` and `.archledger.toml`; renumber infers old segment mode from drift (task-0036).
+- Profile enable/disable preserves existing profile settings instead of overwriting (task-0029).
+- `scan_git_revision` skips `.archledger/build` state files, fixing spurious unlinked changes in PR checks (task-0027).
+- `assert result.stderr` test failures migrated to `result.output` for combined-stream CliRunner (task-0028).
+
+### Internal
+
+- Code smell review: removed unused `repository_checks` module, unreachable model code, fixed `Callable` typing, added missing test annotations, aligned release docs with mypy scope (task-0025).
+
 ## 0.2.0 — 2026-05-30
 
 Configurable ID formats, content-segmented ledger IDs, `archledger renumber` command, comprehensive `init` CLI options, Markdown as the default source format, and a major internal refactoring across 5 phases.
