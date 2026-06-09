@@ -87,6 +87,26 @@ def test_sdd_check_v2_payload_matches_schema(tmp_path: Path) -> None:
     assert "profile" not in payload and "profile_enabled" not in payload
 
 
+def test_schema_target_sdd_returns_sdd_check_v2_schema(tmp_path: Path) -> None:
+    _init(tmp_path)
+    result = runner.invoke(
+        app,
+        [
+            "--root",
+            str(tmp_path),
+            "--json",
+            "schema",
+            "--format",
+            "jsonschema",
+            "--target",
+            "sdd",
+        ],
+    )
+    assert result.exit_code == 0, result.stdout
+    schema = json.loads(result.stdout)["result"]
+    assert schema["properties"]["schema"]["const"] == "archledger.sdd-check.v2"
+
+
 def test_bdd_export_payload_matches_schema(tmp_path: Path) -> None:
     """ac-0004: single and batch export payloads match the v1 schema."""
     from archledger.jsonschemas import load_json_schema
@@ -152,6 +172,18 @@ def test_bdd_export_payload_matches_schema(tmp_path: Path) -> None:
     _payload_matches_schema(batch_payload, schema)
 
 
+def test_bdd_export_payload_helper_matches_schema() -> None:
+    from archledger.cli_payloads import bdd_export_payload
+    from archledger.jsonschemas import load_json_schema
+
+    payload = bdd_export_payload(
+        exported=[{"record_id": "al_0001", "feature": "F", "file": "out.feature"}],
+        feature_files=["out.feature"],
+        warnings=[],
+    )
+    _payload_matches_schema(payload, load_json_schema("bdd-export"))
+
+
 def test_bdd_sync_payload_matches_schema(tmp_path: Path) -> None:
     """ac-0011: bdd sync payload matches the published schema."""
     from archledger.jsonschemas import load_json_schema
@@ -165,6 +197,13 @@ def test_bdd_sync_payload_matches_schema(tmp_path: Path) -> None:
     payload = json.loads(result.stdout)["result"]
     schema = load_json_schema("bdd-sync")
     _payload_matches_schema(payload, schema)
+
+
+def test_sdd_pr_schema_references_sdd_check_v2() -> None:
+    from archledger.jsonschemas import load_json_schema
+
+    schema = load_json_schema("sdd-pr")
+    assert schema["properties"]["sdd"]["$ref"] == "archledger.sdd-check.v2.schema.json"
 
 
 def test_sdd_init_payload_matches_schema(tmp_path: Path) -> None:

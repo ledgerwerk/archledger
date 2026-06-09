@@ -919,6 +919,10 @@ def test_sdd_policy_set_requires_a_flag(tmp_path: Path) -> None:
         ["--root", str(tmp_path), "--json", "sdd", "policy", "set"],
     )
     assert result.exit_code != 0
+    payload = json.loads(result.stdout)
+    assert payload["ok"] is False
+    assert payload["command"] == "sdd policy set"
+    assert "Provide at least one" in payload["error"]["message"]
 
 
 # ---- Phase 2: sdd waive add/list/remove ----
@@ -955,6 +959,10 @@ def test_sdd_waive_add_requires_reason(tmp_path: Path) -> None:
         ],
     )
     assert result.exit_code != 0
+    payload = json.loads(result.stdout)
+    assert payload["ok"] is False
+    assert payload["command"] == "sdd waive add"
+    assert "--reason is required" in payload["error"]["message"]
 
 
 def test_sdd_waive_add_suppresses_matching_rule(tmp_path: Path) -> None:
@@ -1220,6 +1228,17 @@ def test_sdd_coverage_by_record_lists_per_record_detail(tmp_path: Path) -> None:
     assert json.loads(plain.stdout)["result"]["by_record"] == []
 
 
+def test_sdd_coverage_markdown_format_outputs_markdown(tmp_path: Path) -> None:
+    _init(tmp_path)
+    result = runner.invoke(
+        app,
+        ["--root", str(tmp_path), "sdd", "coverage", "--format", "markdown"],
+    )
+    assert result.exit_code == 0, result.stdout
+    assert result.stdout.startswith("# SDD coverage")
+    assert "| Dimension | Covered | Total |" in result.stdout
+
+
 # ---- Phase 3: scoped sdd check ----
 
 
@@ -1324,7 +1343,52 @@ def test_sdd_check_scoped_to_kind(tmp_path: Path) -> None:
     assert "SDD-ADR-LINK" not in codes
 
 
-def test_sdd_strict_reports_linked_bdd_without_test_ref(tmp_path: Path) -> None:
+def test_sdd_default_accepts_linked_bdd_without_test_ref(tmp_path: Path) -> None:
+    _init(tmp_path)
+    feature = tmp_path / "specs/behavior/features/payments/pay.feature"
+    feature.parent.mkdir(parents=True)
+    feature.write_text("Feature: Pay\n", encoding="utf-8")
+    impl = tmp_path / "src/pay.py"
+    impl.parent.mkdir(parents=True)
+    impl.write_text("# implementation\n", encoding="utf-8")
+    test_file = tmp_path / "tests/test_pay.py"
+    test_file.parent.mkdir(parents=True)
+    test_file.write_text("def test_pay():\n    assert True\n", encoding="utf-8")
+    _accepted_requirement_with(
+        tmp_path,
+        BODY,
+        {
+            "source_refs": [
+                {
+                    "path": "specs/behavior/features/payments/pay.feature",
+                    "role": "documents",
+                },
+                {"path": "src/pay.py", "role": "implements"},
+            ],
+            "test_refs": ["tests/test_pay.py::test_pay"],
+            "acceptance_criteria": [{"statement": "Payment works."}],
+            "bdd": {
+                "feature": "Pay",
+                "scenario": "Pay invoice",
+                "given": ["an invoice"],
+                "when": ["it is paid"],
+                "then": ["the invoice is settled"],
+                "automation": {
+                    "status": "linked",
+                    "feature_file": "specs/behavior/features/payments/pay.feature",
+                },
+            },
+        },
+    )
+
+    checked = runner.invoke(app, ["--root", str(tmp_path), "--json", "sdd", "check"])
+    assert checked.exit_code == 0, checked.stdout
+    payload = json.loads(checked.stdout)["result"]
+    codes = {item["code"] for item in payload["errors"] + payload["warnings"]}
+    assert "SDD-BDD-AUTOMATION-REF" not in codes
+
+
+def test_sdd_strict_warns_for_linked_bdd_without_test_ref(tmp_path: Path) -> None:
     _init(tmp_path)
     feature = tmp_path / "specs/behavior/features/payments/pay.feature"
     feature.parent.mkdir(parents=True)
@@ -1359,11 +1423,11 @@ def test_sdd_strict_reports_linked_bdd_without_test_ref(tmp_path: Path) -> None:
     )
 
     assert checked.exit_code == 1
-    codes = {
-        item["code"]
-        for item in json.loads(checked.stdout)["error"]["details"]["errors"]
-    }
-    assert "SDD-BDD-AUTOMATION-REF" in codes
+    payload = json.loads(checked.stdout)["error"]["details"]
+    warning_codes = {item["code"] for item in payload["warnings"]}
+    error_codes = {item["code"] for item in payload["errors"]}
+    assert "SDD-BDD-AUTOMATION-REF" in warning_codes
+    assert "SDD-BDD-AUTOMATION-REF" not in error_codes
 
 
 def test_sdd_strict_accepts_not_applicable_bdd_without_test_ref(tmp_path: Path) -> None:

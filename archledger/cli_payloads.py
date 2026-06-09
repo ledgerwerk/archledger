@@ -659,13 +659,18 @@ def bdd_import_payload(response: object) -> dict[str, object]:
     }
 
 
-def bdd_export_payload(response: object) -> dict[str, object]:
+def bdd_export_payload(
+    *,
+    exported: Sequence[dict[str, object]],
+    feature_files: Sequence[str],
+    warnings: Sequence[str],
+) -> dict[str, object]:
     """Payload for archledger bdd export command."""
     return {
-        "schema": response.schema,
-        "record_id": response.record_id,
-        "output_file": response.output_file,
-        "warnings": list(response.warnings),
+        "schema": "archledger.bdd-export.v1",
+        "exported": list(exported),
+        "feature_files": list(feature_files),
+        "warnings": list(warnings),
     }
 
 

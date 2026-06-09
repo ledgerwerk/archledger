@@ -12,6 +12,7 @@ from pathlib import Path
 from archledger.errors import ValidationError
 from archledger.links import VALID_LINK_RELS
 from archledger.model import VALID_SOURCE_REF_ROLES
+from archledger.source_refs import RelativePosixPathError, validate_relative_posix_path
 from archledger.storage.common import utc_now_iso
 from archledger.storage.frontmatter import (
     read_front_matter_document,
@@ -134,7 +135,14 @@ def add_test_ref(
     existing = metadata.get("test_refs", [])
     if not isinstance(existing, list):
         existing = []
-    new_ref: dict[str, object] = {"path": ref_path}
+    try:
+        normalized_ref_path = validate_relative_posix_path(
+            ref_path,
+            field_name=f"Record {record_id} test_refs path",
+        )
+    except RelativePosixPathError as exc:
+        raise ValidationError(str(exc)) from exc
+    new_ref: dict[str, object] = {"path": normalized_ref_path}
     if nodeid:
         new_ref["nodeid"] = nodeid
     if role:

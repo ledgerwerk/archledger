@@ -2184,20 +2184,6 @@ def sdd_policy_set(
 ) -> None:
     """Update profiles.sdd policy flags in .archledger.toml."""
     state = _state(ctx)
-    overrides: dict[str, bool] = {}
-    for flag, value in (
-        ("require_acceptance_criteria", require_acceptance_criteria),
-        ("require_implementation_refs", require_implementation_refs),
-        ("require_test_refs", require_test_refs),
-        ("require_bdd_gwt_for_behavior_records", require_bdd_gwt),
-        ("require_bdd_automation_for_accepted_records", require_bdd_automation),
-    ):
-        if value is not None:
-            overrides[flag] = value
-    if not overrides:
-        raise ArchledgerError(
-            "Provide at least one --require-*/--no-require-* flag to set."
-        )
 
     def _build(
         repo: ArchitectureRepository,
@@ -2207,6 +2193,20 @@ def sdd_policy_set(
         del repo, config
         from archledger.profiles import set_sdd_profile_policy
 
+        overrides: dict[str, bool] = {}
+        for flag, value in (
+            ("require_acceptance_criteria", require_acceptance_criteria),
+            ("require_implementation_refs", require_implementation_refs),
+            ("require_test_refs", require_test_refs),
+            ("require_bdd_gwt_for_behavior_records", require_bdd_gwt),
+            ("require_bdd_automation_for_accepted_records", require_bdd_automation),
+        ):
+            if value is not None:
+                overrides[flag] = value
+        if not overrides:
+            raise ArchledgerError(
+                "Provide at least one --require-*/--no-require-* flag to set."
+            )
         before, after = set_sdd_profile_policy(
             paths.config_path,
             paths.archledger_dir,
@@ -2247,8 +2247,6 @@ def sdd_waive_add(
 ) -> None:
     """Add an sdd.waivers[] entry; requires a non-empty reason."""
     state = _state(ctx)
-    if not reason or not reason.strip():
-        raise ArchledgerError("--reason is required and must be non-empty.")
 
     def _build(
         repo: ArchitectureRepository,
@@ -2259,6 +2257,8 @@ def sdd_waive_add(
         from archledger.mutations import add_sdd_waiver
         from archledger.sdd_rules import is_known_sdd_rule
 
+        if not reason or not reason.strip():
+            raise ArchledgerError("--reason is required and must be non-empty.")
         if not is_known_sdd_rule(rule):
             raise ArchledgerError(f"Unknown SDD rule code: {rule!r}")
         target_path = _find_record_path(repo, record_id)
@@ -2736,6 +2736,8 @@ def sdd_coverage(
         del paths, config
         from archledger.sdd import check_sdd_coverage
 
+        if format not in {"human", "markdown"}:
+            raise ArchledgerError("--format must be one of: human, markdown")
         result = check_sdd_coverage(repo, include_bdd=include_bdd, by_record=by_record)
         dim_payload = {
             k: {"covered": d.covered, "total": d.total}
@@ -2754,6 +2756,25 @@ def sdd_coverage(
         totals = p.get("totals", {})
         cov = p.get("coverage", {})
         gaps = p.get("gaps", [])
+        if format == "markdown":
+            lines = [
+                "# SDD coverage",
+                "",
+                f"- Accepted requirements: {totals.get('accepted_requirements', 0)}",
+                f"- Accepted ADRs: {totals.get('accepted_adrs', 0)}",
+                f"- Behavior records: {totals.get('behavior_records', 0)}",
+                f"- Risks: {totals.get('risks', 0)}",
+                "",
+                "| Dimension | Covered | Total |",
+                "| --- | ---: | ---: |",
+            ]
+            for key in sorted(cov):
+                d = cov[key]
+                lines.append(f"| {key} | {d['covered']} | {d['total']} |")
+            if gaps:
+                lines.extend(["", "## Gaps"])
+                lines.extend(f"- {gap}" for gap in gaps)
+            return "\n".join(lines)
         lines = ["SDD coverage:"]
         lines.append(
             f"  Accepted requirements: {totals.get('accepted_requirements', 0)}"

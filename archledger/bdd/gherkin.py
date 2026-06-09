@@ -43,14 +43,6 @@ class GherkinSyntaxError(ValueError):
 
 
 @dataclass(frozen=True, slots=True)
-class ParsedStep:
-    """A single Given/When/Then/And/But step."""
-
-    keyword: str  # "Given", "When", "Then", "And", "But"
-    text: str
-
-
-@dataclass(frozen=True, slots=True)
 class ParsedScenario:
     """A parsed Scenario or Example.
 
@@ -291,10 +283,13 @@ def _dispatch_line(ctx: _ParseContext) -> _ParseContext:
         if line.startswith(kw):
             if ctx.found_feature:
                 raise GherkinSyntaxError("Multiple Feature: lines found.", line=ln)
+            feature_name = line[len(kw) :].strip()
+            if not feature_name:
+                raise GherkinSyntaxError("Feature name must not be empty.", line=ln)
             return _replace(
                 ctx,
                 found_feature=True,
-                feature_name=line[len(kw) :].strip(),
+                feature_name=feature_name,
                 feature_tags=list(pending),
                 pending_tags=[],
                 current_step_bucket=None,
@@ -303,6 +298,11 @@ def _dispatch_line(ctx: _ParseContext) -> _ParseContext:
     # Rule
     for kw in _RULE_KEYWORDS:
         if line.startswith(kw):
+            if not ctx.found_feature:
+                raise GherkinSyntaxError("Rule: must appear after Feature:.", line=ln)
+            rule_name = line[len(kw) :].strip()
+            if not rule_name:
+                raise GherkinSyntaxError("Rule name must not be empty.", line=ln)
             _flush_scenario(
                 ctx.current_scenario_name,
                 ctx.current_scenario_tags,
@@ -320,13 +320,21 @@ def _dispatch_line(ctx: _ParseContext) -> _ParseContext:
                 current_when=[],
                 current_then=[],
                 current_step_bucket=None,
-                rule_name=line[len(kw) :].strip(),
+                rule_name=rule_name,
                 pending_tags=[],
             )
 
     # Scenario / Example
     for kw in _SCENARIO_KEYWORDS:
         if line.startswith(kw):
+            if not ctx.found_feature:
+                raise GherkinSyntaxError(
+                    f"{kw} must appear after Feature:.",
+                    line=ln,
+                )
+            scenario_name = line[len(kw) :].strip()
+            if not scenario_name:
+                raise GherkinSyntaxError("Scenario name must not be empty.", line=ln)
             _flush_scenario(
                 ctx.current_scenario_name,
                 ctx.current_scenario_tags,
@@ -338,7 +346,7 @@ def _dispatch_line(ctx: _ParseContext) -> _ParseContext:
             )
             return _replace(
                 ctx,
-                current_scenario_name=line[len(kw) :].strip(),
+                current_scenario_name=scenario_name,
                 current_scenario_tags=list(pending),
                 current_given=[],
                 current_when=[],
@@ -351,6 +359,11 @@ def _dispatch_line(ctx: _ParseContext) -> _ParseContext:
     for kw in _STEP_KEYWORDS:
         if line.startswith(kw + " ") or line == kw:
             step_text = line[len(kw) :].strip()
+            if ctx.current_scenario_name is None:
+                raise GherkinSyntaxError(
+                    f"{kw} steps must appear inside a Scenario or Example.",
+                    line=ln,
+                )
             if kw in _GIVEN_KEYWORDS:
                 new_given = ctx.current_given + [step_text]
                 return _replace(
@@ -418,7 +431,6 @@ __all__ = [
     "GherkinSyntaxError",
     "ParsedFeature",
     "ParsedScenario",
-    "ParsedStep",
     "UnsupportedGherkinError",
     "parse_gherkin",
 ]

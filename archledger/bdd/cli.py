@@ -25,6 +25,11 @@ from archledger.bdd.gherkin import (
     UnsupportedGherkinError,
 )
 from archledger.bdd.inspect import list_bdd_records
+from archledger.bdd.mutations import (
+    build_bdd_link_block,
+    build_bdd_set_block,
+    parse_test_ref_entry,
+)
 from archledger.bdd.normalize import normalize_bdd_metadata
 from archledger.errors import ArchledgerError
 from archledger.source_refs import validate_relative_posix_path
@@ -203,6 +208,8 @@ def _export_single_record(
     repo, record_id: str, out: str, *, force: bool
 ) -> dict[str, object]:
     """Export one record to a single .feature file; return the v1 payload."""
+    from archledger.cli_payloads import bdd_export_payload
+
     response = export_bdd_record(repo, record_id, out, force=force)
     rel_out = response.output_file
     record = repo.get_record(record_id)
@@ -210,18 +217,17 @@ def _export_single_record(
     feat_name = ""
     if isinstance(raw_bdd, dict):
         feat_name = str(raw_bdd.get("feature") or "")
-    return {
-        "schema": "archledger.bdd-export.v1",
-        "exported": [
+    return bdd_export_payload(
+        exported=[
             {
                 "record_id": response.record_id,
                 "feature": feat_name,
                 "file": rel_out,
             }
         ],
-        "feature_files": [rel_out],
-        "warnings": list(response.warnings),
-    }
+        feature_files=[rel_out],
+        warnings=list(response.warnings),
+    )
 
 
 def _collect_export_targets(
@@ -294,6 +300,8 @@ def _write_export_targets(
     targets: list[dict[str, object]], *, workspace_root, force: bool
 ) -> dict[str, object]:
     """Detect existing-file collisions, then write every validated target."""
+    from archledger.cli_payloads import bdd_export_payload
+
     if not force:
         existing = [
             str(t["path"].relative_to(workspace_root))
@@ -315,12 +323,11 @@ def _write_export_targets(
             {"record_id": rid, "feature": t["feature"], "file": rel}
             for rid in t["record_ids"]
         )
-    return {
-        "schema": "archledger.bdd-export.v1",
-        "exported": exported,
-        "feature_files": feature_files,
-        "warnings": [],
-    }
+    return bdd_export_payload(
+        exported=exported,
+        feature_files=feature_files,
+        warnings=[],
+    )
 
 
 def _export_batch(
@@ -337,12 +344,9 @@ def _export_batch(
         repo, feature_filter=feature if not all_records else None
     )
     if not entries.entries:
-        return {
-            "schema": "archledger.bdd-export.v1",
-            "exported": [],
-            "feature_files": [],
-            "warnings": [],
-        }
+        from archledger.cli_payloads import bdd_export_payload
+
+        return bdd_export_payload(exported=[], feature_files=[], warnings=[])
 
     safe_dir = validate_relative_posix_path(out_dir or ".", field_name="out-dir")
     out_path = paths.workspace_root / Path(safe_dir)
@@ -651,41 +655,22 @@ def set_command(
         del config
         target_path = _find_record_path(repo, record_id)
         metadata, _body = read_front_matter_document(target_path)
-        existing = metadata.get("bdd")
-        base = dict(existing) if isinstance(existing, dict) else {}
-
-        if feature is not None:
-            base["feature"] = feature
-        if rule is not None:
-            base["rule"] = rule
-        if scenario is not None:
-            base["scenario"] = scenario
-        if given is not None:
-            base["given"] = list(given)
-        if when is not None:
-            base["when"] = list(when)
-        if then is not None:
-            base["then"] = list(then)
-        if tag is not None:
-            base["tags"] = list(tag)
-        if ac is not None:
-            base["acceptance_criteria"] = list(ac)
-        if task is not None:
-            base["task_refs"] = list(task)
-
-        auto = (
-            dict(base.get("automation", {}))
-            if isinstance(base.get("automation"), dict)
-            else {}
+        base = build_bdd_set_block(
+            record_id,
+            metadata.get("bdd"),
+            feature=feature,
+            rule=rule,
+            scenario=scenario,
+            given=given,
+            when=when,
+            then=then,
+            tag=tag,
+            acceptance_criteria=ac,
+            task_refs=task,
+            automation_status=automation_status,
+            feature_file=feature_file,
+            command=cli_command,
         )
-        if automation_status is not None:
-            auto["status"] = automation_status
-        if feature_file is not None:
-            auto["feature_file"] = feature_file
-        if cli_command is not None:
-            auto["command"] = cli_command
-        if auto:
-            base["automation"] = auto
 
         set_record_meta(
             target_path,
@@ -752,39 +737,25 @@ def link_command(
         del config
         target_path = _find_record_path(repo, record_id)
         metadata, _body = read_front_matter_document(target_path)
-        existing = metadata.get("bdd")
-        if not isinstance(existing, dict):
-            raise ArchledgerError(
-                f"Record {record_id} has no bdd metadata. Run 'bdd set' first."
-            )
-
-        auto = dict(existing.get("automation", {}))
-        if feature_file is not None:
-            auto["feature_file"] = feature_file
-        if link_scenario is not None:
-            auto["scenario"] = link_scenario
-        if cli_command is not None:
-            auto["command"] = cli_command
-        if link_status is not None:
-            auto["status"] = link_status
-        elif feature_file and auto.get("status") in ("pending", "", None):
-            # Auto-advance to linked when a feature file is provided.
-            auto["status"] = "linked"
-
         existing_tests = metadata.get("test_refs", [])
         has_existing_test_ref = isinstance(existing_tests, list) and bool(
             existing_tests
         )
         has_new_test_ref = bool(test)
-        has_command = bool(auto.get("command"))
-        if auto.get("status") == "automated" and not (
-            has_command or has_existing_test_ref or has_new_test_ref
-        ):
-            raise ArchledgerError(
-                "bdd link with --status automated requires --command, --test, "
-                "or existing test_refs."
-            )
-        existing["automation"] = auto
+        normalized_tests = [
+            parse_test_ref_entry(entry, record_id=record_id) for entry in test or []
+        ]
+        existing = build_bdd_link_block(
+            record_id,
+            metadata.get("bdd"),
+            feature_file=feature_file,
+            scenario=link_scenario,
+            command=cli_command,
+            status=link_status,
+            has_existing_test_ref=has_existing_test_ref,
+            has_new_test_ref=has_new_test_ref,
+        )
+        auto = existing["automation"]
 
         set_record_meta(
             target_path,
@@ -805,14 +776,13 @@ def link_command(
                 workspace_root=paths.workspace_root,
             )
 
-        if test:
-            for entry in test:
-                test_path, _separator, nodeid = entry.strip().partition("::")
+        if normalized_tests:
+            for test_path, nodeid in normalized_tests:
                 add_test_ref(
                     target_path,
                     record_id,
-                    test_path.strip(),
-                    nodeid=nodeid.strip(),
+                    test_path,
+                    nodeid=nodeid,
                     role="validates",
                     reason="Plain pytest enforcement.",
                     workspace_root=paths.workspace_root,

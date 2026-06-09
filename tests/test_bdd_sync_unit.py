@@ -246,3 +246,105 @@ class TestCheckBddSync:
     def test_schema_version(self, _repo: ArchitectureRepository) -> None:
         resp = check_bdd_sync(_repo)
         assert resp.schema == "archledger.bdd-sync.v1"
+
+    def test_reports_unsupported_gherkin(self, _repo: ArchitectureRepository) -> None:
+        _write_feature(
+            _repo,
+            "specs/behavior/features/x.feature",
+            "Feature: F\n  Background:\n    Given g\n",
+        )
+        _make_record(
+            _repo,
+            bdd={
+                "feature": "F",
+                "scenario": "S",
+                "given": ["g"],
+                "when": ["w"],
+                "then": ["t"],
+                "automation": {
+                    "status": "linked",
+                    "feature_file": "specs/behavior/features/x.feature",
+                },
+            },
+        )
+        resp = check_bdd_sync(_repo)
+        codes = [f.code for f in resp.findings]
+        assert "BDD-SYNC-GHERKIN-UNSUPPORTED" in codes
+
+    def test_reports_syntax_error(self, _repo: ArchitectureRepository) -> None:
+        _write_feature(
+            _repo,
+            "specs/behavior/features/x.feature",
+            "Feature:\n  Scenario: S\n    Given g\n    When w\n    Then t\n",
+        )
+        _make_record(
+            _repo,
+            bdd={
+                "feature": "F",
+                "scenario": "S",
+                "given": ["g"],
+                "when": ["w"],
+                "then": ["t"],
+                "automation": {
+                    "status": "linked",
+                    "feature_file": "specs/behavior/features/x.feature",
+                },
+            },
+        )
+        resp = check_bdd_sync(_repo)
+        codes = [f.code for f in resp.findings]
+        assert "BDD-SYNC-GHERKIN-SYNTAX" in codes
+
+    def test_sync_parses_each_feature_file_once(
+        self, _repo: ArchitectureRepository, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        _write_feature(
+            _repo,
+            "specs/behavior/features/x.feature",
+            "Feature: F\n  Scenario: S1\n    Given g\n    When w\n    Then t\n"
+            "  Scenario: S2\n    Given g2\n    When w2\n    Then t2\n",
+        )
+        _make_record(
+            _repo,
+            title="One",
+            bdd={
+                "feature": "F",
+                "scenario": "S1",
+                "given": ["g"],
+                "when": ["w"],
+                "then": ["t"],
+                "automation": {
+                    "status": "linked",
+                    "feature_file": "specs/behavior/features/x.feature",
+                },
+            },
+        )
+        _make_record(
+            _repo,
+            title="Two",
+            bdd={
+                "feature": "F",
+                "scenario": "S2",
+                "given": ["g2"],
+                "when": ["w2"],
+                "then": ["t2"],
+                "automation": {
+                    "status": "linked",
+                    "feature_file": "specs/behavior/features/x.feature",
+                },
+            },
+        )
+        calls = 0
+        from archledger.bdd import sync as bdd_sync
+
+        original = bdd_sync.parse_gherkin
+
+        def counted(text: str):  # noqa: ANN202
+            nonlocal calls
+            calls += 1
+            return original(text)
+
+        monkeypatch.setattr(bdd_sync, "parse_gherkin", counted)
+        resp = check_bdd_sync(_repo)
+        assert resp.findings == ()
+        assert calls == 1

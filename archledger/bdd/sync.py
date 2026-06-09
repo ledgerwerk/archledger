@@ -11,7 +11,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from archledger.bdd.gherkin import parse_gherkin
+from archledger.bdd.gherkin import (
+    GherkinSyntaxError,
+    ParsedFeature,
+    UnsupportedGherkinError,
+    parse_gherkin,
+)
 from archledger.bdd.normalize import normalize_bdd_metadata
 from archledger.bdd.paths import (
     deprecated_bdd_feature_path_message,
@@ -39,11 +44,18 @@ class BddSyncResponse:
     feature_files_checked: int = 0
 
 
+@dataclass(frozen=True, slots=True)
+class ParsedFeatureResult:
+    feature: ParsedFeature | None
+    findings: tuple[BddSyncFinding, ...] = ()
+
+
 def check_bdd_sync(repo: ArchitectureRepository) -> BddSyncResponse:
     """Compare .feature files against record bdd metadata and report drift."""
     records = repo.load_all_records(include_sections=True)
     findings: list[BddSyncFinding] = []
     files_checked: set[str] = set()
+    parse_cache: dict[str, ParsedFeatureResult] = {}
 
     # Collect all records with bdd metadata and their automation.feature_file
     bdd_records: list[
@@ -92,32 +104,21 @@ def check_bdd_sync(repo: ArchitectureRepository) -> BddSyncResponse:
                     feature_file=feature_file,
                 )
             )
-        safe_path = repo.paths.workspace_root / Path(feature_file)
         files_checked.add(feature_file)
-        if not safe_path.is_file():
-            findings.append(
-                BddSyncFinding(
-                    code="BDD-SYNC-FILE-MISSING",
-                    severity="error",
-                    message=(
-                        f"Record {record_id} links to {feature_file!r} "
-                        "which does not exist."
-                    ),
-                    record_id=record_id,
-                    feature_file=feature_file,
-                )
+        parsed = parse_cache.get(feature_file)
+        if parsed is None:
+            parsed = _load_feature_for_sync(
+                repo,
+                feature_file,
+                record_id=record_id,
             )
-            continue
-
-        # Parse the feature file and compare
-        try:
-            text = safe_path.read_text(encoding="utf-8")
-            feature = parse_gherkin(text)
-        except Exception:
+            parse_cache[feature_file] = parsed
+            findings.extend(parsed.findings)
+        if parsed.feature is None:
             continue
 
         # Check if the scenario exists in the feature file
-        scenario_names = {s.name for s in feature.scenarios}
+        scenario_names = {s.name for s in parsed.feature.scenarios}
         if example.scenario not in scenario_names:
             findings.append(
                 BddSyncFinding(
@@ -134,7 +135,7 @@ def check_bdd_sync(repo: ArchitectureRepository) -> BddSyncResponse:
             continue
 
         # Compare GWT steps for the matching scenario
-        for s in feature.scenarios:
+        for s in parsed.feature.scenarios:
             if s.name != example.scenario:
                 continue
             if tuple(s.given) != example.given:
@@ -179,16 +180,15 @@ def check_bdd_sync(repo: ArchitectureRepository) -> BddSyncResponse:
 
     # Check for orphan feature scenarios (in file but no record)
     for feature_file, record_entries in feature_files_with_records.items():
-        safe_path = repo.paths.workspace_root / Path(feature_file)
-        if not safe_path.is_file():
-            continue
-        try:
-            text = safe_path.read_text(encoding="utf-8")
-            feature = parse_gherkin(text)
-        except Exception:
+        parsed = parse_cache.get(feature_file)
+        if parsed is None:
+            parsed = _load_feature_for_sync(repo, feature_file)
+            parse_cache[feature_file] = parsed
+            findings.extend(parsed.findings)
+        if parsed.feature is None:
             continue
         record_scenarios = {e.scenario for _, e in record_entries}
-        for s in feature.scenarios:
+        for s in parsed.feature.scenarios:
             if s.name not in record_scenarios:
                 findings.append(
                     BddSyncFinding(
@@ -209,4 +209,79 @@ def check_bdd_sync(repo: ArchitectureRepository) -> BddSyncResponse:
     )
 
 
-__all__ = ["BddSyncFinding", "BddSyncResponse", "check_bdd_sync"]
+def _load_feature_for_sync(
+    repo: ArchitectureRepository,
+    feature_file: str,
+    *,
+    record_id: str = "",
+) -> ParsedFeatureResult:
+    safe_path = repo.paths.workspace_root / Path(feature_file)
+    if not safe_path.is_file():
+        return ParsedFeatureResult(
+            feature=None,
+            findings=(
+                BddSyncFinding(
+                    code="BDD-SYNC-FILE-MISSING",
+                    severity="error",
+                    message=(
+                        f"Record {record_id} links to {feature_file!r} which does not "
+                        "exist."
+                        if record_id
+                        else f"Feature file {feature_file!r} does not exist."
+                    ),
+                    record_id=record_id,
+                    feature_file=feature_file,
+                ),
+            ),
+        )
+    try:
+        text = safe_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return ParsedFeatureResult(
+            feature=None,
+            findings=(
+                BddSyncFinding(
+                    code="BDD-SYNC-FILE-READ",
+                    severity="error",
+                    message=str(exc),
+                    record_id=record_id,
+                    feature_file=feature_file,
+                ),
+            ),
+        )
+    try:
+        return ParsedFeatureResult(feature=parse_gherkin(text))
+    except UnsupportedGherkinError as exc:
+        return ParsedFeatureResult(
+            feature=None,
+            findings=(
+                BddSyncFinding(
+                    code="BDD-SYNC-GHERKIN-UNSUPPORTED",
+                    severity="error",
+                    message=str(exc),
+                    record_id=record_id,
+                    feature_file=feature_file,
+                ),
+            ),
+        )
+    except GherkinSyntaxError as exc:
+        return ParsedFeatureResult(
+            feature=None,
+            findings=(
+                BddSyncFinding(
+                    code="BDD-SYNC-GHERKIN-SYNTAX",
+                    severity="error",
+                    message=str(exc),
+                    record_id=record_id,
+                    feature_file=feature_file,
+                ),
+            ),
+        )
+
+
+__all__ = [
+    "BddSyncFinding",
+    "BddSyncResponse",
+    "ParsedFeatureResult",
+    "check_bdd_sync",
+]

@@ -44,7 +44,12 @@ source. New projects default to ``build/`` under the workspace root, and
 BDD / Gherkin behavior metadata
 ---------------------------------
 
-BDD (Behavior-Driven Development) is implemented as **metadata on existing records**, primarily ``runtime_scenario`` and ``quality_scenario``. Archledger records remain the canonical architecture/specification records. SpecWeave-owned files under ``specs/behavior/features`` may be the canonical behavior specifications. Archledger-imported or exported ``.feature`` files are interop artifacts unless ownership is explicitly changed.
+BDD (Behavior-Driven Development) is implemented as **metadata on existing records**,
+primarily ``runtime_scenario`` and ``quality_scenario``. Archledger records remain
+the canonical architecture/specification records. SpecWeave-owned files under
+``specs/behavior/features`` may be the canonical behavior specifications.
+Archledger-imported or exported ``.feature`` files are interop artifacts unless
+ownership is explicitly changed.
 
 Records carry a ``bdd`` front-matter block:
 
@@ -60,23 +65,30 @@ Records carry a ``bdd`` front-matter block:
      when:
        - the agent starts implementation
      then:
-     - implementation is blocked
+       - implementation is blocked
      automation:
        status: pending
        feature_file: specs/behavior/features/task-management/plan-gates.feature
        scenario: "@bdd-implementation-blocked-before-plan-acceptance"
-    source_refs:
+   source_refs:
      - path: specs/behavior/features/task-management/plan-gates.feature
        role: documents
        reason: Canonical behavior specification.
-    test_refs:
+   test_refs:
      - path: tests/test_task_management_plan_gates.py
        nodeid: tests/test_task_management_plan_gates.py::test_agent_cannot_start_implementation_before_plan_approval
        role: validates
        reason: Plain pytest enforcement.
 
-The ``automation.command`` field is **never executed** by archledger.  ``automation.status`` tracks whether automation has been wired (``pending``, ``linked``, ``automated``, ``not_applicable``). Prefer executable pytest traceability in ``test_refs``; keep ``automation.command`` only when the project wants to store the external command string as extra evidence.
+The ``automation.command`` field is **never executed** by archledger.
+``automation.status`` tracks whether automation has been wired
+(``pending``, ``linked``, ``automated``, ``not_applicable``). Under the default
+policy, ``linked`` is acceptable traceability; under ``--strict`` it warns when
+no executable ``test_refs`` are linked; under
+``require_bdd_automation_for_accepted_records`` it becomes an error until the
+record reaches ``automated`` or ``not_applicable``.
 
 Imported records include a ``source_refs`` entry with role ``documents`` linking to the originating ``.feature`` file. Use ``source_refs`` for behavior specs and ``test_refs`` for executable pytest validation so drift detection keeps documentation and enforcement separate.
 
-See ``archledger bdd import`` and ``archledger bdd export`` in :doc:`cli`.
+See :doc:`bdd-gherkin` and ``archledger bdd import`` / ``archledger bdd export``
+in :doc:`cli`.

@@ -615,6 +615,213 @@ def test_bdd_link_refuses_without_bdd_metadata(tmp_path: Path) -> None:
     assert result.exit_code != 0
 
 
+def test_bdd_set_rejects_unsafe_feature_file_without_writing(tmp_path: Path) -> None:
+    _init(tmp_path)
+    created = runner.invoke(
+        app,
+        ["--root", str(tmp_path), "--json", "new", "runtime_scenario", "S"],
+    )
+    payload = json.loads(created.stdout)["result"]
+    rid = payload["id"]
+    record_path = Path(payload["path"])
+    before, _body = read_front_matter_document(record_path)
+    result = runner.invoke(
+        app,
+        [
+            "--root",
+            str(tmp_path),
+            "--json",
+            "bdd",
+            "set",
+            rid,
+            "--feature",
+            "F",
+            "--scenario",
+            "A",
+            "--given",
+            "g",
+            "--when",
+            "w",
+            "--then",
+            "t",
+            "--feature-file",
+            "../bad.feature",
+        ],
+    )
+    assert result.exit_code != 0
+    payload = json.loads(result.stdout)
+    assert payload["ok"] is False
+    assert payload["command"] == "bdd set"
+    assert "must not contain '..'" in payload["error"]["message"]
+    after, _body = read_front_matter_document(record_path)
+    assert after == before
+
+
+def test_bdd_link_rejects_unsafe_feature_file_without_writing(tmp_path: Path) -> None:
+    _init(tmp_path)
+    created = runner.invoke(
+        app,
+        ["--root", str(tmp_path), "--json", "new", "runtime_scenario", "S"],
+    )
+    payload = json.loads(created.stdout)["result"]
+    rid = payload["id"]
+    record_path = Path(payload["path"])
+    runner.invoke(
+        app,
+        [
+            "--root",
+            str(tmp_path),
+            "--json",
+            "bdd",
+            "set",
+            rid,
+            "--feature",
+            "F",
+            "--scenario",
+            "A",
+            "--given",
+            "g",
+            "--when",
+            "w",
+            "--then",
+            "t",
+        ],
+    )
+    before, _body = read_front_matter_document(record_path)
+    result = runner.invoke(
+        app,
+        [
+            "--root",
+            str(tmp_path),
+            "--json",
+            "bdd",
+            "link",
+            rid,
+            "--feature-file",
+            "../bad.feature",
+        ],
+    )
+    assert result.exit_code != 0
+    payload = json.loads(result.stdout)
+    assert payload["ok"] is False
+    assert payload["command"] == "bdd link"
+    assert "must not contain '..'" in payload["error"]["message"]
+    after, _body = read_front_matter_document(record_path)
+    assert after == before
+
+
+def test_bdd_link_rejects_unknown_automation_status_without_writing(
+    tmp_path: Path,
+) -> None:
+    _init(tmp_path)
+    created = runner.invoke(
+        app,
+        ["--root", str(tmp_path), "--json", "new", "runtime_scenario", "S"],
+    )
+    payload = json.loads(created.stdout)["result"]
+    rid = payload["id"]
+    record_path = Path(payload["path"])
+    runner.invoke(
+        app,
+        [
+            "--root",
+            str(tmp_path),
+            "--json",
+            "bdd",
+            "set",
+            rid,
+            "--feature",
+            "F",
+            "--scenario",
+            "A",
+            "--given",
+            "g",
+            "--when",
+            "w",
+            "--then",
+            "t",
+        ],
+    )
+    before, _body = read_front_matter_document(record_path)
+    result = runner.invoke(
+        app,
+        [
+            "--root",
+            str(tmp_path),
+            "--json",
+            "bdd",
+            "link",
+            rid,
+            "--status",
+            "banana",
+        ],
+    )
+    assert result.exit_code != 0
+    payload = json.loads(result.stdout)
+    assert payload["ok"] is False
+    assert payload["command"] == "bdd link"
+    assert "must be one of" in payload["error"]["message"]
+    after, _body = read_front_matter_document(record_path)
+    assert after == before
+
+
+def test_bdd_link_rejects_unsafe_test_ref_without_writing(tmp_path: Path) -> None:
+    _init(tmp_path)
+    created = runner.invoke(
+        app,
+        ["--root", str(tmp_path), "--json", "new", "runtime_scenario", "S"],
+    )
+    payload = json.loads(created.stdout)["result"]
+    rid = payload["id"]
+    record_path = Path(payload["path"])
+    runner.invoke(
+        app,
+        [
+            "--root",
+            str(tmp_path),
+            "--json",
+            "bdd",
+            "set",
+            rid,
+            "--feature",
+            "F",
+            "--scenario",
+            "A",
+            "--given",
+            "g",
+            "--when",
+            "w",
+            "--then",
+            "t",
+        ],
+    )
+    before, _body = read_front_matter_document(record_path)
+    result = runner.invoke(
+        app,
+        [
+            "--root",
+            str(tmp_path),
+            "--json",
+            "bdd",
+            "link",
+            rid,
+            "--feature-file",
+            "specs/behavior/features/task-management/plan-gates.feature",
+            "--test",
+            "../tests/test_bad.py::test_it",
+            "--status",
+            "automated",
+        ],
+    )
+    assert result.exit_code != 0
+    payload = json.loads(result.stdout)
+    assert payload["ok"] is False
+    assert payload["command"] == "bdd link"
+    assert "must not contain '..'" in payload["error"]["message"]
+    after, _body = read_front_matter_document(record_path)
+    assert after == before
+
+
 def test_bdd_validate_missing_target_returns_json_error(tmp_path: Path) -> None:
     """P0: bdd validate with no target returns a JSON error envelope."""
     _init(tmp_path)

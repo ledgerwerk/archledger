@@ -248,10 +248,10 @@ def test_bdd_sync_requires_check_returns_json_error(tmp_path: Path) -> None:
     assert "Pass --check" in payload["error"]["message"]
 
 
-def test_bdd_sync_invalid_feature_file_returns_structured_error(
+def test_bdd_sync_invalid_feature_file_returns_structured_findings(
     tmp_path: Path,
 ) -> None:
-    """An unparseable feature file yields a structured JSON error envelope."""
+    """An unparseable linked feature file yields explicit sync findings."""
     _init(tmp_path)
     feature = (
         tmp_path / "specs" / "behavior" / "features" / "task-management" / "bad.feature"
@@ -264,11 +264,12 @@ def test_bdd_sync_invalid_feature_file_returns_structured_error(
     )
 
     result = _sync(tmp_path)
-    # Sync reports findings for the linked file; it should not crash with a
-    # traceback. The command must return JSON.
+    assert result.exit_code == 0, result.stdout
     payload = json.loads(result.stdout)
     assert payload["command"] == "bdd sync"
-    assert "findings" in payload.get("result", payload)
+    findings = payload["result"]["findings"]
+    assert findings
+    assert findings[0]["code"] == "BDD-SYNC-GHERKIN-UNSUPPORTED"
 
 
 def test_bdd_sync_warns_for_deprecated_feature_path(tmp_path: Path) -> None:

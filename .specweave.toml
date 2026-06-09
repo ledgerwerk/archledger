@@ -9,10 +9,9 @@ behavior_readme = "specs/behavior/README.md"
 manifest = "specs/behavior/manifest.json"
 tests_dir = "tests"
 reports_dir = "reports/behavior"
-state_dir = ".specweave"
-evidence_dir = ".specweave/evidence"
-reports_state_dir = ".specweave/reports"
-mapping_dir = ".specweave/mappings"
+evidence_dir = "specs/behavior/evidence"
+reports_state_dir = "reports/behavior/specweave"
+mapping_dir = "specs/behavior/mappings"
 
 gitkeep = true
 
@@ -22,11 +21,7 @@ ignore_globs = [".venv/**", "build/**", "dist/**"]
 
 [gherkin]
 dialect = "en"
-document_format = "markdown"
-feature_extension = ".feature.md"
-feature_extensions = [".feature.md", ".feature"]
-official_parser = true
-markdown_parser = "specweave"
+official_parser = false
 compile_pickles = false
 default_scenario_keyword = "Example"
 require_given_when_then = true

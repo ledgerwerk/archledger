@@ -58,9 +58,10 @@ is recorded and intended to be executed externally), and ``not_applicable``
 (deliberately manual). Under ``require_bdd_automation_for_accepted_records``
 (enabled by ``sdd init --strict-defaults``), a record must reach ``automated`` or
 ``not_applicable``; ``linked`` alone is treated as not-yet-automated and produces
-an ``SDD-BDD-AUTOMATION`` error. SDD coverage reports ``behavior_linked`` and
-``behavior_automated`` as separate dimensions for the same reason.
-for drift detection.
+an ``SDD-BDD-AUTOMATION`` error. Under ``--strict``, ``linked`` without
+executable ``test_refs`` is a warning, which still fails the strict run. SDD
+coverage reports ``behavior_linked`` and ``behavior_automated`` as separate
+dimensions for the same reason.
 
 **Canonical ownership**: Archledger records are the canonical
 architecture/specification records. SpecWeave-owned files under
@@ -68,6 +69,8 @@ architecture/specification records. SpecWeave-owned files under
 Archledger-exported ``.feature`` files are derived unless a project explicitly
 changes ownership. ``bdd sync --check`` reports drift between linked behavior
 specs and Archledger metadata.
+
+For the supported Gherkin subset and ownership details, see :doc:`bdd-gherkin`.
 
 Additional BDD commands:
 

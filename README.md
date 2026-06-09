@@ -71,6 +71,11 @@ scenario, tags, Given/When/Then steps, and optional automation metadata. Importe
 records default to `automation.status=linked`. Keep feature files in `source_refs`
 with role `documents` and link plain pytest validation through `test_refs`.
 
+Supported Gherkin is intentionally small: `Feature`, `Rule`, `Scenario`/`Example`,
+tags, and `Given`/`When`/`Then`/`And`/`But`. Unsupported constructs such as
+`Background`, `Scenario Outline`, `Examples`, data tables, and doc strings fail
+fast with structured validation and sync findings.
+
 Archledger does not run Cucumber, behave, pytest, or any BDD runner. Commands
 and test refs are traceability only.
 
@@ -93,6 +98,7 @@ archledger sdd waive add al_requirement_0001 --rule SDD-REQ-AC --reason "Legacy.
 
 # Detailed coverage with gaps
 archledger sdd coverage --include-bdd
+archledger sdd coverage --format markdown
 
 # Scoped checks
 archledger sdd check --record al_requirement_0001
@@ -128,6 +134,10 @@ records. SpecWeave-owned files under `specs/behavior/features` may be the
 canonical behavior specifications. Archledger-exported `.feature` files are
 derived unless a project explicitly changes ownership. `bdd sync --check`
 reports drift between linked behavior specs and Archledger metadata.
+
+`bdd set` and `bdd link` validate automation status, feature-file paths, and
+pytest test refs before writing front matter, so rejected mutations do not leave
+invalid BDD metadata behind.
 
 Safe mutation commands update front matter and re-run repository validation:
 

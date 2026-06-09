@@ -33,6 +33,7 @@ Rules
 - Treat the fragment tree as the source of truth.
 - Do not edit generated build output as source; determine its location from ``archledger --json paths`` and ``[build].default_output_dir``.
 - Add ``source_refs`` when a fragment describes concrete implementation artifacts.
+- Prefer ``archledger bdd set`` and ``archledger bdd link`` over manual YAML edits for behavior metadata; they reject unsafe paths and invalid automation statuses before mutation.
 
 Three-tool boundary
 -------------------

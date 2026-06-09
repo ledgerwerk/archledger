@@ -18,6 +18,7 @@ include = [
   "**/*.js",
   "**/*.css",
   "**/*.j2",
+  "**/*.feature",
 ]
 split_max_chars = 0
 manifest = false

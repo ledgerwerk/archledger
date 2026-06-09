@@ -2,13 +2,11 @@
 
 This directory is managed by SpecWeave.
 
-Canonical feature files live under:
+Feature files live under:
 
 ```text
-features/<area>/<feature>.feature.md
+features/<area>/<feature>.feature
 ```
-
-Classic `.feature` files remain fully supported.
 
 Use:
 

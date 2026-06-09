@@ -14,6 +14,6 @@
     "changes": {
       "description": "Source-tracking change-set payload (archledger.changed.v1)."
     },
-    "sdd": { "$ref": "archledger.sdd.v1.schema.json" }
+    "sdd": { "$ref": "archledger.sdd-check.v2.schema.json" }
   }
 }

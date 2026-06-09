@@ -359,6 +359,7 @@ def test_sdd_bdd_feature_ref_passes_for_imported_records(tmp_path: Path) -> None
     result = _run_sdd_check(tmp_path)
     codes = {f["code"] for f in result["data"]["errors"] + result["data"]["warnings"]}
     assert "SDD-BDD-FEATURE-REF" not in codes
+    assert "SDD-BDD-AUTOMATION-REF" not in codes
 
 
 def _enable_required_automation(tmp_path: Path) -> None:

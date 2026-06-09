@@ -27,6 +27,15 @@ from archledger.model import (
     ArchitectureRecord,
 )
 from archledger.repository import ArchitectureRepository
+from archledger.sdd_indexes import build_sdd_coverage_snapshot
+from archledger.sdd_support import (
+    adr_has_traceability,
+    build_acceptance_index,
+    classify_inline_acceptance_criteria,
+    has_inline_acceptance_criteria,
+    requirement_has_implementation,
+    requirement_has_validation,
+)
 from archledger.source_refs import normalize_source_refs
 from archledger.test_refs import normalize_test_refs
 
@@ -163,14 +172,9 @@ def _build_sdd_context(
         records_by_type.setdefault(r.type, []).append(r)
 
     # acceptance_criterion records indexed by the requirement they validate
-    acceptance_by_requirement: dict[str, list[ArchitectureRecord]] = {}
-    for r in records_by_type.get("acceptance_criterion", []):
-        req = r.metadata.get("requirement", "")
-        if isinstance(req, str) and req.strip():
-            acceptance_by_requirement.setdefault(req.strip(), []).append(r)
-        for link in r.links:
-            if link.rel == "validates":
-                acceptance_by_requirement.setdefault(link.target, []).append(r)
+    acceptance_by_requirement = build_acceptance_index(
+        records_by_type.get("acceptance_criterion", [])
+    )
 
     waivers_by_record: dict[str, frozenset[str]] = {}
     for r in records:
@@ -440,7 +444,7 @@ def _check_requirement(
     if ctx.options.require_implementation_refs and not _has_waiver(
         ctx, r.id, "SDD-REQ-IMPL"
     ):
-        if not any(ref.role == "implements" for ref in r.source_refs):
+        if not requirement_has_implementation(r):
             findings.append(
                 SddFinding(
                     level="error",
@@ -455,7 +459,7 @@ def _check_requirement(
             )
 
     if ctx.options.require_test_refs and not _has_waiver(ctx, r.id, "SDD-REQ-TEST"):
-        if not _has_validation(r, ctx.acceptance_by_requirement, ctx.records_by_id):
+        if not requirement_has_validation(r, ctx.acceptance_by_requirement):
             findings.append(
                 SddFinding(
                     level="error",
@@ -473,10 +477,7 @@ def _check_adr(r: ArchitectureRecord, ctx: SddContext) -> list[SddFinding]:
     """SDD-ADR-LINK traceability check."""
     if _has_waiver(ctx, r.id, "SDD-ADR-LINK"):
         return []
-    has_traceability = (
-        bool(r.links) or bool(r.metadata.get("related")) or bool(r.source_refs)
-    )
-    if has_traceability:
+    if adr_has_traceability(r):
         return []
     return [
         SddFinding(
@@ -597,48 +598,23 @@ def check_sdd_status(repo: ArchitectureRepository) -> SddStatusResult:
             counts["risks"] += 1
 
     # Build acceptance_by_requirement (same logic as check)
-    acceptance_by_requirement: dict[str, list[ArchitectureRecord]] = {}
-    for r in records:
-        if r.type == "acceptance_criterion":
-            req = r.metadata.get("requirement", "")
-            if isinstance(req, str) and req.strip():
-                acceptance_by_requirement.setdefault(req.strip(), []).append(r)
-            for link in r.links:
-                if link.rel == "validates":
-                    acceptance_by_requirement.setdefault(link.target, []).append(r)
+    acceptance_by_requirement, snapshot = build_sdd_coverage_snapshot(records)
 
     accepted_reqs = [
         r for r in records if r.type == "requirement" and r.status == "accepted"
     ]
 
-    with_ac = sum(
-        1
-        for r in accepted_reqs
-        if _has_inline_acceptance_criteria(r) or r.id in acceptance_by_requirement
-    )
-    with_impl = sum(
-        1
-        for r in accepted_reqs
-        if any(ref.role == "implements" for ref in r.source_refs)
-    )
-    with_test = sum(
-        1
-        for r in accepted_reqs
-        if _has_validation(r, acceptance_by_requirement, {r.id: r for r in records})
-    )
-
     accepted_adrs = [r for r in records if r.type == "adr" and r.status == "accepted"]
-    with_trace = sum(
-        1
-        for r in accepted_adrs
-        if r.links or r.metadata.get("related") or r.source_refs
-    )
 
     coverage: dict[str, int] = {
-        "accepted_requirements_with_ac": with_ac,
-        "accepted_requirements_with_implementation_refs": with_impl,
-        "accepted_requirements_with_validation": with_test,
-        "accepted_adrs_with_traceability": with_trace,
+        "accepted_requirements_with_ac": snapshot.accepted_requirements_with_ac,
+        "accepted_requirements_with_implementation_refs": (
+            snapshot.accepted_requirements_with_implementation_refs
+        ),
+        "accepted_requirements_with_validation": (
+            snapshot.accepted_requirements_with_validation
+        ),
+        "accepted_adrs_with_traceability": snapshot.accepted_adrs_with_traceability,
     }
 
     return SddStatusResult(
@@ -683,15 +659,7 @@ def check_sdd_coverage(
     default_profile = config.profiles.profiles.default
     sdd_enabled = "sdd" in enabled_profiles
 
-    acceptance_by_req: dict[str, list[ArchitectureRecord]] = {}
-    for r in records:
-        if r.type == "acceptance_criterion":
-            req = r.metadata.get("requirement", "")
-            if isinstance(req, str) and req.strip():
-                acceptance_by_req.setdefault(req.strip(), []).append(r)
-            for link in r.links:
-                if link.rel == "validates":
-                    acceptance_by_req.setdefault(link.target, []).append(r)
+    acceptance_by_req, snapshot = build_sdd_coverage_snapshot(records)
 
     accepted_reqs = [
         r for r in records if r.type == "requirement" and r.status == "accepted"
@@ -704,26 +672,6 @@ def check_sdd_coverage(
         if r.type in ("runtime_scenario", "quality_scenario") and r.status == "accepted"
     ]
 
-    reqs_with_ac = sum(
-        1
-        for r in accepted_reqs
-        if _has_inline_acceptance_criteria(r) or r.id in acceptance_by_req
-    )
-    reqs_with_impl = sum(
-        1
-        for r in accepted_reqs
-        if any(ref.role == "implements" for ref in r.source_refs)
-    )
-    reqs_with_validation = sum(
-        1
-        for r in accepted_reqs
-        if _has_validation(r, acceptance_by_req, {r.id: r for r in records})
-    )
-    adrs_with_trace = sum(
-        1
-        for r in accepted_adrs
-        if r.links or r.metadata.get("related") or r.source_refs
-    )
     risks_linked = sum(
         1
         for r in all_risks
@@ -738,14 +686,21 @@ def check_sdd_coverage(
         return SddCoverageDimension(covered=c, total=t)
 
     cov: dict[str, SddCoverageDimension] = {
-        "accepted_requirements_with_ac": _dim(reqs_with_ac, len(accepted_reqs)),
+        "accepted_requirements_with_ac": _dim(
+            snapshot.accepted_requirements_with_ac, len(accepted_reqs)
+        ),
         "accepted_requirements_with_implementation_refs": _dim(
-            reqs_with_impl, len(accepted_reqs)
+            snapshot.accepted_requirements_with_implementation_refs,
+            len(accepted_reqs),
         ),
         "accepted_requirements_with_validation": _dim(
-            reqs_with_validation, len(accepted_reqs)
+            snapshot.accepted_requirements_with_validation,
+            len(accepted_reqs),
         ),
-        "accepted_adrs_with_traceability": _dim(adrs_with_trace, len(accepted_adrs)),
+        "accepted_adrs_with_traceability": _dim(
+            snapshot.accepted_adrs_with_traceability,
+            len(accepted_adrs),
+        ),
         "risks_linked": _dim(risks_linked, len(all_risks)),
     }
 
@@ -753,23 +708,23 @@ def check_sdd_coverage(
         cov.update(_count_bdd_coverage(behavior_records))
 
     gaps: list[str] = []
-    if reqs_with_ac < len(accepted_reqs):
+    if snapshot.accepted_requirements_with_ac < len(accepted_reqs):
         gaps.append(
-            f"{len(accepted_reqs) - reqs_with_ac} accepted requirement(s) missing AC."
+            f"{len(accepted_reqs) - snapshot.accepted_requirements_with_ac} accepted requirement(s) missing AC."
         )
-    if reqs_with_impl < len(accepted_reqs):
+    if snapshot.accepted_requirements_with_implementation_refs < len(accepted_reqs):
         gaps.append(
-            f"{len(accepted_reqs) - reqs_with_impl} accepted requirement(s)"
+            f"{len(accepted_reqs) - snapshot.accepted_requirements_with_implementation_refs} accepted requirement(s)"
             " missing implementation refs."
         )
-    if reqs_with_validation < len(accepted_reqs):
+    if snapshot.accepted_requirements_with_validation < len(accepted_reqs):
         gaps.append(
-            f"{len(accepted_reqs) - reqs_with_validation} accepted requirement(s)"
+            f"{len(accepted_reqs) - snapshot.accepted_requirements_with_validation} accepted requirement(s)"
             " missing validation."
         )
-    if adrs_with_trace < len(accepted_adrs):
+    if snapshot.accepted_adrs_with_traceability < len(accepted_adrs):
         gaps.append(
-            f"{len(accepted_adrs) - adrs_with_trace} accepted ADR(s)"
+            f"{len(accepted_adrs) - snapshot.accepted_adrs_with_traceability} accepted ADR(s)"
             " missing traceability."
         )
 
@@ -847,9 +802,9 @@ def _coverage_record_rows(
         if r.status != "accepted":
             continue
         if r.type == "requirement":
-            has_ac = _has_inline_acceptance_criteria(r) or r.id in acceptance_by_req
-            has_impl = any(ref.role == "implements" for ref in r.source_refs)
-            has_val = _has_validation(r, acceptance_by_req, records_by_id)
+            has_ac = has_inline_acceptance_criteria(r) or r.id in acceptance_by_req
+            has_impl = requirement_has_implementation(r)
+            has_val = requirement_has_validation(r, acceptance_by_req)
             rec_gaps = [
                 name
                 for present, name in [
@@ -873,7 +828,7 @@ def _coverage_record_rows(
                 }
             )
         elif r.type == "adr":
-            has_trace = bool(r.links or r.metadata.get("related") or r.source_refs)
+            has_trace = adr_has_traceability(r)
             rows.append(
                 {
                     "record_id": r.id,
@@ -932,90 +887,7 @@ def _coverage_behavior_row(record: ArchitectureRecord) -> dict[str, object]:
 def _classify_inline_acceptance_criteria(
     record: ArchitectureRecord,
 ) -> tuple[list[dict[str, object]], list[tuple[str, str]]]:
-    """Split inline ``acceptance_criteria`` into valid items and findings.
-
-    A valid inline criterion is a mapping with a non-empty ``statement``.
-    Malformed entries produce ``(code, message)`` findings the caller maps to
-    SDD errors. ``validation`` is optional but, when present, must be a mapping
-    (otherwise an ``SDD-AC-VALIDATION-FORMAT`` finding is emitted while the
-    criterion still counts as present).
-    """
-    raw = record.metadata.get("acceptance_criteria")
-    if not isinstance(raw, list):
-        return [], []
-    valid: list[dict[str, object]] = []
-    findings: list[tuple[str, str]] = []
-    for index, item in enumerate(raw, start=1):
-        if not isinstance(item, dict):
-            findings.append(
-                (
-                    "SDD-AC-FORMAT",
-                    f"Record {record.id} acceptance_criteria entry {index} "
-                    "must be a mapping.",
-                )
-            )
-            continue
-        statement = item.get("statement")
-        if not isinstance(statement, str) or not statement.strip():
-            findings.append(
-                (
-                    "SDD-AC-NO-STATEMENT",
-                    f"Record {record.id} acceptance_criteria entry {index} "
-                    "has no statement.",
-                )
-            )
-            continue
-        valid.append(item)
-        validation = item.get("validation")
-        if validation is not None and not isinstance(validation, dict):
-            findings.append(
-                (
-                    "SDD-AC-VALIDATION-FORMAT",
-                    f"Record {record.id} acceptance_criteria entry {index} "
-                    "validation must be a mapping.",
-                )
-            )
-    return valid, findings
-
-
-def _valid_inline_acceptance_criteria(
-    record: ArchitectureRecord,
-) -> list[dict[str, object]]:
-    return _classify_inline_acceptance_criteria(record)[0]
-
-
-def _has_inline_acceptance_criteria(record: ArchitectureRecord) -> bool:
-    return bool(_valid_inline_acceptance_criteria(record))
-
-
-def _has_validation(
-    record: ArchitectureRecord,
-    acceptance_by_requirement: dict[str, list[ArchitectureRecord]],
-    records_by_id: dict[str, ArchitectureRecord],
-) -> bool:
-    """Check if a requirement has test/validation evidence."""
-    del records_by_id  # retained for API compatibility
-    # test_refs on the record itself
-    if record.test_refs:
-        return True
-    # source_refs role=validates
-    if any(ref.role == "validates" for ref in record.source_refs):
-        return True
-    # inline acceptance_criteria with a validation command
-    for item in _valid_inline_acceptance_criteria(record):
-        validation = item.get("validation")
-        if isinstance(validation, dict) and validation.get("command"):
-            return True
-    # Linked acceptance_criterion records
-    for ac_record in acceptance_by_requirement.get(record.id, []):
-        if ac_record.test_refs:
-            return True
-        if any(ref.role == "validates" for ref in ac_record.source_refs):
-            return True
-        validation = ac_record.metadata.get("validation")
-        if isinstance(validation, dict) and validation.get("command"):
-            return True
-    return False
+    return classify_inline_acceptance_criteria(record)
 
 
 def _qs_missing_fields(record: ArchitectureRecord) -> list[str]:
@@ -1233,20 +1105,30 @@ def _check_bdd(
             )
         )
 
-    if (
-        auto_status == "linked"
-        and not r.test_refs
-        and not _has_waiver(ctx, r.id, "SDD-BDD-AUTOMATION-REF")
-    ):
+    if auto_status == "linked" and not r.test_refs:
+        linked_level = ""
+        if require_automation:
+            linked_level = "error"
+        elif ctx.options.strict:
+            linked_level = "warning"
+    else:
+        linked_level = ""
+    if linked_level and not _has_waiver(ctx, r.id, "SDD-BDD-AUTOMATION-REF"):
         findings.append(
             SddFinding(
-                level="error",
+                level=linked_level,
                 code="SDD-BDD-AUTOMATION-REF",
                 message=(
                     f"Record {r.id} has bdd with automation.status=linked but "
                     "no executable test_refs are recorded; add a pytest test_ref, "
                     "use automation.status=not_applicable for manual validation, "
                     "or waive the rule."
+                    if require_automation
+                    else (
+                        f"Record {r.id} has bdd with automation.status=linked but "
+                        "no executable test_refs are recorded; strict mode treats "
+                        "that as incomplete automation traceability."
+                    )
                 ),
                 record_id=r.id,
                 path=r.path,

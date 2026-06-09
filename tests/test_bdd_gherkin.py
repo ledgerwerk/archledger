@@ -122,7 +122,7 @@ def test_parse_and_but_append_to_last_bucket() -> None:
 
 def test_raises_on_no_feature() -> None:
     with pytest.raises(GherkinSyntaxError, match="No Feature"):
-        parse_gherkin("Scenario: orphan\n  Given X\n")
+        parse_gherkin("Just some text\n")
 
 
 def test_raises_on_multiple_features() -> None:
@@ -132,6 +132,11 @@ def test_raises_on_multiple_features() -> None:
     """)
     with pytest.raises(GherkinSyntaxError, match="Multiple Feature"):
         parse_gherkin(text)
+
+
+def test_raises_on_empty_feature_name() -> None:
+    with pytest.raises(GherkinSyntaxError, match="Feature name must not be empty"):
+        parse_gherkin("Feature:\n  Scenario: A\n    Given X\n")
 
 
 def test_raises_on_background() -> None:
@@ -210,6 +215,53 @@ def test_raises_on_and_before_given_when_then() -> None:
             And orphan
     """)
     with pytest.raises(GherkinSyntaxError, match="before any Given"):
+        parse_gherkin(text)
+
+
+def test_raises_on_rule_before_feature() -> None:
+    text = textwrap.dedent("""\
+        Rule: R
+        Feature: F
+        Scenario: S
+          Given g
+          When w
+          Then t
+    """)
+    with pytest.raises(GherkinSyntaxError, match="Rule: must appear after Feature"):
+        parse_gherkin(text)
+
+
+def test_raises_on_scenario_before_feature() -> None:
+    text = textwrap.dedent("""\
+        Scenario: S
+          Given g
+          When w
+          Then t
+    """)
+    with pytest.raises(GherkinSyntaxError, match="Scenario: must appear after Feature"):
+        parse_gherkin(text)
+
+
+def test_raises_on_empty_scenario_name() -> None:
+    text = textwrap.dedent("""\
+        Feature: F
+          Scenario:
+            Given g
+            When w
+            Then t
+    """)
+    with pytest.raises(GherkinSyntaxError, match="Scenario name must not be empty"):
+        parse_gherkin(text)
+
+
+def test_raises_on_step_outside_scenario() -> None:
+    text = textwrap.dedent("""\
+        Feature: F
+          Given g
+    """)
+    with pytest.raises(
+        GherkinSyntaxError, match="Given steps must appear inside a Scenario"
+    ):
         parse_gherkin(text)
 
 

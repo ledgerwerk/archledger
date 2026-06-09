@@ -9,7 +9,7 @@ from archledger.errors import ArchledgerError
 
 SCHEMA_FILES = {
     "record": "archledger.record.v2.schema.json",
-    "sdd": "archledger.sdd.v1.schema.json",
+    "sdd": "archledger.sdd-check.v2.schema.json",
     "sdd-status": "archledger.sdd-status.v2.schema.json",
     "sdd-policy": "archledger.sdd-policy.v1.schema.json",
     "sdd-coverage": "archledger.sdd-coverage.v1.schema.json",
