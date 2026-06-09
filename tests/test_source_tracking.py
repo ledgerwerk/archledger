@@ -251,7 +251,7 @@ def test_source_state_v1_is_rejected(tmp_path: Path) -> None:
         read_source_state(source_state_path)
 
 
-def test_source_state_rejects_backslash_paths(tmp_path: Path) -> None:
+def test_source_state_normalizes_backslash_paths(tmp_path: Path) -> None:
     source_state_path = tmp_path / "source-state.json"
     source_state_path.write_text(
         json.dumps(
@@ -279,8 +279,8 @@ def test_source_state_rejects_backslash_paths(tmp_path: Path) -> None:
         encoding="utf-8",
     )
 
-    with pytest.raises(StorageError, match="POSIX separators"):
-        read_source_state(source_state_path)
+    state = read_source_state(source_state_path)
+    assert "src/module.py" in state.files
 
 
 def init_project(tmp_path: Path) -> None:

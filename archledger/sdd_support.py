@@ -101,4 +101,3 @@ def requirement_has_validation(
 
 def adr_has_traceability(record: ArchitectureRecord) -> bool:
     return bool(record.links or record.metadata.get("related") or record.source_refs)
-

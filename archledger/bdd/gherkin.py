@@ -272,13 +272,7 @@ class _ParseContext:
     feature_tags: list[str]
 
 
-def _dispatch_line(ctx: _ParseContext) -> _ParseContext:
-    """Dispatch a single line to the appropriate keyword handler."""
-    line, ln = ctx.line, ctx.line_number
-    pending = ctx.pending_tags
-    scenarios = ctx.scenarios
-
-    # Feature
+def _try_feature(ctx: _ParseContext, line: str, ln: int) -> _ParseContext | None:
     for kw in _FEATURE_KEYWORDS:
         if line.startswith(kw):
             if ctx.found_feature:
@@ -290,12 +284,14 @@ def _dispatch_line(ctx: _ParseContext) -> _ParseContext:
                 ctx,
                 found_feature=True,
                 feature_name=feature_name,
-                feature_tags=list(pending),
+                feature_tags=list(ctx.pending_tags),
                 pending_tags=[],
                 current_step_bucket=None,
             )
+    return None
 
-    # Rule
+
+def _try_rule(ctx: _ParseContext, line: str, ln: int) -> _ParseContext | None:
     for kw in _RULE_KEYWORDS:
         if line.startswith(kw):
             if not ctx.found_feature:
@@ -309,7 +305,7 @@ def _dispatch_line(ctx: _ParseContext) -> _ParseContext:
                 ctx.current_given,
                 ctx.current_when,
                 ctx.current_then,
-                scenarios,
+                ctx.scenarios,
                 rule=ctx.rule_name,
             )
             return _replace(
@@ -323,15 +319,14 @@ def _dispatch_line(ctx: _ParseContext) -> _ParseContext:
                 rule_name=rule_name,
                 pending_tags=[],
             )
+    return None
 
-    # Scenario / Example
+
+def _try_scenario(ctx: _ParseContext, line: str, ln: int) -> _ParseContext | None:
     for kw in _SCENARIO_KEYWORDS:
         if line.startswith(kw):
             if not ctx.found_feature:
-                raise GherkinSyntaxError(
-                    f"{kw} must appear after Feature:.",
-                    line=ln,
-                )
+                raise GherkinSyntaxError(f"{kw} must appear after Feature:.", line=ln)
             scenario_name = line[len(kw) :].strip()
             if not scenario_name:
                 raise GherkinSyntaxError("Scenario name must not be empty.", line=ln)
@@ -341,21 +336,23 @@ def _dispatch_line(ctx: _ParseContext) -> _ParseContext:
                 ctx.current_given,
                 ctx.current_when,
                 ctx.current_then,
-                scenarios,
+                ctx.scenarios,
                 rule=ctx.rule_name,
             )
             return _replace(
                 ctx,
                 current_scenario_name=scenario_name,
-                current_scenario_tags=list(pending),
+                current_scenario_tags=list(ctx.pending_tags),
                 current_given=[],
                 current_when=[],
                 current_then=[],
                 current_step_bucket=None,
                 pending_tags=[],
             )
+    return None
 
-    # Steps
+
+def _try_step(ctx: _ParseContext, line: str, ln: int) -> _ParseContext | None:
     for kw in _STEP_KEYWORDS:
         if line.startswith(kw + " ") or line == kw:
             step_text = line[len(kw) :].strip()
@@ -365,42 +362,41 @@ def _dispatch_line(ctx: _ParseContext) -> _ParseContext:
                     line=ln,
                 )
             if kw in _GIVEN_KEYWORDS:
-                new_given = ctx.current_given + [step_text]
-                return _replace(
-                    ctx,
-                    current_given=new_given,
-                    current_step_bucket=new_given,
+                bucket = ctx.current_given + [step_text]
+                return _replace(ctx, current_given=bucket, current_step_bucket=bucket)
+            if kw in _WHEN_KEYWORDS:
+                bucket = ctx.current_when + [step_text]
+                return _replace(ctx, current_when=bucket, current_step_bucket=bucket)
+            if kw in _THEN_KEYWORDS:
+                bucket = ctx.current_then + [step_text]
+                return _replace(ctx, current_then=bucket, current_step_bucket=bucket)
+            # And / But
+            if ctx.current_step_bucket is None:
+                raise GherkinSyntaxError(
+                    f"'{kw}' used before any Given/When/Then.", line=ln
                 )
-            elif kw in _WHEN_KEYWORDS:
-                new_when = ctx.current_when + [step_text]
-                return _replace(
-                    ctx,
-                    current_when=new_when,
-                    current_step_bucket=new_when,
-                )
-            elif kw in _THEN_KEYWORDS:
-                new_then = ctx.current_then + [step_text]
-                return _replace(
-                    ctx,
-                    current_then=new_then,
-                    current_step_bucket=new_then,
-                )
-            else:
-                # And / But -- append to last bucket
-                if ctx.current_step_bucket is None:
-                    raise GherkinSyntaxError(
-                        f"'{kw}' used before any Given/When/Then.",
-                        line=ln,
-                    )
-                ctx.current_step_bucket.append(step_text)
-                return ctx
+            ctx.current_step_bucket.append(step_text)
+            return ctx
+    return None
 
+
+def _dispatch_line(ctx: _ParseContext) -> _ParseContext:
+    """Dispatch a single line to the appropriate keyword handler."""
+    line, ln = ctx.line, ctx.line_number
+    result = _try_feature(ctx, line, ln)
+    if result is not None:
+        return result
+    result = _try_rule(ctx, line, ln)
+    if result is not None:
+        return result
+    result = _try_scenario(ctx, line, ln)
+    if result is not None:
+        return result
+    result = _try_step(ctx, line, ln)
+    if result is not None:
+        return result
     if ctx.found_feature:
-        raise GherkinSyntaxError(
-            f"Unrecognized line: {line!r}",
-            line=ln,
-        )
-
+        raise GherkinSyntaxError(f"Unrecognized line: {line!r}", line=ln)
     return ctx
 
 

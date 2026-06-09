@@ -820,8 +820,8 @@ def test_check_warns_for_backslash_source_ref_path(tmp_path: Path) -> None:
     payload = json.loads(result.stdout)
     messages = [item["message"] for item in payload["result"]["warnings"]]
     assert (
-        "Record al_0013 source_refs entry 1 path must use POSIX separators:"
-        " src\\module.py" in messages
+        "Record al_0013 source_refs entry 1 path does not exist:"
+        " src/module.py" in messages
     )
 
 

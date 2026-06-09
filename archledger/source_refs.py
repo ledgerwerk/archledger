@@ -19,8 +19,8 @@ class RelativePosixPathError(ValueError):
 
 
 def validate_relative_posix_path(value: str, *, field_name: str) -> str:
-    if "\\" in value:
-        raise RelativePosixPathError(field_name=field_name, kind="posix")
+    # Normalize backslashes to forward slashes (Windows compatibility)
+    value = value.replace("\\", "/")
 
     stripped = value.strip()
     if not stripped:

@@ -172,4 +172,3 @@ def _validate_automation_text_field(
             f"Record {record_id} bdd.automation.{field} must be a string."
         )
     automation[field] = value.strip()
-

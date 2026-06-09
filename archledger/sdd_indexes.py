@@ -30,7 +30,9 @@ def build_sdd_coverage_snapshot(
         if record.type == "requirement" and record.status == "accepted"
     ]
     accepted_adrs = [
-        record for record in records if record.type == "adr" and record.status == "accepted"
+        record
+        for record in records
+        if record.type == "adr" and record.status == "accepted"
     ]
     return acceptance_by_requirement, SddCoverageSnapshot(
         accepted_requirements_with_ac=sum(
@@ -40,7 +42,9 @@ def build_sdd_coverage_snapshot(
             or record.id in acceptance_by_requirement
         ),
         accepted_requirements_with_implementation_refs=sum(
-            1 for record in accepted_requirements if requirement_has_implementation(record)
+            1
+            for record in accepted_requirements
+            if requirement_has_implementation(record)
         ),
         accepted_requirements_with_validation=sum(
             1
@@ -51,4 +55,3 @@ def build_sdd_coverage_snapshot(
             1 for record in accepted_adrs if adr_has_traceability(record)
         ),
     )
-

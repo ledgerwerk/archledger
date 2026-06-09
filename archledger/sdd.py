@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from archledger.config.model import ProjectConfig
 
-from archledger.bdd.models import DEFAULT_BDD_AUTOMATION_STATUS
+from archledger.bdd.models import DEFAULT_BDD_AUTOMATION_STATUS, BddExample
 from archledger.bdd.normalize import normalize_bdd_metadata
 from archledger.bdd.paths import (
     deprecated_bdd_feature_path_message,
@@ -600,12 +600,6 @@ def check_sdd_status(repo: ArchitectureRepository) -> SddStatusResult:
     # Build acceptance_by_requirement (same logic as check)
     acceptance_by_requirement, snapshot = build_sdd_coverage_snapshot(records)
 
-    accepted_reqs = [
-        r for r in records if r.type == "requirement" and r.status == "accepted"
-    ]
-
-    accepted_adrs = [r for r in records if r.type == "adr" and r.status == "accepted"]
-
     coverage: dict[str, int] = {
         "accepted_requirements_with_ac": snapshot.accepted_requirements_with_ac,
         "accepted_requirements_with_implementation_refs": (
@@ -709,24 +703,17 @@ def check_sdd_coverage(
 
     gaps: list[str] = []
     if snapshot.accepted_requirements_with_ac < len(accepted_reqs):
-        gaps.append(
-            f"{len(accepted_reqs) - snapshot.accepted_requirements_with_ac} accepted requirement(s) missing AC."
-        )
+        n = len(accepted_reqs) - snapshot.accepted_requirements_with_ac
+        gaps.append(f"{n} accepted requirement(s) missing AC.")
     if snapshot.accepted_requirements_with_implementation_refs < len(accepted_reqs):
-        gaps.append(
-            f"{len(accepted_reqs) - snapshot.accepted_requirements_with_implementation_refs} accepted requirement(s)"
-            " missing implementation refs."
-        )
+        n = len(accepted_reqs) - snapshot.accepted_requirements_with_implementation_refs
+        gaps.append(f"{n} accepted requirement(s) missing implementation refs.")
     if snapshot.accepted_requirements_with_validation < len(accepted_reqs):
-        gaps.append(
-            f"{len(accepted_reqs) - snapshot.accepted_requirements_with_validation} accepted requirement(s)"
-            " missing validation."
-        )
+        n = len(accepted_reqs) - snapshot.accepted_requirements_with_validation
+        gaps.append(f"{n} accepted requirement(s) missing validation.")
     if snapshot.accepted_adrs_with_traceability < len(accepted_adrs):
-        gaps.append(
-            f"{len(accepted_adrs) - snapshot.accepted_adrs_with_traceability} accepted ADR(s)"
-            " missing traceability."
-        )
+        n = len(accepted_adrs) - snapshot.accepted_adrs_with_traceability
+        gaps.append(f"{n} accepted ADR(s) missing traceability.")
 
     # Per-record detail (only when requested). Mirrors the aggregate counters
     # so each accepted requirement/ADR/behavior record lists its covered flags
@@ -796,7 +783,7 @@ def _coverage_record_rows(
     acceptance_by_req: dict[str, list[ArchitectureRecord]],
 ) -> list[dict[str, object]]:
     """Per-record coverage detail for accepted requirements/ADRs/behavior."""
-    records_by_id = {r.id: r for r in records}
+
     rows: list[dict[str, object]] = []
     for r in records:
         if r.status != "accepted":
@@ -978,27 +965,11 @@ def _reference_findings(
     return findings
 
 
-def _check_bdd(
-    r: ArchitectureRecord,
-    ctx: SddContext,
-) -> list[SddFinding]:
-    """Run BDD-specific SDD checks for an accepted record with bdd metadata.
-
-    Checks:
-    * SDD-BDD-SHAPE: bdd block must be structurally valid (warning from normalizer
-      is promoted to error).
-    * SDD-BDD-GWT: accepted runtime_scenario with bdd must have non-empty given,
-      when, and then.
-    * SDD-BDD-AUTOMATION: warn on pending automation unless the profile requires it.
-    * SDD-BDD-FEATURE-REF: feature_file must be linked via source_refs role=documents.
-    * SDD-BDD-TEST-REF: automated behavior should link executable pytest tests.
-    * SDD-BDD-FEATURE-PATH-CONVENTION: deprecated feature file locations warn.
-    * SDD-BDD-AC-LINK: referenced AC IDs should exist.
-    """
+def _check_bdd_shape(
+    r: ArchitectureRecord, raw_bdd: object
+) -> tuple[list[SddFinding], BddExample | None]:
+    """SDD-BDD-SHAPE: normalize and return (findings, example)."""
     findings: list[SddFinding] = []
-    raw_bdd = r.metadata.get("bdd")
-
-    # SDD-BDD-SHAPE: normalize and promote warnings to errors
     example, shape_warnings = normalize_bdd_metadata(r.id, raw_bdd)
     if example is None and shape_warnings:
         findings.append(
@@ -1013,10 +984,8 @@ def _check_bdd(
                 path=r.path,
             )
         )
-        return findings  # can't run further checks without a valid example
-
+        return findings, None
     if shape_warnings and example is not None:
-        # Promote normalizer warnings to errors for accepted records
         for warning in shape_warnings:
             findings.append(
                 SddFinding(
@@ -1027,15 +996,225 @@ def _check_bdd(
                     path=r.path,
                 )
             )
+    return findings, example
 
+
+def _check_bdd_automation(
+    r: ArchitectureRecord,
+    ctx: SddContext,
+    example: BddExample,
+) -> list[SddFinding]:
+    """SDD-BDD-AUTOMATION, -REF, -TEST-REF checks."""
+    findings: list[SddFinding] = []
+    if example.automation is not None:
+        auto_status = example.automation.status
+    else:
+        auto_status = DEFAULT_BDD_AUTOMATION_STATUS
+    require_automation = ctx.options.require_bdd_automation_for_accepted_records
+    not_satisfied = auto_status in ("pending", "linked")
+    if (
+        not_satisfied
+        and require_automation
+        and not _has_waiver(ctx, r.id, "SDD-BDD-AUTOMATION")
+    ):
+        findings.append(
+            SddFinding(
+                level="error",
+                code="SDD-BDD-AUTOMATION",
+                message=(
+                    f"Record {r.id} has bdd with "
+                    f"automation.status={auto_status};"
+                    " automation is required by profile policy"
+                    " (reach status automated or not_applicable,"
+                    " or waive the rule)."
+                ),
+                record_id=r.id,
+                path=r.path,
+            )
+        )
+    elif (
+        auto_status == "pending"
+        and not require_automation
+        and not _has_waiver(ctx, r.id, "SDD-BDD-AUTOMATION")
+    ):
+        findings.append(
+            SddFinding(
+                level="warning",
+                code="SDD-BDD-AUTOMATION",
+                message=(
+                    f"Record {r.id} has bdd with "
+                    "automation.status=pending; "
+                    "link to a feature file when automation is wired."
+                ),
+                record_id=r.id,
+                path=r.path,
+            )
+        )
+
+    # linked without test_refs
+    if auto_status == "linked" and not r.test_refs:
+        linked_level = ""
+        if require_automation:
+            linked_level = "error"
+        elif ctx.options.strict:
+            linked_level = "warning"
+    else:
+        linked_level = ""
+    if linked_level and not _has_waiver(ctx, r.id, "SDD-BDD-AUTOMATION-REF"):
+        findings.append(
+            SddFinding(
+                level=linked_level,
+                code="SDD-BDD-AUTOMATION-REF",
+                message=(
+                    f"Record {r.id} has bdd with "
+                    "automation.status=linked but "
+                    "no executable test_refs are recorded; "
+                    "add a pytest test_ref, "
+                    "use automation.status=not_applicable "
+                    "for manual validation, or waive the rule."
+                    if require_automation
+                    else (
+                        f"Record {r.id} has bdd with "
+                        "automation.status=linked but "
+                        "no executable test_refs are recorded; "
+                        "strict mode treats that as incomplete "
+                        "automation traceability."
+                    )
+                ),
+                record_id=r.id,
+                path=r.path,
+            )
+        )
+
+    # automated without test_refs
+    if (
+        auto_status == "automated"
+        and not r.test_refs
+        and not _has_waiver(ctx, r.id, "SDD-BDD-TEST-REF")
+    ):
+        findings.append(
+            SddFinding(
+                level="error" if require_automation else "warning",
+                code="SDD-BDD-TEST-REF",
+                message=(
+                    f"Record {r.id} has bdd with "
+                    "automation.status=automated but "
+                    "no executable test_refs are recorded."
+                ),
+                record_id=r.id,
+                path=r.path,
+            )
+        )
+
+    return findings
+
+
+def _check_bdd_feature_ref(
+    r: ArchitectureRecord,
+    ctx: SddContext,
+    example: BddExample,
+) -> list[SddFinding]:
+    """SDD-BDD-FEATURE-REF and -PATH-CONVENTION checks."""
+    findings: list[SddFinding] = []
+    if not (
+        example.automation is not None
+        and example.automation.feature_file
+        and not _has_waiver(ctx, r.id, "SDD-BDD-FEATURE-REF")
+    ):
+        return findings
+    feat_path = example.automation.feature_file
+    is_linked = any(
+        ref.path == feat_path and ref.role == "documents" for ref in r.source_refs
+    )
+    if not is_linked:
+        findings.append(
+            SddFinding(
+                level="error",
+                code="SDD-BDD-FEATURE-REF",
+                message=(
+                    f"Record {r.id} bdd.automation.feature_file "
+                    f"{feat_path!r} is not linked via source_refs "
+                    "with role 'documents'."
+                ),
+                record_id=r.id,
+                path=r.path,
+            )
+        )
+    if is_deprecated_bdd_feature_path(feat_path) and not _has_waiver(
+        ctx, r.id, "SDD-BDD-FEATURE-PATH-CONVENTION"
+    ):
+        findings.append(
+            SddFinding(
+                level="warning",
+                code="SDD-BDD-FEATURE-PATH-CONVENTION",
+                message=(
+                    f"Record {r.id} bdd.automation.feature_file "
+                    + deprecated_bdd_feature_path_message(feat_path)
+                ),
+                record_id=r.id,
+                path=r.path,
+            )
+        )
+    return findings
+
+
+def _check_bdd_ac_link(
+    r: ArchitectureRecord,
+    ctx: SddContext,
+    example: BddExample,
+) -> list[SddFinding]:
+    """SDD-BDD-AC-LINK: referenced AC IDs should exist."""
+    findings: list[SddFinding] = []
+    if not example.acceptance_criteria:
+        return findings
+    if _has_waiver(ctx, r.id, "SDD-BDD-AC-LINK"):
+        return findings
+    for ac_id in example.acceptance_criteria:
+        if ac_id not in ctx.records_by_id:
+            findings.append(
+                SddFinding(
+                    level="warning",
+                    code="SDD-BDD-AC-LINK",
+                    message=(
+                        f"Record {r.id} bdd.acceptance_criteria "
+                        f"references {ac_id!r} which does not exist."
+                    ),
+                    record_id=r.id,
+                    path=r.path,
+                )
+            )
+    return findings
+
+
+def _check_bdd(
+    r: ArchitectureRecord,
+    ctx: SddContext,
+) -> list[SddFinding]:
+    """Run BDD-specific SDD checks for an accepted record with bdd metadata.
+
+    Checks:
+    * SDD-BDD-SHAPE: bdd block must be structurally valid.
+    * SDD-BDD-GWT: accepted runtime_scenario with bdd must have non-empty
+      given, when, and then.
+    * SDD-BDD-AUTOMATION: warn on pending automation.
+    * SDD-BDD-FEATURE-REF: feature_file must be linked via source_refs.
+    * SDD-BDD-TEST-REF: automated behavior should link pytest tests.
+    * SDD-BDD-FEATURE-PATH-CONVENTION: deprecated locations warn.
+    * SDD-BDD-AC-LINK: referenced AC IDs should exist.
+    """
+    findings: list[SddFinding] = []
+    raw_bdd = r.metadata.get("bdd")
+
+    # SDD-BDD-SHAPE
+    shape_findings, example = _check_bdd_shape(r, raw_bdd)
+    findings.extend(shape_findings)
     if example is None:
         return findings
 
-    # SDD-BDD-GWT: required for accepted behavior records (runtime and quality
-    # scenarios) that carry bdd metadata.
+    # SDD-BDD-GWT
     if r.type in ("runtime_scenario", "quality_scenario"):
-        _require_gwt = ctx.options.require_bdd_gwt_for_behavior_records
-        if _require_gwt and not _has_waiver(ctx, r.id, "SDD-BDD-GWT"):
+        require_gwt = ctx.options.require_bdd_gwt_for_behavior_records
+        if require_gwt and not _has_waiver(ctx, r.id, "SDD-BDD-GWT"):
             missing = [
                 name
                 for step, name in [
@@ -1059,156 +1238,9 @@ def _check_bdd(
                     )
                 )
 
-    # SDD-BDD-AUTOMATION: under strict policy only automated / not_applicable
-    # satisfy the requirement; pending and linked are failing. Under the lenient
-    # default, pending is a warning and linked is acceptable (feature file
-    # present, runner not yet wired).
-    if example.automation is not None:
-        auto_status = example.automation.status
-    else:
-        auto_status = DEFAULT_BDD_AUTOMATION_STATUS
-    require_automation = ctx.options.require_bdd_automation_for_accepted_records
-    not_satisfied = auto_status in ("pending", "linked")
-    if (
-        not_satisfied
-        and require_automation
-        and not _has_waiver(ctx, r.id, "SDD-BDD-AUTOMATION")
-    ):
-        findings.append(
-            SddFinding(
-                level="error",
-                code="SDD-BDD-AUTOMATION",
-                message=(
-                    f"Record {r.id} has bdd with automation.status={auto_status};"
-                    " automation is required by profile policy"
-                    " (reach status automated or not_applicable, or waive the rule)."
-                ),
-                record_id=r.id,
-                path=r.path,
-            )
-        )
-    elif (
-        auto_status == "pending"
-        and not require_automation
-        and not _has_waiver(ctx, r.id, "SDD-BDD-AUTOMATION")
-    ):
-        findings.append(
-            SddFinding(
-                level="warning",
-                code="SDD-BDD-AUTOMATION",
-                message=(
-                    f"Record {r.id} has bdd with automation.status=pending; "
-                    "link to a feature file when automation is wired."
-                ),
-                record_id=r.id,
-                path=r.path,
-            )
-        )
-
-    if auto_status == "linked" and not r.test_refs:
-        linked_level = ""
-        if require_automation:
-            linked_level = "error"
-        elif ctx.options.strict:
-            linked_level = "warning"
-    else:
-        linked_level = ""
-    if linked_level and not _has_waiver(ctx, r.id, "SDD-BDD-AUTOMATION-REF"):
-        findings.append(
-            SddFinding(
-                level=linked_level,
-                code="SDD-BDD-AUTOMATION-REF",
-                message=(
-                    f"Record {r.id} has bdd with automation.status=linked but "
-                    "no executable test_refs are recorded; add a pytest test_ref, "
-                    "use automation.status=not_applicable for manual validation, "
-                    "or waive the rule."
-                    if require_automation
-                    else (
-                        f"Record {r.id} has bdd with automation.status=linked but "
-                        "no executable test_refs are recorded; strict mode treats "
-                        "that as incomplete automation traceability."
-                    )
-                ),
-                record_id=r.id,
-                path=r.path,
-            )
-        )
-
-    # SDD-BDD-FEATURE-REF: feature_file must be linked via source_refs role=documents
-    if (
-        example.automation is not None
-        and example.automation.feature_file
-        and not _has_waiver(ctx, r.id, "SDD-BDD-FEATURE-REF")
-    ):
-        feat_path = example.automation.feature_file
-        is_linked = any(
-            ref.path == feat_path and ref.role == "documents" for ref in r.source_refs
-        )
-        if not is_linked:
-            findings.append(
-                SddFinding(
-                    level="error",
-                    code="SDD-BDD-FEATURE-REF",
-                    message=(
-                        f"Record {r.id} bdd.automation.feature_file "
-                        f"{feat_path!r} is not linked via source_refs with role "
-                        "'documents'."
-                    ),
-                    record_id=r.id,
-                    path=r.path,
-                )
-            )
-        if is_deprecated_bdd_feature_path(feat_path) and not _has_waiver(
-            ctx, r.id, "SDD-BDD-FEATURE-PATH-CONVENTION"
-        ):
-            findings.append(
-                SddFinding(
-                    level="warning",
-                    code="SDD-BDD-FEATURE-PATH-CONVENTION",
-                    message=(
-                        f"Record {r.id} bdd.automation.feature_file "
-                        + deprecated_bdd_feature_path_message(feat_path)
-                    ),
-                    record_id=r.id,
-                    path=r.path,
-                )
-            )
-
-    if (
-        auto_status == "automated"
-        and not r.test_refs
-        and not _has_waiver(ctx, r.id, "SDD-BDD-TEST-REF")
-    ):
-        findings.append(
-            SddFinding(
-                level="error" if require_automation else "warning",
-                code="SDD-BDD-TEST-REF",
-                message=(
-                    f"Record {r.id} has bdd with automation.status=automated but "
-                    "no executable test_refs are recorded."
-                ),
-                record_id=r.id,
-                path=r.path,
-            )
-        )
-
-    # SDD-BDD-AC-LINK: referenced AC IDs should exist
-    if example.acceptance_criteria and not _has_waiver(ctx, r.id, "SDD-BDD-AC-LINK"):
-        for ac_id in example.acceptance_criteria:
-            if ac_id not in ctx.records_by_id:
-                findings.append(
-                    SddFinding(
-                        level="warning",
-                        code="SDD-BDD-AC-LINK",
-                        message=(
-                            f"Record {r.id} bdd.acceptance_criteria "
-                            f"references {ac_id!r} which does not exist."
-                        ),
-                        record_id=r.id,
-                        path=r.path,
-                    )
-                )
+    findings.extend(_check_bdd_automation(r, ctx, example))
+    findings.extend(_check_bdd_feature_ref(r, ctx, example))
+    findings.extend(_check_bdd_ac_link(r, ctx, example))
 
     return findings
 

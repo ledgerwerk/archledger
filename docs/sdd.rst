@@ -46,4 +46,3 @@ Coverage
 ADRs, risks, and optional BDD dimensions. Use ``--format markdown`` for a
 copy-pastable report and ``--by-record`` with ``--json`` when automation needs
 per-record gaps.
-

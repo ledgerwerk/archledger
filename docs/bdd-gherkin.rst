@@ -44,4 +44,3 @@ Drift detection
 ``archledger bdd sync --check`` compares linked feature files against Archledger
 metadata. Invalid linked feature files are reported as explicit sync findings; a
 parse failure is never treated as “no drift”.
-
