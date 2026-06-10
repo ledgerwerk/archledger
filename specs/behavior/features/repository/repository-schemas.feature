@@ -13,7 +13,7 @@ Feature: JSON schema installation
       When schema install jsonschema is run
       Then the target path is returned
 
-    @bdd-schema-install-refuses-overwrite
+    @bdd-schema-install-legacy-refuses-overwrite
     Example: Install refuses to overwrite without force flag
       Given a target directory with existing schema
       When schema install is run without --force

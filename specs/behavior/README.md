@@ -8,11 +8,18 @@ Feature files live under:
 features/<area>/<feature>.feature
 ```
 
+Generated indexes:
+
+- `index.md` is the complete Gherkin feature and scenario list.
+- `manifest.json` is the machine-readable feature manifest.
+- `source-test-links.md` links scanned `archledger/` source files, feature files, and `tests/` files.
+
 Use:
 
 ```bash
 specweave doctor
-specweave review specs
+specweave behavior check
+specweave behavior index --features specs/behavior/features --out specs/behavior/index.md --manifest specs/behavior/manifest.json --tests-dir tests
 specweave create gherkin --from-tests tests
 ```
 

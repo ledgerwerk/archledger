@@ -17,6 +17,7 @@ Feature: BDD metadata normalization and models
     @bdd-models-automation-defaults
     Example: BddAutomation defaults to status pending
       Given a BddAutomation constructed without arguments
+      When the automation status and optional fields are read
       Then status is "pending"
       And feature_file, scenario, and command are empty strings
 
