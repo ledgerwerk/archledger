@@ -200,6 +200,12 @@ def _resolve_relative_child(
     *,
     parent_label: str,
 ) -> Path:
+    # ledgercore intentionally rejects dot path segments as unsafe defaults.
+    # archledger explicitly allows build.default_output_dir = "." so users can
+    # build the default document next to archledger.toml / .archledger.toml.
+    if field_name == "build.default_output_dir" and relative_path == ".":
+        return base_dir.resolve()
+
     try:
         return core_resolve_relative_child(
             base_dir,
@@ -208,7 +214,7 @@ def _resolve_relative_child(
         )
     except PathValidationError as exc:
         message = str(exc)
-        if "must stay inside" in message:
+        if "escapes base directory" in message or ".." in relative_path.split("/"):
             raise ConfigError(f"{field_name} must stay inside {parent_label}.") from exc
         if "must be relative" in message:
             raise ConfigError(

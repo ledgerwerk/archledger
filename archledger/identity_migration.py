@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass, replace as dataclass_replace
+from dataclasses import dataclass
+from dataclasses import replace as dataclass_replace
 from pathlib import Path
 
 from ledgercore.errors import IdFormatError
@@ -12,8 +13,14 @@ from archledger.ids import format_local_id, global_ref_for
 from archledger.model import known_source_extensions
 from archledger.renumber import RewrittenFile
 from archledger.storage.frontmatter import iter_source_files, read_front_matter_document
-from archledger.storage.frontmatter import write_front_matter_document as write_frontmatter
-from archledger.storage.meta import next_number_floor, read_storage_meta, write_storage_meta
+from archledger.storage.frontmatter import (
+    write_front_matter_document as write_frontmatter,
+)
+from archledger.storage.meta import (
+    next_number_floor,
+    read_storage_meta,
+    write_storage_meta,
+)
 from archledger.storage.paths import ProjectPaths
 from archledger.storage.project_config import ProjectConfig, render_project_config
 
@@ -50,7 +57,9 @@ def migrate_identity(
     source_extensions = known_source_extensions(config)
     numbered = _collect(paths, config, source_extensions)
     id_mapping = {old_id: new_id for old_id, new_id, _ in numbered if old_id != new_id}
-    rewrite_plan = _build_rewrite_plan(paths.archledger_dir, source_extensions, id_mapping)
+    rewrite_plan = _build_rewrite_plan(
+        paths.archledger_dir, source_extensions, id_mapping
+    )
     meta_before = read_storage_meta(paths.storage_meta_path)
 
     if apply:
@@ -73,7 +82,9 @@ def migrate_identity(
             id_default_segment=config.id_default_kind,
             id_segment_map=dict(config.id_kind_map),
         )
-        paths.config_path.write_text(render_project_config(new_config), encoding="utf-8")
+        paths.config_path.write_text(
+            render_project_config(new_config), encoding="utf-8"
+        )
         next_after = next_number_floor(
             paths.archledger_dir,
             meta_before.next_number,
@@ -133,7 +144,9 @@ def _collect(
             number = _extract_number(raw_id, metadata, config, kind)
             new_id = format_local_id(kind, number, width=config.id_width)
             if new_id in seen_new and seen_new[new_id] != path:
-                raise ValidationError(f"Identity migration collision for target ID {new_id}.")
+                raise ValidationError(
+                    f"Identity migration collision for target ID {new_id}."
+                )
             seen_new[new_id] = path
             rows.append((raw_id, new_id, path))
     return rows
@@ -161,7 +174,9 @@ def _extract_number(
     match = LEGACY_UNSEGMENTED_RE.fullmatch(raw_id)
     if match is not None:
         return int(match.group(1))
-    raise ValidationError(f"Cannot derive number for legacy ID {raw_id!r} (kind={kind!r}).")
+    raise ValidationError(
+        f"Cannot derive number for legacy ID {raw_id!r} (kind={kind!r})."
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -180,7 +195,9 @@ def _build_rewrite_plan(
         return ()
     rewrites: list[_RewritePlan] = []
     token_re = re.compile(
-        r"(?<![A-Za-z0-9:_-])(" + "|".join(re.escape(k) for k in sorted(id_mapping, key=len, reverse=True)) + r")(?![A-Za-z0-9:_-])"
+        r"(?<![A-Za-z0-9:_-])("
+        + "|".join(re.escape(k) for k in sorted(id_mapping, key=len, reverse=True))
+        + r")(?![A-Za-z0-9:_-])"
     )
     for path in iter_source_files(archledger_dir, source_extensions):
         text = path.read_text(encoding="utf-8")
@@ -196,7 +213,9 @@ def _build_rewrite_plan(
 
         updated = token_re.sub(_replace, text)
         if count > 0:
-            rewrites.append(_RewritePlan(path=path, replacement_count=count, new_text=updated))
+            rewrites.append(
+                _RewritePlan(path=path, replacement_count=count, new_text=updated)
+            )
     return tuple(rewrites)
 
 
@@ -204,7 +223,9 @@ def _rewrite_text(text: str, id_mapping: dict[str, str]) -> str:
     if not id_mapping:
         return text
     rewritten = text
-    for old, new in sorted(id_mapping.items(), key=lambda item: len(item[0]), reverse=True):
+    for old, new in sorted(
+        id_mapping.items(), key=lambda item: len(item[0]), reverse=True
+    ):
         rewritten = re.sub(
             rf"(?<![A-Za-z0-9:_-]){re.escape(old)}(?![A-Za-z0-9:_-])",
             new,

@@ -567,7 +567,7 @@ class ArchitectureRepository:
         try:
             parse_local_ref(record_id, width=self.config.id_width)
         except IdFormatError:
-            raise ValidationError(f"Invalid ledger ID: {record_id}")
+            raise ValidationError(f"Invalid ledger ID: {record_id}") from None
 
         active_path: Path | None = None
         for path in iter_source_files(
@@ -729,9 +729,7 @@ class ArchitectureRepository:
                 repairs.append(
                     DoctorRepair(
                         kind="created_tombstone",
-                        message=(
-                            f"Created archive tombstone {tombstone_id}"
-                        ),
+                        message=(f"Created archive tombstone {tombstone_id}"),
                         path=tombstone_path,
                     )
                 )

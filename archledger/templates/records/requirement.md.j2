@@ -1,5 +1,5 @@
 ---
-schema_version: 2
+schema_version: {{ schema_version | default(3, true) }}
 id: {{ id }}
 kind: {{ kind }}
 type: requirement

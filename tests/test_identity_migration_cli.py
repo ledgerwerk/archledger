@@ -11,7 +11,9 @@ runner = CliRunner()
 
 
 def test_new_record_uses_local_identity_and_ref(tmp_path: Path) -> None:
-    init = runner.invoke(app, ["--root", str(tmp_path), "init", "--source-format", "markdown"])
+    init = runner.invoke(
+        app, ["--root", str(tmp_path), "init", "--source-format", "markdown"]
+    )
     assert init.exit_code == 0, init.stdout
 
     created = runner.invoke(
@@ -34,7 +36,9 @@ def test_new_record_uses_local_identity_and_ref(tmp_path: Path) -> None:
 
 
 def test_migrate_ids_converts_legacy_segmented_record(tmp_path: Path) -> None:
-    init = runner.invoke(app, ["--root", str(tmp_path), "init", "--source-format", "markdown"])
+    init = runner.invoke(
+        app, ["--root", str(tmp_path), "init", "--source-format", "markdown"]
+    )
     assert init.exit_code == 0, init.stdout
 
     old_file = tmp_path / ".archledger" / "records" / "decisions" / "al_adr_0013.md"
@@ -63,7 +67,16 @@ def test_migrate_ids_converts_legacy_segmented_record(tmp_path: Path) -> None:
 
     migrated = runner.invoke(
         app,
-        ["--root", str(tmp_path), "--json", "migrate", "ids", "--to", "ledgercore", "--apply"],
+        [
+            "--root",
+            str(tmp_path),
+            "--json",
+            "migrate",
+            "ids",
+            "--to",
+            "ledgercore",
+            "--apply",
+        ],
     )
     assert migrated.exit_code == 0, migrated.stdout
     payload = json.loads(migrated.stdout)["result"]
@@ -86,4 +99,7 @@ def test_read_json_exposes_kind_and_ref(tmp_path: Path) -> None:
     read = runner.invoke(app, ["--root", str(tmp_path), "--json", "read"])
     assert read.exit_code == 0, read.stdout
     records = json.loads(read.stdout)["result"]["records"]
-    assert any(item["kind"] == "block" and item["ref"] == f"al:{item['id']}" for item in records)
+    assert any(
+        item["kind"] == "block" and item["ref"] == f"al:{item['id']}"
+        for item in records
+    )

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+from collections.abc import Callable
 from pathlib import Path
 from typing import cast
 
@@ -405,6 +406,33 @@ def load_project_config(path: Path) -> ProjectConfig:
     )
 
 
+def _parse_string_map(
+    map_value: object,
+    field_name: str,
+    allowed_keys: set[str],
+    validate_fn: Callable[[str], str],
+    base: dict[str, str],
+) -> dict[str, str]:
+    """Parse and validate a string-valued map from config data."""
+    result = dict(base)
+    if map_value is None:
+        return result
+    if not isinstance(map_value, dict):
+        raise ConfigError(f"ids.{field_name} must be a TOML table.")
+    unknown_keys = sorted(set(map_value) - allowed_keys)
+    if unknown_keys:
+        joined = ", ".join(unknown_keys)
+        raise ConfigError(f"ids.{field_name} contains unknown record types: {joined}")
+    for key, value in map_value.items():
+        if not isinstance(value, str):
+            raise ConfigError(f"ids.{field_name}.{key} must be a string.")
+        try:
+            result[key] = validate_fn(value)
+        except (ValueError, Exception) as exc:
+            raise ConfigError(str(exc)) from exc
+    return result
+
+
 def _parse_ids_config(
     ids_data: dict[str, object],
 ) -> tuple[str, int, str, str, dict[str, str], str, dict[str, str]]:
@@ -440,48 +468,27 @@ def _parse_ids_config(
     except ValueError as exc:
         raise ConfigError(str(exc)) from exc
 
-    segment_map = dict(DEFAULT_ID_SEGMENT_MAP)
-    if segment_map_value is not None:
-        if not isinstance(segment_map_value, dict):
-            raise ConfigError("ids.segment_map must be a TOML table.")
-        allowed_segment_keys = set(VALID_RECORD_TYPES) | {
-            "section",
-            "archive_tombstone",
-        }
-        unknown_keys = sorted(set(segment_map_value) - allowed_segment_keys)
-        if unknown_keys:
-            joined = ", ".join(unknown_keys)
-            raise ConfigError(
-                "ids.segment_map contains unknown record types: " + joined
-            )
-        for key, value in segment_map_value.items():
-            if not isinstance(value, str):
-                raise ConfigError(f"ids.segment_map.{key} must be a string.")
-            try:
-                segment_map[key] = validate_id_segment(value)
-            except ValueError as exc:
-                raise ConfigError(str(exc)) from exc
+    allowed_keys = set(VALID_RECORD_TYPES) | {"section", "archive_tombstone"}
+    segment_map = _parse_string_map(
+        segment_map_value,
+        "segment_map",
+        allowed_keys,
+        validate_id_segment,
+        dict(DEFAULT_ID_SEGMENT_MAP),
+    )
 
     kind_map_value = ids_data.get("kind_map")
-    kind_map = dict(DEFAULT_ID_SEGMENT_MAP)
-    if kind_map_value is not None:
-        if not isinstance(kind_map_value, dict):
-            raise ConfigError("ids.kind_map must be a TOML table.")
-        allowed_kind_keys = set(VALID_RECORD_TYPES) | {"section", "archive_tombstone"}
-        unknown_keys = sorted(set(kind_map_value) - allowed_kind_keys)
-        if unknown_keys:
-            joined = ", ".join(unknown_keys)
-            raise ConfigError("ids.kind_map contains unknown record types: " + joined)
-        for key, value in kind_map_value.items():
-            if not isinstance(value, str):
-                raise ConfigError(f"ids.kind_map.{key} must be a string.")
-            try:
-                kind_map[key] = normalize_kind(value)
-            except Exception as exc:
-                raise ConfigError(str(exc)) from exc
-    else:
-        for key, value in segment_map.items():
-            kind_map[key] = value
+    kind_map = (
+        _parse_string_map(
+            kind_map_value,
+            "kind_map",
+            set(VALID_RECORD_TYPES) | {"section", "archive_tombstone"},
+            normalize_kind,
+            dict(DEFAULT_ID_SEGMENT_MAP),
+        )
+        if kind_map_value is not None
+        else dict(segment_map)
+    )
 
     default_kind = kind_map.get("section", default_segment)
     return (

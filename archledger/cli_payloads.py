@@ -13,6 +13,7 @@ from archledger.ids import (
     LedgerIdFormat,
     format_ledger_id,
     format_local_id,
+    global_ref_for,
 )
 from archledger.migration import MigrationResult
 from archledger.model import (
@@ -48,13 +49,18 @@ T = TypeVar("T")
 # --- Shared payload helpers ---
 
 
-def _record_identity(record: ArchitectureRecord) -> dict[str, object]:
+def _record_identity(
+    record: ArchitectureRecord,
+    *,
+    ledger_code: str = DEFAULT_LEDGER_CODE,
+    id_width: int = DEFAULT_ID_WIDTH,
+) -> dict[str, object]:
     """Core identity fields shared by most record payloads."""
     return {
         "id": record.id,
         "kind": record.kind,
         "type": record.type,
-        "ref": f"{DEFAULT_LEDGER_CODE}:{record.id}",
+        "ref": global_ref_for(record.id, ledger_code, width=id_width),
         "title": record.title,
         "status": record.status,
         "section": record.section,
@@ -67,9 +73,11 @@ def _record_detail(
     *,
     include_body: bool = False,
     workspace_root: Path | None = None,
+    ledger_code: str = DEFAULT_LEDGER_CODE,
+    id_width: int = DEFAULT_ID_WIDTH,
 ) -> dict[str, object]:
     """Extended record payload with metadata and optional body."""
-    payload = _record_identity(record)
+    payload = _record_identity(record, ledger_code=ledger_code, id_width=id_width)
     if workspace_root is not None:
         payload["path"] = display_path(workspace_root, record.path)
     payload["metadata"] = record.metadata
@@ -186,17 +194,24 @@ def schema_payload(
     }
 
 
-def new_record_payload(record: ArchitectureRecord) -> dict[str, object]:
+def new_record_payload(
+    record: ArchitectureRecord,
+    config: ProjectConfig,
+) -> dict[str, object]:
     return {
         "id": record.id,
         "kind": record.kind,
         "type": record.type,
-        "ref": f"{DEFAULT_LEDGER_CODE}:{record.id}",
+        "ref": global_ref_for(record.id, config.ledger_code, width=config.id_width),
         "path": str(record.path),
     }
 
 
-def seed_payload(preset: str, records: list[ArchitectureRecord]) -> dict[str, object]:
+def seed_payload(
+    preset: str,
+    records: list[ArchitectureRecord],
+    config: ProjectConfig,
+) -> dict[str, object]:
     return {
         "preset": preset,
         "records": [
@@ -204,7 +219,9 @@ def seed_payload(preset: str, records: list[ArchitectureRecord]) -> dict[str, ob
                 "id": record.id,
                 "kind": record.kind,
                 "type": record.type,
-                "ref": f"{DEFAULT_LEDGER_CODE}:{record.id}",
+                "ref": global_ref_for(
+                    record.id, config.ledger_code, width=config.id_width
+                ),
                 "path": str(record.path),
             }
             for record in records
@@ -212,12 +229,30 @@ def seed_payload(preset: str, records: list[ArchitectureRecord]) -> dict[str, ob
     }
 
 
-def list_records_payload(records: list[ArchitectureRecord]) -> dict[str, object]:
-    return {"records": [_record_identity(r) for r in records]}
+def list_records_payload(
+    records: list[ArchitectureRecord],
+    config: ProjectConfig,
+) -> dict[str, object]:
+    return {
+        "records": [
+            _record_identity(
+                record, ledger_code=config.ledger_code, id_width=config.id_width
+            )
+            for record in records
+        ]
+    }
 
 
-def show_record_payload(record: ArchitectureRecord) -> dict[str, object]:
-    return _record_detail(record, include_body=True)
+def show_record_payload(
+    record: ArchitectureRecord,
+    config: ProjectConfig,
+) -> dict[str, object]:
+    return _record_detail(
+        record,
+        include_body=True,
+        ledger_code=config.ledger_code,
+        id_width=config.id_width,
+    )
 
 
 def read_payload(
@@ -276,7 +311,7 @@ def read_payload(
             "id": record.id,
             "kind": record.kind,
             "type": record.type,
-            "ref": f"{config.ledger_code}:{record.id}",
+            "ref": global_ref_for(record.id, config.ledger_code, width=config.id_width),
             "title": record.title,
             "status": record.status,
             "section": record.section,

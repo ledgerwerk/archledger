@@ -729,7 +729,7 @@ def new_record(
         paths: ProjectPaths,
         config: ProjectConfig,
     ) -> dict[str, object]:
-        del paths, config
+        del paths
         return _new_payload(
             repo.create_record(
                 kind,
@@ -747,7 +747,8 @@ def new_record(
                 requirement=requirement,
                 validation_command=validation_command,
                 validation_expected=validation_expected,
-            )
+            ),
+            config,
         )
 
     _run_configured_command(state, "new", _build_new_record_result, _format_new_message)
@@ -765,12 +766,12 @@ def seed(
         paths: ProjectPaths,
         config: ProjectConfig,
     ) -> dict[str, object]:
-        del paths, config
+        del paths
         if preset == "arc42-minimal":
             records = _seed_arc42_minimal(repo)
         else:
             raise ArchledgerError(f"Unsupported seed preset: {preset}")
-        return _seed_payload(preset, records)
+        return _seed_payload(preset, records, config)
 
     _run_configured_command(state, "seed", _build_seed_result, _format_seed_message)
 
@@ -796,14 +797,15 @@ def list_records(
         paths: ProjectPaths,
         config: ProjectConfig,
     ) -> dict[str, object]:
-        del paths, config
+        del paths
         return _list_payload(
             repo.list_records(
                 include_draft=visibility.include_drafts,
                 include_superseded=visibility.include_superseded,
                 kind=kind,
                 scope=scope,
-            )
+            ),
+            config,
         )
 
     _run_configured_command(
@@ -823,8 +825,8 @@ def show(
         paths: ProjectPaths,
         config: ProjectConfig,
     ) -> dict[str, object]:
-        del paths, config
-        return _show_payload(repo.get_record(record_id))
+        del paths
+        return _show_payload(repo.get_record(record_id), config)
 
     _run_configured_command(state, "show", _build_show_result, _format_show_message)
 
@@ -1111,7 +1113,8 @@ def migrate_ids(
             f"({payload.get('rewritten_count', 0)} rewritten)."
             if not apply
             else (
-                f"Identity migration applied: {payload.get('migrated_count', 0)} file(s) "
+                f"Identity migration applied: "
+                f"{payload.get('migrated_count', 0)} file(s) "
                 f"({payload.get('rewritten_count', 0)} rewritten)."
             )
         )

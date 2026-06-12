@@ -119,6 +119,46 @@ def category_for_record(record: ArchitectureRecord) -> str:
     return CATEGORY_BY_TYPE.get(record.type, "architecture_docs")
 
 
+def _score_body(body_lower: str, tokens: tuple[str, ...]) -> tuple[float, list[str]]:
+    """Score body headings and content against tokens."""
+    score = 0.0
+    reasons: list[str] = []
+    for line in body_lower.split("\n"):
+        stripped = line.strip()
+        if stripped.startswith("##") or stripped.startswith("=="):
+            heading_tokens = set(tokenize_query(stripped.lstrip("#=").strip()))
+            for t in tokens:
+                if t in heading_tokens:
+                    score += 10
+                    reasons.append(f"body heading matched: {t}")
+                    break
+    body_tokens = set(tokenize_query(body_lower))
+    body_matches = sum(1 for t in tokens if t in body_tokens)
+    if body_matches:
+        capped = min(body_matches * 2, 30)
+        score += capped
+        reasons.append(f"body matched {body_matches} token(s)")
+    return score, reasons
+
+
+def _score_metadata(
+    metadata: dict[str, object], tokens: tuple[str, ...]
+) -> tuple[float, list[str]]:
+    """Score metadata key/value pairs against tokens."""
+    score = 0.0
+    reasons: list[str] = []
+    for key, value in metadata.items():
+        if key in ("related",):
+            continue
+        val_str = str(value).lower() if value else ""
+        for t in tokens:
+            if t == val_str or (val_str and t in tokenize_query(val_str)):
+                score += 8
+                reasons.append(f"metadata matched {key}: {t}")
+                break
+    return score, reasons
+
+
 def score_record(
     record: ArchitectureRecord,
     tokens: tuple[str, ...],
@@ -163,37 +203,15 @@ def score_record(
                 reasons.append(f"glossary term exact match: {t}")
 
     # metadata key/value token matching
-    for key, value in record.metadata.items():
-        if key in ("related",):
-            continue
-        val_str = str(value).lower() if value else ""
-        for t in tokens:
-            if t == val_str or (val_str and t in tokenize_query(val_str)):
-                score += 8
-                reasons.append(f"metadata matched {key}: {t}")
-                break
+    meta_score, meta_reasons = _score_metadata(record.metadata, tokens)
+    score += meta_score
+    reasons.extend(meta_reasons)
 
     # body heading and token matching
     body_lower = record.body.lower()
-    for line in body_lower.split("\n"):
-        stripped = line.strip()
-        if stripped.startswith("##") or stripped.startswith("=="):
-            heading_tokens = set(tokenize_query(stripped.lstrip("#=").strip()))
-            for t in tokens:
-                if t in heading_tokens:
-                    score += 10
-                    reasons.append(f"body heading matched: {t}")
-                    break
-    # body token matching (capped)
-    body_tokens = set(tokenize_query(body_lower))
-    body_matches = 0
-    for t in tokens:
-        if t in body_tokens:
-            body_matches += 1
-    if body_matches:
-        capped = min(body_matches * 2, 30)
-        score += capped
-        reasons.append(f"body matched {body_matches} token(s)")
+    body_score, body_reasons = _score_body(body_lower, tokens)
+    score += body_score
+    reasons.extend(body_reasons)
 
     # section key/title matching
     section_lower = record.section.replace("_", " ").lower()
@@ -225,7 +243,6 @@ def expand_linked_records(
     records: list[ArchitectureRecord],
 ) -> list[ScoredRecord]:
     """Boost scores for records linked to/from high-scoring records."""
-    high_ids = {sr.record.id for sr in scored if sr.score > 0}
     by_id = {r.id: r for r in records}
     boosted: list[ScoredRecord] = list(scored)
     scored_ids = {sr.record.id for sr in scored}
@@ -436,14 +453,17 @@ def build_context_for_record(
     by_id = {r.id: r for r in records}
     root = by_id.get(record_id)
     if root is None:
-        return _empty_payload(
+        return _build_payload(
+            records=[],
+            workspace_root=workspace_root,
+            include_body=include_body,
             query={
                 "for_file": None,
                 "for_record": record_id,
                 "changed": False,
                 "max_records": max_records,
                 "include_body": include_body,
-            }
+            },
         )
 
     relevant_ids: set[str] = {record_id}
@@ -622,7 +642,8 @@ def build_context_for_topic(
     has_aq = any(r.type == "architecture_question" for r in records)
     if not has_aq:
         warnings.append(
-            "Unresolved architecture questions are not first-class records in this project."
+            "Unresolved architecture questions are not "
+            "first-class records in this project."
         )
 
     return {

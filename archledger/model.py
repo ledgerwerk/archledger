@@ -263,11 +263,6 @@ def validate_record(
     id_prefix: str = DEFAULT_ID_PREFIX,
     id_width: int = DEFAULT_ID_WIDTH,
 ) -> list[str]:
-    resolved_format = (
-        LedgerIdFormat(prefix=id_prefix, width=id_width)
-        if id_format is None
-        else id_format
-    )
     issues: list[str] = []
     if record.type not in VALID_RECORD_TYPES and record.type != "section":
         issues.append(f"Unknown record type: {record.type}")

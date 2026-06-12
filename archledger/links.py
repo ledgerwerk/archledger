@@ -106,8 +106,9 @@ def _normalize_link_entry(
         return (
             None,
             [
-                f"Record {record_id} links entry {index} target_kind {target_kind!r} "
-                f"is not supported. Allowed: {', '.join(sorted(VALID_LINK_TARGET_KINDS))}"
+                f"Record {record_id} links entry {index} target_kind "
+                f"{target_kind!r} is not supported. "
+                f"Allowed: {', '.join(sorted(VALID_LINK_TARGET_KINDS))}"
             ],
         )
 
@@ -153,7 +154,10 @@ def _validate_target(
         except IdFormatError:
             if LEGACY_UNSEGMENTED_RE.fullmatch(target):
                 return None
-            return f"Record {record_id} links entry {index} record target must be a valid reference."
+            return (
+                f"Record {record_id} links entry {index} "
+                "record target must be a valid reference."
+            )
         return None
     if target_kind == "path":
         try:
