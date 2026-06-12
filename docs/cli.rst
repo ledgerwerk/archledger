@@ -4,114 +4,18 @@ CLI guide
 ``--json`` is a global option, so place it before the subcommand:
 ``archledger --json read ...`` rather than ``archledger read --json``.
 
-Profiles and SDD
-----------------
+Ledger boundary
+---------------
 
-``archledger init --profile arc42|sdd`` selects the default profile for a new
-project. Existing projects can run ``archledger profile migrate arc42 --write``
-to move legacy sections into ``.archledger/profiles/arc42/sections``.
+Archledger is an isolated architecture ledger. It stores architecture records,
+record links, and source references. It does not import/export behavior specs,
+enforce SDD policy, or coordinate external ledgers.
 
-Use ``archledger sdd check --strict`` to enforce traceability and
-``archledger sdd status`` to report coverage. ``archledger context`` creates
-compact record context for a file, record, or changed source set.
-``archledger trace RECORD_ID`` follows incoming and outgoing links.
-
-For pull requests, use ``source changed --against REVISION`` or
-``sdd check-pr --against REVISION``. Mutation commands are grouped under
+Use ``context`` and ``trace`` for architecture retrieval, ``check`` for ledger
+validation, ``source`` for change tracking, and mutation commands under
 ``record``, ``refs``, ``links``, and ``ac``. JSON Schemas are returned with
 ``schema --format jsonschema --target TARGET``. ``install`` creates optional
 integration scaffolds and refuses overwrites unless ``--force`` is supplied.
-
-
-BDD / Gherkin
--------------
-
-BDD is treated as **metadata on existing records** (primarily ``runtime_scenario``
-and ``quality_scenario``).  Gherkin ``.feature`` files are an imported/exported
-exchange and automation format; archledger does **not** run Cucumber or any BDD
-runner.
-
-Import a feature file as behavior records:
-
-.. code-block:: bash
-
-   archledger bdd import specs/behavior/features/task-management/plan-gates.feature \
-     --kind runtime-scenario --status proposed
-
-Export a record with ``bdd`` metadata as a deterministic ``.feature`` file:
-
-.. code-block:: bash
-
-   archledger bdd export al_runtime_0123 \
-     --out specs/behavior/features/task-management/plan-gates.derived.feature
-
-Imported records carry a ``bdd`` front-matter block (feature, rule, scenario,
-tags, given/when/then, automation) and a ``source_refs`` entry with role
-``documents`` linking to the originating feature file.  Imported records default
-to ``automation.status=linked`` since a feature file and scenario are now bound.
-Keep behavior specs in ``source_refs`` and plain pytest enforcement in
-``test_refs``.
-
-Automation status semantics: ``pending`` (no wiring yet), ``linked`` (a feature
-file/scenario is bound but no executable runner), ``automated`` (a runner command
-is recorded and intended to be executed externally), and ``not_applicable``
-(deliberately manual). Under ``require_bdd_automation_for_accepted_records``
-(enabled by ``sdd init --strict-defaults``), a record must reach ``automated`` or
-``not_applicable``; ``linked`` alone is treated as not-yet-automated and produces
-an ``SDD-BDD-AUTOMATION`` error. Under ``--strict``, ``linked`` without
-executable ``test_refs`` is a warning, which still fails the strict run. SDD
-coverage reports ``behavior_linked`` and ``behavior_automated`` as separate
-dimensions for the same reason.
-
-**Canonical ownership**: Archledger records are the canonical
-architecture/specification records. SpecWeave-owned files under
-``specs/behavior/features`` may be the canonical behavior specifications.
-Archledger-exported ``.feature`` files are derived unless a project explicitly
-changes ownership. ``bdd sync --check`` reports drift between linked behavior
-specs and Archledger metadata.
-
-For the supported Gherkin subset and ownership details, see :doc:`bdd-gherkin`.
-
-Additional BDD commands:
-
-.. code-block:: bash
-
-   # Validate BDD metadata on a record or feature file
-   archledger bdd validate al_runtime_0042
-   archledger bdd validate --feature-file specs/behavior/features/task-management/plan-gates.feature
-   archledger bdd validate --all
-
-   # List all records with BDD metadata (filterable)
-   archledger bdd list
-   archledger bdd list --automation linked
-   archledger bdd list --feature "Task lifecycle"
-
-   # Summarize BDD coverage
-   archledger bdd status
-
-   # Set or replace the bdd block on a record (no manual YAML)
-   archledger bdd set al_runtime_0042 \
-     --feature "Task lifecycle" --scenario "Blocked" \
-     --given "a task has a proposed plan" \
-     --when "the agent starts implementation" \
-     --then "implementation is blocked" \
-     --tag task-0001
-
-   # Link automation metadata, source_refs, and pytest test_refs
-   archledger bdd link al_runtime_0042 \
-     --feature-file specs/behavior/features/task-management/plan-gates.feature \
-     --scenario "@bdd-implementation-blocked-before-plan-acceptance" \
-     --test tests/test_task_management_plan_gates.py::test_agent_cannot_start_implementation_before_plan_approval \
-     --status automated
-
-   # Dry-run import (parse without creating records)
-   archledger bdd import specs/behavior/features/task-management/plan-gates.feature --dry-run
-
-   # Batch export all BDD records grouped by feature+rule
-   archledger bdd export --all --out-dir specs/behavior/features/derived
-
-Use ``archledger --json read --body`` as the agent source of truth for BDD
-records; Archledger-exported ``.feature`` files are derived artifacts.
 
 
 .. _init:

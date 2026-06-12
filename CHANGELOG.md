@@ -4,7 +4,17 @@ All notable changes to `archledger` will be documented in this file.
 
 ## Unreleased
 
-_(No unreleased changes.)_
+### Removed
+
+- Removed Archledger-owned SDD and BDD/Gherkin command families.
+- Removed the `sdd` profile and SDD policy configuration.
+- Removed Gherkin import/export/sync/validate from Archledger.
+- Removed SDD/BDD JSON schemas from the Archledger package.
+
+### Changed
+
+- Archledger now treats external behavior/spec artifacts as generic links or
+  source references. Semantic resolution is left to an external organizer.
 
 ## 0.3.0 — 2026-06-09
 

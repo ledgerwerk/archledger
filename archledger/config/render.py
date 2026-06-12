@@ -19,7 +19,6 @@ from archledger.config.model import (
     ProfilesConfig,
     ProjectConfig,
     ProjectProfilesConfig,
-    SddProfileConfig,
     normalize_project_name,
     validate_uuid,
 )
@@ -90,12 +89,32 @@ def build_default_project_config(
 ) -> ProjectConfig:
     normalized_source_format = source_format.strip().lower()
     normalized_profile = profile.strip().lower()
+    if normalized_profile == "sdd":
+        raise ConfigError(
+            "Profile 'sdd' has been removed from archledger. "
+            "SDD orchestration belongs in ledgerdeck."
+        )
+    if normalized_profile == "bdd":
+        raise ConfigError(
+            "Profile 'bdd' is not supported by archledger. "
+            "Use ledgerdeck or the behavior ledger/tool."
+        )
     if normalized_profile not in VALID_PROFILES:
         raise ConfigError(
             "profile must be one of: " + ", ".join(sorted(VALID_PROFILES)) + "."
         )
     unknown_extra = sorted(set(extra_profiles) - VALID_PROFILES)
     if unknown_extra:
+        if "sdd" in unknown_extra:
+            raise ConfigError(
+                "Profile 'sdd' has been removed from archledger. "
+                "SDD orchestration belongs in ledgerdeck."
+            )
+        if "bdd" in unknown_extra:
+            raise ConfigError(
+                "Profile 'bdd' is not supported by archledger. "
+                "Use ledgerdeck or the behavior ledger/tool."
+            )
         raise ConfigError(
             "extra_profiles contains unknown profiles: " + ", ".join(unknown_extra)
         )
@@ -145,7 +164,6 @@ def build_default_project_config(
         arc42=Arc42ProfileConfig(
             sections_dir=_default_sections_dir_for(archledger_dir)
         ),
-        sdd=SddProfileConfig(),
     )
 
     return ProjectConfig(
@@ -387,27 +405,6 @@ def _render_profiles_tables(config: ProjectConfig) -> list[str]:
             "",
         ]
     )
-    if "sdd" in profiles.profiles.enabled or profiles.profiles.default == "sdd":
-        lines.extend(
-            [
-                "[profiles.sdd]",
-                f"kind = {_toml_string(profiles.sdd.kind)}",
-                "require_acceptance_criteria = "
-                f"{_toml_bool(profiles.sdd.require_acceptance_criteria)}",
-                "require_implementation_refs = "
-                f"{_toml_bool(profiles.sdd.require_implementation_refs)}",
-                f"require_test_refs = {_toml_bool(profiles.sdd.require_test_refs)}",
-                f"require_bdd_gwt_for_behavior_records = "
-                f"{_toml_bool(profiles.sdd.require_bdd_gwt_for_behavior_records)}",
-            ],
-        )
-        lines.extend(
-            [
-                f"require_bdd_automation_for_accepted_records = "
-                f"{_toml_bool(profiles.sdd.require_bdd_automation_for_accepted_records)}",
-            ]
-        )
-        lines.append("")
     return lines
 
 

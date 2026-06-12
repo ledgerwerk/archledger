@@ -8,8 +8,6 @@ archledger
    :caption: User guide
 
    cli
-   sdd
-   bdd-gherkin
    configuration
    source-model
    source-tracking

@@ -21,7 +21,7 @@ _SCAFFOLDS = {
         Path("AGENTS.md"),
         """# Archledger
 
-Use `archledger context`, `archledger trace`, and `archledger sdd check`
+Use `archledger context`, `archledger trace`, and `archledger check`
 before changing architecture-sensitive code. Keep requirement source and test
 references current.
 """,
@@ -40,7 +40,6 @@ jobs:
           python-version: "3.12"
       - run: pip install .
       - run: archledger check --strict
-      - run: archledger sdd check --strict
 """,
     ),
     "pr-template": (
@@ -48,7 +47,7 @@ jobs:
         """## Architecture impact
 
 - [ ] Ran `archledger source changed --fail-on-unlinked`
-- [ ] Ran `archledger sdd check --strict`
+- [ ] Ran `archledger check --strict`
 - [ ] Updated affected records, source refs, and test refs
 """,
     ),
@@ -57,7 +56,7 @@ jobs:
         """name = "archledger"
 
 [validation]
-commands = ["archledger check --strict", "archledger sdd check --strict"]
+commands = ["archledger check --strict"]
 """,
     ),
 }

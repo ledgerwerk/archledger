@@ -7,30 +7,16 @@ def test_archledger_skill_exists() -> None:
     skill = Path("skills/archledger/SKILL.md")
     assert skill.is_file()
     text = skill.read_text(encoding="utf-8")
-    assert "archledger --json paths" in text
+    assert "archledger --json context" in text
+    assert "archledger --json trace" in text
+    assert "archledger --json read" in text
     assert "archledger --json check" in text
-    assert "archledger --json read --body" in text
-    assert "archledger seed arc42-minimal" in text
-    assert "generated build output" in text.lower()
-    assert "specs/behavior/features" in text
-    assert "--test tests/test_task_management_plan_gates.py" in text
+    assert "archledger --json source changed" in text
 
 
-def test_skill_file_mentions_markdown_and_asciidoc() -> None:
+def test_skill_file_removes_sdd_bdd_command_guidance() -> None:
     text = Path("skills/archledger/SKILL.md").read_text(encoding="utf-8").lower()
-    assert "markdown" in text
-    assert "asciidoc" in text
-
-
-def test_skill_file_instructs_read_without_export() -> None:
-    text = Path("skills/archledger/SKILL.md").read_text(encoding="utf-8").lower()
-    assert "archledger --json read --body" in text
-    assert "configured build output directory" in text
-    assert "source of truth" in text
-    assert "canonical behavior specs" in text
-
-
-def test_skill_file_does_not_call_markdown_legacy() -> None:
-    text = Path("skills/archledger/SKILL.md").read_text(encoding="utf-8").lower()
-    assert "markdown as legacy" not in text
-    assert "treat markdown projects as legacy" not in text
+    assert "archledger sdd" not in text
+    assert "archledger bdd" not in text
+    assert "gherkin" not in text
+    assert "specweave" not in text

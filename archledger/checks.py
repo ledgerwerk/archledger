@@ -149,8 +149,6 @@ def content_warnings(record: ArchitectureRecord) -> list[str]:
     if checker is not None:
         warnings.extend(checker(record))
     warnings.extend(_body_syntax_warnings(record))
-    if record.type != "section":
-        warnings.extend(_bdd_warnings(record))
     return warnings
 
 
@@ -498,14 +496,3 @@ _CONTENT_WARNING_CHECKERS: dict[str, Callable[[ArchitectureRecord], list[str]]] 
     "diagram": _diagram_warnings,
     "glossary_term": _glossary_term_warnings,
 }
-
-
-def _bdd_warnings(record: ArchitectureRecord) -> list[str]:
-    """Validate ``bdd`` front-matter metadata if present."""
-    from archledger.bdd import normalize_bdd_metadata
-
-    raw = record.metadata.get("bdd")
-    if raw is None:
-        return []
-    _, warnings = normalize_bdd_metadata(record.id, raw)
-    return warnings

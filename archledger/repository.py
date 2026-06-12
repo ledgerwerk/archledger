@@ -159,10 +159,6 @@ class ArchitectureRepository:
         # Only create sections directory when the arc42 profile is enabled.
         if self._arc42_enabled():
             dirs_to_create.append(self.paths.sections_dir)
-        # Create sdd profile directory when the sdd profile is enabled.
-        if self._sdd_enabled():
-            sdd_profile_dir = self.paths.archledger_dir / "profiles" / "sdd"
-            dirs_to_create.append(sdd_profile_dir)
         for path in dirs_to_create:
             if not path.exists():
                 created_paths.append(path)
@@ -471,7 +467,7 @@ class ArchitectureRepository:
                 )
             # Validate link targets after all records are loaded.
             for link in record.links:
-                if link.target not in loaded_ids:
+                if link.target_kind == "record" and link.target not in loaded_ids:
                     findings_warnings.append(
                         CheckFinding(
                             "warning",
@@ -480,6 +476,17 @@ class ArchitectureRepository:
                             record.path,
                         )
                     )
+                if link.target_kind == "path":
+                    target_path = self.paths.workspace_root / link.target
+                    if not target_path.exists():
+                        findings_warnings.append(
+                            CheckFinding(
+                                "warning",
+                                f"Record {record.id} path link target {link.target!r} "
+                                "does not exist in workspace.",
+                                record.path,
+                            )
+                        )
             if record.status == "draft":
                 findings_warnings.append(
                     CheckFinding(
@@ -1035,10 +1042,6 @@ class ArchitectureRepository:
             )
 
     def _arc42_enabled(self) -> bool:
-        return "arc42" in self.config.profiles.profiles.enabled
-
-    def _sdd_enabled(self) -> bool:
-        return "sdd" in self.config.profiles.profiles.enabled
         return "arc42" in self.config.profiles.profiles.enabled
 
     def _write_counter(self, next_number: int) -> None:

@@ -230,11 +230,11 @@ archledger is decomposed into focused black-box building blocks within one white
 - **ID Utilities** (`ids.py`): ID parsing and formatting helpers for ledger-prefixed IDs
 - **Renumber Service** (`renumber.py`): ID migration planning and apply operations across records and links
 - **ID Segment Resolution** (`id_segments.py`): Segment-aware ID routing and section scoping logic
-- **Specification and Traceability Services** (`sdd.py`, `context.py`, `trace.py`, `mutations.py`, `bdd/`): SDD policy enforcement, bounded agent context, record trace traversal, validated record mutation, and Gherkin metadata exchange
+- **Context and Trace Services** (`context.py`, `trace.py`, `mutations.py`): bounded architecture context, record trace traversal, safe record mutation, and generic references
 
 ## Important interfaces
 
-The primary interface is the CLI (`archledger` console script). The CLI delegates to `cli_payloads.py` for JSON output construction and `cli_formatting.py` for human-readable messages. Internally, the Repository exposes source-model operations used by the CLI and specification services, and delegates persistence to Storage. Config parsing is handled by the Config Layer independently from Storage. The Render Layer delegates to Assembly and Converters. Source Tracking feeds `source changed`, focused context queries, and the SDD pull-request gate. SDD, context, trace, mutation, and BDD modules remain domain services; the CLI owns command gating and presentation.
+The primary interface is the CLI (`archledger` console script). The CLI delegates to `cli_payloads.py` for JSON output construction and `cli_formatting.py` for human-readable messages. Internally, the Repository exposes source-model operations used by the CLI and context/trace services, and delegates persistence to Storage. Config parsing is handled by the Config Layer independently from Storage. The Render Layer delegates to Assembly and Converters. Source Tracking feeds `source changed` and focused context queries. Context, trace, and mutation modules remain domain services; the CLI owns command gating and presentation.
 
 ### Level 1
 

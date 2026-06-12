@@ -1,13 +1,9 @@
-"""Profile operations: arc42/sdd enable, disable, and legacy migration.
-
-The repository delegates profile-level mutations here so that
-``repository.py`` stays focused on record storage and structural
-validation.
-"""
+"""Profile operations for architecture documentation profiles."""
 
 from __future__ import annotations
 
 import dataclasses
+import json
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -17,16 +13,9 @@ if sys.version_info >= (3, 11):
 else:  # pragma: no cover
     import tomli as tomllib
 
-from archledger.config.model import (
-    DEFAULT_ARC42_SECTIONS_DIR,
-    VALID_PROFILES,
-)
-from archledger.config.parse import (
-    load_project_config,
-)
-from archledger.config.render import (
-    render_project_config,
-)
+from archledger.config.model import DEFAULT_ARC42_SECTIONS_DIR, VALID_PROFILES
+from archledger.config.parse import load_project_config
+from archledger.config.render import render_project_config
 from archledger.errors import ArchledgerError, ConfigError
 from archledger.storage.common import ensure_dir, read_text, write_text_atomic
 
@@ -72,18 +61,8 @@ def _ensure_profiles_block(
     *,
     default: str,
     enabled: tuple[str, ...],
-    include_sdd: bool,
 ) -> list[str]:
-    """Return a copy of ``lines`` with a [profiles] block inserted/replaced.
-
-    This is a best-effort textual transform used by ``profile migrate`` so we
-    do not have to round-trip the entire config through the dataclass model
-    (which would normalise unrelated formatting).
-    """
-    profiles_lines = _render_profiles_block(
-        default=default, enabled=enabled, include_sdd=include_sdd
-    )
-    # Drop any existing [profiles]/[profiles.*] blocks.
+    profiles_lines = _render_profiles_block(default=default, enabled=enabled)
     cleaned: list[str] = []
     skipping = False
     for line in lines:
@@ -105,11 +84,7 @@ def _ensure_profiles_block(
     return cleaned
 
 
-def _render_profiles_block(
-    *, default: str, enabled: tuple[str, ...], include_sdd: bool
-) -> list[str]:
-    import json
-
+def _render_profiles_block(*, default: str, enabled: tuple[str, ...]) -> list[str]:
     lines = ["[profiles]", "enabled = ["]
     for name in enabled:
         lines.append(f"  {json.dumps(name)},")
@@ -123,15 +98,6 @@ def _render_profiles_block(
     lines.append('build_template = "arc42_document"')
     lines.append("include_help = false")
     lines.append("")
-    if include_sdd or "sdd" in enabled or default == "sdd":
-        lines.append("[profiles.sdd]")
-        lines.append('kind = "contract"')
-        lines.append("require_acceptance_criteria = true")
-        lines.append("require_implementation_refs = true")
-        lines.append("require_test_refs = true")
-        lines.append("require_bdd_gwt_for_behavior_records = true")
-        lines.append("require_bdd_automation_for_accepted_records = false")
-        lines.append("")
     return lines
 
 
@@ -141,15 +107,7 @@ def migrate_arc42_profile(
     *,
     write: bool,
 ) -> ProfileMigrationResult:
-    """Migrate a legacy arc42-only project to the profile layout.
-
-    Steps:
-      1. Detect legacy ``<archledger_dir>/sections/``.
-      2. Move it to ``<archledger_dir>/profiles/arc42/sections/``.
-      3. Rewrite ``archledger.toml``: bump ``config_version`` to 8 and add
-         ``[profiles]`` / ``[profiles.arc42]``.
-      4. Leave ``<archledger_dir>/records/**`` untouched.
-    """
+    """Migrate a legacy arc42-only project to the profile layout."""
     steps: list[ProfileMigrationStep] = []
     warnings: list[str] = []
     changed = False
@@ -207,7 +165,6 @@ def migrate_arc42_profile(
             warnings=tuple(warnings),
         )
 
-    # Apply.
     if needs_sections_move:
         ensure_dir(profile_sections.parent)
         legacy_sections.rename(profile_sections)
@@ -216,16 +173,13 @@ def migrate_arc42_profile(
     if not (profiles_present and config_version >= 8):
         original_text = read_text(config_path)
         lines = original_text.splitlines()
-        # Bump config_version.
         for index, line in enumerate(lines):
             if line.strip().startswith("config_version"):
                 lines[index] = "config_version = 8"
                 break
         else:
             lines.insert(0, "config_version = 8")
-        lines = _ensure_profiles_block(
-            lines, default="arc42", enabled=("arc42",), include_sdd=False
-        )
+        lines = _ensure_profiles_block(lines, default="arc42", enabled=("arc42",))
         new_text = "\n".join(lines).rstrip() + "\n"
         write_text_atomic(config_path, new_text)
         changed = True
@@ -239,6 +193,24 @@ def migrate_arc42_profile(
     )
 
 
+def _check_profile_supported(profile: str) -> None:
+    if profile == "sdd":
+        raise ArchledgerError(
+            "Profile 'sdd' has been removed from archledger. "
+            "SDD orchestration belongs in ledgerdeck."
+        )
+    if profile == "bdd":
+        raise ArchledgerError(
+            "Profile 'bdd' is not supported by archledger. "
+            "BDD/Gherkin belongs in the behavior ledger/tool and is coordinated "
+            "by ledgerdeck."
+        )
+    if profile not in VALID_PROFILES:
+        raise ArchledgerError(
+            f"profile must be one of: {', '.join(sorted(VALID_PROFILES))}."
+        )
+
+
 def enable_profile(
     config_path: Path,
     archledger_dir: Path,
@@ -246,140 +218,49 @@ def enable_profile(
     *,
     write: bool = True,
 ) -> ProfileMigrationResult:
-    """Enable a profile (arc42 or sdd) in the project config."""
-    if profile == "bdd":
-        raise ArchledgerError(
-            "BDD is not a standalone profile. Enable the SDD profile and use "
-            "`archledger bdd import/export`. Run: archledger profile enable sdd"
-        )
-    if profile not in VALID_PROFILES:
-        raise ArchledgerError(
-            f"profile must be one of: {', '.join(sorted(VALID_PROFILES))}."
-        )
-    raw = _read_toml(config_path)
-    profiles_table = raw.get("profiles")
-    if isinstance(profiles_table, dict):
-        enabled_raw = profiles_table.get("enabled", ["arc42"])
-        default_raw = profiles_table.get("default", "arc42")
-    else:
-        enabled_raw = ["arc42"]
-        default_raw = "arc42"
-    if not isinstance(enabled_raw, list):
-        raise ConfigError("profiles.enabled must be a list of strings.")
-    if not isinstance(default_raw, str):
-        raise ConfigError("profiles.default must be a string.")
-    enabled = [str(item) for item in enabled_raw]
-    default = str(default_raw)
-
-    steps: list[ProfileMigrationStep] = []
-    changed = False
-    if profile not in enabled:
-        enabled.append(profile)
-        changed = True
-        steps.append(
-            ProfileMigrationStep(
-                action="enable_profile",
-                message=f"Add '{profile}' to profiles.enabled.",
-            )
-        )
-
-    if not write:
+    """Enable a profile in the project config."""
+    del archledger_dir
+    _check_profile_supported(profile)
+    config = load_project_config(config_path)
+    if profile in config.profiles.profiles.enabled:
         return ProfileMigrationResult(
             profile=profile,
-            write=False,
-            changed=changed,
-            steps=tuple(steps),
-        )
-
-    if changed:
-        config = load_project_config(config_path)
-        new_config = dataclasses.replace(
-            config,
-            config_version=8,
-            profiles_present=True,
-            profiles=dataclasses.replace(
-                config.profiles,
-                profiles=dataclasses.replace(
-                    config.profiles.profiles,
-                    enabled=tuple(dict.fromkeys(enabled)),
-                    default=default,
+            write=write,
+            changed=False,
+            steps=(
+                ProfileMigrationStep(
+                    action="noop",
+                    message=f"Profile '{profile}' is already enabled.",
                 ),
             ),
         )
-        new_text = render_project_config(new_config)
-        write_text_atomic(config_path, new_text)
-        # Ensure profile directory exists for sdd.
-        if profile == "sdd":
-            sdd_dir = archledger_dir / "profiles" / "sdd"
-            ensure_dir(sdd_dir)
-
-    return ProfileMigrationResult(
-        profile=profile,
-        write=write,
-        changed=changed,
-        steps=tuple(steps),
-    )
-
-
-# Boolean policy fields on SddProfileConfig that may be overridden via
-# `sdd policy set` / `sdd init --strict-defaults`.
-SDD_POLICY_FIELDS: tuple[str, ...] = (
-    "require_acceptance_criteria",
-    "require_implementation_refs",
-    "require_test_refs",
-    "require_bdd_gwt_for_behavior_records",
-    "require_bdd_automation_for_accepted_records",
-)
-
-
-def ensure_sdd_profile_enabled(
-    config_path: Path,
-    archledger_dir: Path,
-    *,
-    write: bool = True,
-) -> bool:
-    """Ensure the SDD profile is enabled and [profiles.sdd] is present.
-
-    Returns True if a change was made (and written).
-    """
-    result = enable_profile(config_path, archledger_dir, "sdd", write=write)
-    return result.changed and write
-
-
-def set_sdd_profile_policy(
-    config_path: Path,
-    archledger_dir: Path,
-    overrides: dict[str, bool],
-    *,
-    write: bool = True,
-) -> tuple[dict[str, bool], dict[str, bool]]:
-    """Update [profiles.sdd] policy flags and return (before, after).
-
-    Only fields listed in :data:`SDD_POLICY_FIELDS` are accepted. Enables
-    the SDD profile first if it is not already enabled.
-    """
-    invalid = set(overrides) - set(SDD_POLICY_FIELDS)
-    if invalid:
-        raise ArchledgerError(
-            "Unknown SDD policy field(s): " + ", ".join(sorted(invalid))
-        )
-    config = load_project_config(config_path)
-    before = {f: bool(getattr(config.profiles.sdd, f)) for f in SDD_POLICY_FIELDS}
-    # Enable sdd if needed so [profiles.sdd] is actually written.
-    if "sdd" not in config.profiles.profiles.enabled:
-        ensure_sdd_profile_enabled(config_path, archledger_dir, write=write)
-        config = load_project_config(config_path)
-    new_sdd = dataclasses.replace(config.profiles.sdd, **overrides)
     new_config = dataclasses.replace(
         config,
         config_version=8,
         profiles_present=True,
-        profiles=dataclasses.replace(config.profiles, sdd=new_sdd),
+        profiles=dataclasses.replace(
+            config.profiles,
+            profiles=dataclasses.replace(
+                config.profiles.profiles,
+                enabled=tuple(
+                    dict.fromkeys((*config.profiles.profiles.enabled, profile))
+                ),
+            ),
+        ),
     )
-    after = {f: bool(getattr(new_sdd, f)) for f in SDD_POLICY_FIELDS}
     if write:
         write_text_atomic(config_path, render_project_config(new_config))
-    return before, after
+    return ProfileMigrationResult(
+        profile=profile,
+        write=write,
+        changed=True,
+        steps=(
+            ProfileMigrationStep(
+                action="enable_profile",
+                message=f"Add '{profile}' to profiles.enabled.",
+            ),
+        ),
+    )
 
 
 def disable_profile(
@@ -389,17 +270,10 @@ def disable_profile(
     write: bool = True,
 ) -> ProfileMigrationResult:
     """Disable a profile in the project config."""
-    if profile == "bdd":
-        raise ArchledgerError(
-            "BDD is not a standalone profile, so there is nothing to disable."
-        )
-    if profile not in VALID_PROFILES:
-        raise ArchledgerError(
-            f"profile must be one of: {', '.join(sorted(VALID_PROFILES))}."
-        )
-    raw = _read_toml(config_path)
-    profiles_table = raw.get("profiles")
-    if not isinstance(profiles_table, dict):
+    _check_profile_supported(profile)
+    config = load_project_config(config_path)
+    enabled = list(config.profiles.profiles.enabled)
+    if profile not in enabled:
         return ProfileMigrationResult(
             profile=profile,
             write=write,
@@ -407,48 +281,16 @@ def disable_profile(
             steps=(
                 ProfileMigrationStep(
                     action="noop",
-                    message="No [profiles] table present; nothing to disable.",
+                    message=f"Profile '{profile}' is not enabled.",
                 ),
             ),
         )
-    enabled_raw = profiles_table.get("enabled", ["arc42"])
-    default_raw = profiles_table.get("default", "arc42")
-    if not isinstance(enabled_raw, list):
-        raise ConfigError("profiles.enabled must be a list of strings.")
-    enabled = [str(item) for item in enabled_raw]
-    default = str(default_raw)
-
-    steps: list[ProfileMigrationStep] = []
-    changed = False
-    if profile in enabled:
-        if len(enabled) == 1:
-            raise ArchledgerError("Cannot disable the last enabled profile.")
-        enabled = [name for name in enabled if name != profile]
-        changed = True
-        steps.append(
-            ProfileMigrationStep(
-                action="disable_profile",
-                message=f"Remove '{profile}' from profiles.enabled.",
-            )
-        )
-    if default == profile and enabled:
+    if len(enabled) == 1:
+        raise ArchledgerError("Cannot disable the last enabled profile.")
+    enabled = [name for name in enabled if name != profile]
+    default = config.profiles.profiles.default
+    if default == profile:
         default = enabled[0]
-        changed = True
-        steps.append(
-            ProfileMigrationStep(
-                action="reset_default",
-                message=(f"profiles.default was '{profile}'; reset to '{default}'."),
-            )
-        )
-
-    if not write or not changed:
-        return ProfileMigrationResult(
-            profile=profile,
-            write=write,
-            changed=changed,
-            steps=tuple(steps),
-        )
-    config = load_project_config(config_path)
     new_config = dataclasses.replace(
         config,
         config_version=8,
@@ -457,18 +299,23 @@ def disable_profile(
             config.profiles,
             profiles=dataclasses.replace(
                 config.profiles.profiles,
-                enabled=tuple(dict.fromkeys(enabled)),
+                enabled=tuple(enabled),
                 default=default,
             ),
         ),
     )
-    new_text = render_project_config(new_config)
-    write_text_atomic(config_path, new_text)
+    if write:
+        write_text_atomic(config_path, render_project_config(new_config))
     return ProfileMigrationResult(
         profile=profile,
         write=write,
-        changed=changed,
-        steps=tuple(steps),
+        changed=True,
+        steps=(
+            ProfileMigrationStep(
+                action="disable_profile",
+                message=f"Remove '{profile}' from profiles.enabled.",
+            ),
+        ),
     )
 
 
@@ -478,32 +325,16 @@ def list_profiles(
 ) -> dict[str, object]:
     """Return a summary of enabled/default profiles for a project."""
     del archledger_dir
-    raw = _read_toml(config_path)
-    profiles_table = raw.get("profiles")
-    if isinstance(profiles_table, dict):
-        enabled_raw = profiles_table.get("enabled", ["arc42"])
-        default_raw = profiles_table.get("default", "arc42")
-        enabled = (
-            [str(item) for item in enabled_raw]
-            if isinstance(enabled_raw, list)
-            else ["arc42"]
-        )
-        default = str(default_raw) if isinstance(default_raw, str) else "arc42"
-    else:
-        enabled = ["arc42"]
-        default = "arc42"
-        profiles_table = {}
+    config = load_project_config(config_path)
     known = sorted(VALID_PROFILES)
+    enabled = list(config.profiles.profiles.enabled)
     return {
         "known": known,
         "enabled": enabled,
-        "default": default,
+        "default": config.profiles.profiles.default,
         "available": [name for name in known if name not in enabled],
         "profiles": {
-            "arc42": isinstance(raw.get("profiles"), dict)
-            and "arc42" in (profiles_table or {}),
-            "sdd": isinstance(raw.get("profiles"), dict)
-            and "sdd" in (profiles_table or {}),
+            "arc42": True,
         },
     }
 
@@ -511,11 +342,8 @@ def list_profiles(
 __all__ = [
     "ProfileMigrationResult",
     "ProfileMigrationStep",
-    "SDD_POLICY_FIELDS",
     "disable_profile",
     "enable_profile",
-    "ensure_sdd_profile_enabled",
     "list_profiles",
     "migrate_arc42_profile",
-    "set_sdd_profile_policy",
 ]

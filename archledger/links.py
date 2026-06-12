@@ -1,14 +1,11 @@
-"""Generic record link normalization and validation.
-
-Links describe directed relationships between records (e.g. satisfies,
-depends_on, decided_by, mitigates). Target-existence validation is
-handled by repository.check / sdd.check after all records are loaded,
-not here.
-"""
+"""Generic record link normalization and validation."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
+from urllib.parse import urlparse
+
+from archledger.source_refs import RelativePosixPathError, validate_relative_posix_path
 
 VALID_LINK_RELS: frozenset[str] = frozenset(
     {
@@ -26,6 +23,7 @@ VALID_LINK_RELS: frozenset[str] = frozenset(
         "applies_to",
     }
 )
+VALID_LINK_TARGET_KINDS: frozenset[str] = frozenset({"record", "path", "uri", "opaque"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -33,18 +31,14 @@ class RecordLink:
     rel: str
     target: str
     reason: str = ""
+    target_kind: str = "record"
 
 
 def normalize_links(
     record_id: str,
     value: object,
 ) -> tuple[tuple[RecordLink, ...], list[str]]:
-    """Normalize the ``links`` front-matter value for *record_id*.
-
-    Returns ``(links, warnings)``.  Only shape/rel validation is done here;
-    target-existence checks are handled by the caller after all records are
-    loaded.
-    """
+    """Normalize the ``links`` front-matter value for *record_id*."""
     if value is None:
         return (), []
     if not isinstance(value, list):
@@ -75,6 +69,7 @@ def _normalize_link_entry(
     raw_rel = entry.get("rel")
     raw_target = entry.get("target")
     raw_reason = entry.get("reason", "")
+    raw_target_kind = entry.get("target_kind", "record")
 
     if not isinstance(raw_rel, str) or not raw_rel.strip():
         return (
@@ -89,6 +84,24 @@ def _normalize_link_entry(
                 f"Record {record_id} links entry {index} rel {rel!r} "
                 "is not an allowed relationship. "
                 f"Allowed: {', '.join(sorted(VALID_LINK_RELS))}"
+            ],
+        )
+
+    if not isinstance(raw_target_kind, str) or not raw_target_kind.strip():
+        return (
+            None,
+            [
+                f"Record {record_id} links entry {index} target_kind must be a "
+                "non-empty string."
+            ],
+        )
+    target_kind = raw_target_kind.strip()
+    if target_kind not in VALID_LINK_TARGET_KINDS:
+        return (
+            None,
+            [
+                f"Record {record_id} links entry {index} target_kind {target_kind!r} "
+                f"is not supported. Allowed: {', '.join(sorted(VALID_LINK_TARGET_KINDS))}"
             ],
         )
 
@@ -108,11 +121,56 @@ def _normalize_link_entry(
             [f"Record {record_id} links entry {index} reason must be a string."],
         )
 
-    return RecordLink(rel=rel, target=target, reason=raw_reason.strip()), []
+    target_warning = _validate_target(record_id, index, target_kind, target)
+    if target_warning:
+        return None, [target_warning]
+    return (
+        RecordLink(
+            rel=rel,
+            target=target,
+            reason=raw_reason.strip(),
+            target_kind=target_kind,
+        ),
+        [],
+    )
+
+
+def _validate_target(
+    record_id: str,
+    index: int,
+    target_kind: str,
+    target: str,
+) -> str | None:
+    if target_kind == "record":
+        return None
+    if target_kind == "path":
+        try:
+            validate_relative_posix_path(
+                target,
+                field_name=f"Record {record_id} links entry {index} target",
+            )
+        except RelativePosixPathError as exc:
+            return str(exc)
+        return None
+    if target_kind == "uri":
+        parsed = urlparse(target)
+        if not parsed.scheme:
+            return (
+                f"Record {record_id} links entry {index} uri target must include "
+                "a URI scheme."
+            )
+        return None
+    if target_kind == "opaque":
+        return None
+    return (
+        f"Record {record_id} links entry {index} target_kind {target_kind!r} "
+        "is not supported."
+    )
 
 
 __all__ = [
     "VALID_LINK_RELS",
+    "VALID_LINK_TARGET_KINDS",
     "RecordLink",
     "normalize_links",
 ]

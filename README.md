@@ -44,100 +44,14 @@ Editable development install:
 python -m pip install -e ".[dev]"
 ```
 
-## Profiles, SDD, and BDD
+## Ledger boundary
 
-Archledger has two project profiles:
+Archledger is an isolated architecture ledger. It stores architecture records,
+record links, and source references. It does not import/export behavior specs,
+enforce SDD policy, run BDD tools, or coordinate other ledgers.
 
-- `arc42`: documentation assembly profile for arc42 architecture sections.
-- `sdd`: contract profile for specification, traceability, and validation policy.
-
-BDD is not a standalone profile. BDD is behavior metadata on existing records and
-an import/export bridge for Gherkin `.feature` files. Enable SDD when you want
-archledger to enforce BDD metadata quality.
-
-```bash
-archledger init --profile arc42
-archledger profile enable sdd
-
-archledger bdd import specs/behavior/features/task-management/plan-gates.feature \
-  --kind runtime-scenario \
-  --status proposed
-
-archledger sdd check --strict
-```
-
-Imported BDD records carry a `bdd` front-matter block with feature, rule,
-scenario, tags, Given/When/Then steps, and optional automation metadata. Imported
-records default to `automation.status=linked`. Keep feature files in `source_refs`
-with role `documents` and link plain pytest validation through `test_refs`.
-
-Supported Gherkin is intentionally small: `Feature`, `Rule`, `Scenario`/`Example`,
-tags, and `Given`/`When`/`Then`/`And`/`But`. Unsupported constructs such as
-`Background`, `Scenario Outline`, `Examples`, data tables, and doc strings fail
-fast with structured validation and sync findings.
-
-Archledger does not run Cucumber, behave, pytest, or any BDD runner. Commands
-and test refs are traceability only.
-
-### SDD lifecycle commands
-
-```bash
-# Initialize SDD with strict defaults and seed minimal contract records
-archledger sdd init --strict-defaults --seed minimal
-
-# Show and set policy without manual TOML editing
-archledger sdd policy show
-archledger sdd policy set --require-bdd-automation
-# Under --require-bdd-automation, accepted behavior records must reach
-# automation.status=automated (or not_applicable); linked alone is not enough.
-
-
-# Explain rule codes and manage waivers
-archledger sdd explain SDD-BDD-AUTOMATION
-archledger sdd waive add al_requirement_0001 --rule SDD-REQ-AC --reason "Legacy."
-
-# Detailed coverage with gaps
-archledger sdd coverage --include-bdd
-archledger sdd coverage --format markdown
-
-# Scoped checks
-archledger sdd check --record al_requirement_0001
-archledger sdd check --kind requirement
-```
-
-### BDD lifecycle commands
-
-```bash
-# Validate without importing/exporting
-archledger bdd validate al_runtime_0042
-archledger bdd validate --feature-file specs/behavior/features/task-management/plan-gates.feature
-
-# List, status, set, link
-archledger bdd list --automation pending
-archledger bdd status
-archledger bdd set al_runtime_0042 --feature "F" --scenario "S" --given g --when w --then t
-archledger bdd link al_runtime_0042 \
-  --feature-file specs/behavior/features/task-management/plan-gates.feature \
-  --scenario "@bdd-implementation-blocked-before-plan-acceptance" \
-  --test tests/test_task_management_plan_gates.py::test_agent_cannot_start_implementation_before_plan_approval \
-  --status automated
-
-# Dry-run import and batch export
-archledger bdd import specs/behavior/features/task-management/plan-gates.feature --dry-run
-archledger bdd export al_runtime_0123 \
-  --out specs/behavior/features/task-management/plan-gates.derived.feature
-archledger bdd export --all --out-dir specs/behavior/features/derived
-```
-
-Archledger records are the canonical source for architecture/specification
-records. SpecWeave-owned files under `specs/behavior/features` may be the
-canonical behavior specifications. Archledger-exported `.feature` files are
-derived unless a project explicitly changes ownership. `bdd sync --check`
-reports drift between linked behavior specs and Archledger metadata.
-
-`bdd set` and `bdd link` validate automation status, feature-file paths, and
-pytest test refs before writing front matter, so rejected mutations do not leave
-invalid BDD metadata behind.
+Use generic `links` or `source_refs` to point to external artifacts. External
+resolution is owned by an organizer such as Ledgerdeck.
 
 Safe mutation commands update front matter and re-run repository validation:
 
@@ -591,14 +505,8 @@ The repository-provided coding-agent protocol lives at `skills/archledger/SKILL.
 
 `archledger` reads local project files and only invokes external converters when you request output formats that need them. It does not sync or send project content anywhere by itself.
 
-### Three-tool traceability boundary
+### Traceability boundary
 
-Archledger is the durable architecture/specification ledger. It stores external
-Taskledger IDs, SpecWeave feature references, pytest references, and evidence
-references as data only. It does not execute Taskledger, SpecWeave, pytest,
-behave, or Cucumber commands.
-
-Taskledger owns active task lifecycle state. SpecWeave owns canonical Gherkin
-behavior specs and normalized behavior evidence. Use `source_refs` for
-SpecWeave feature files under `specs/behavior/features` and `test_refs` for
-plain pytest tests that validate an Archledger record.
+Archledger stores architecture data and generic references only. If a record
+links to an external artifact, Archledger preserves the reference without
+interpreting external domain semantics.

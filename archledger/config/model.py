@@ -15,8 +15,8 @@ from archledger.model import CURRENT_SOURCE_SCHEMA_VERSION
 
 # --- Public allowed-value constants ---
 # Shared by parse.py, render.py, and cli.py.
-VALID_PROFILES: frozenset[str] = frozenset({"arc42", "sdd"})
-VALID_PROFILE_KINDS: frozenset[str] = frozenset({"documentation", "contract"})
+VALID_PROFILES: frozenset[str] = frozenset({"arc42"})
+VALID_PROFILE_KINDS: frozenset[str] = frozenset({"documentation"})
 VALID_BUILD_CONVERTERS: frozenset[str] = frozenset({"auto", "pandoc", "asciidoctor"})
 VALID_TRACKING_SCANNERS: frozenset[str] = frozenset({"auto", "git", "filesystem"})
 VALID_TRACKING_HASH_ALGORITHMS: frozenset[str] = frozenset({"sha256"})
@@ -157,24 +157,11 @@ class Arc42ProfileConfig:
 
 
 @dataclass(frozen=True, slots=True)
-class SddProfileConfig:
-    """SDD contract profile settings."""
-
-    kind: str = "contract"
-    require_acceptance_criteria: bool = True
-    require_implementation_refs: bool = True
-    require_test_refs: bool = True
-    require_bdd_gwt_for_behavior_records: bool = True
-    require_bdd_automation_for_accepted_records: bool = False
-
-
-@dataclass(frozen=True, slots=True)
 class ProjectProfilesConfig:
     """Aggregated profile configuration for a project."""
 
     profiles: ProfilesConfig = ProfilesConfig()
     arc42: Arc42ProfileConfig = Arc42ProfileConfig()
-    sdd: SddProfileConfig = SddProfileConfig()
 
 
 @dataclass(frozen=True, slots=True)

@@ -61,7 +61,7 @@ def replace_record_body(
     """Replace the entire record body with *text*.
 
     Unlike :func:`append_record_body`, this removes the template placeholder
-    body wholesale so accepted records do not trigger ``SDD-PLACEHOLDER``.
+    body wholesale so normal content checks do not report placeholder text.
     """
     metadata, _body = read_front_matter_document(path)
     _assert_record_id(metadata, record_id)
@@ -208,91 +208,6 @@ def add_acceptance_criterion(
     return metadata, body
 
 
-def _read_sdd_waivers(metadata: dict[str, object]) -> list[dict[str, object]]:
-    raw_sdd = metadata.get("sdd")
-    if not isinstance(raw_sdd, dict):
-        return []
-    raw_waivers = raw_sdd.get("waivers", [])
-    if not isinstance(raw_waivers, list):
-        return []
-    return [w for w in raw_waivers if isinstance(w, dict)]
-
-
-def add_sdd_waiver(
-    path: Path,
-    record_id: str,
-    rule: str,
-    reason: str,
-    *,
-    workspace_root: Path,
-) -> tuple[dict[str, object], list[dict[str, object]]]:
-    """Append an ``sdd.waivers`` entry (deduped by rule).
-
-    Requires a non-empty *reason* and a known *rule* code (validated by the
-    caller against the rule registry).
-    """
-    if not reason or not reason.strip():
-        raise ValidationError("SDD waiver requires a non-empty reason.")
-    metadata, body = read_front_matter_document(path)
-    _assert_record_id(metadata, record_id)
-    existing = _read_sdd_waivers(metadata)
-    if any(w.get("rule") == rule for w in existing):
-        # Already waived; refresh the reason.
-        existing = [
-            {**w, "rule": rule, "reason": reason.strip()}
-            if w.get("rule") == rule
-            else w
-            for w in existing
-        ]
-    else:
-        existing.append({"rule": rule, "reason": reason.strip()})
-    raw_sdd = metadata.get("sdd")
-    if not isinstance(raw_sdd, dict):
-        raw_sdd = {}
-    raw_sdd = {**raw_sdd, "waivers": existing}
-    now = utc_now_iso()
-    metadata = {**metadata, "sdd": raw_sdd, "updated_at": now}
-    write_front_matter_document(path, metadata, body)
-    return metadata, existing
-
-
-def list_sdd_waivers(
-    path: Path,
-    record_id: str,
-    *,
-    workspace_root: Path,
-) -> list[dict[str, object]]:
-    """Return the ``sdd.waivers`` entries for a record."""
-    metadata, _body = read_front_matter_document(path)
-    _assert_record_id(metadata, record_id)
-    return _read_sdd_waivers(metadata)
-
-
-def remove_sdd_waiver(
-    path: Path,
-    record_id: str,
-    rule: str,
-    *,
-    workspace_root: Path,
-) -> tuple[dict[str, object], list[dict[str, object]]]:
-    """Remove the ``sdd.waivers`` entry matching *rule* (if present)."""
-    metadata, body = read_front_matter_document(path)
-    _assert_record_id(metadata, record_id)
-    existing = _read_sdd_waivers(metadata)
-    remaining = [w for w in existing if w.get("rule") != rule]
-    if len(remaining) == len(existing):
-        return metadata, existing  # nothing to remove
-    raw_sdd = metadata.get("sdd")
-    if isinstance(raw_sdd, dict):
-        raw_sdd = {**raw_sdd, "waivers": remaining}
-    else:
-        raw_sdd = {"waivers": remaining}
-    now = utc_now_iso()
-    metadata = {**metadata, "sdd": raw_sdd, "updated_at": now}
-    write_front_matter_document(path, metadata, body)
-    return metadata, remaining
-
-
 def _assert_record_id(metadata: dict[str, object], expected_id: str) -> None:
     actual = metadata.get("id")
     if actual != expected_id:
@@ -306,10 +221,7 @@ __all__ = [
     "add_link",
     "add_source_ref",
     "add_test_ref",
-    "add_sdd_waiver",
     "append_record_body",
-    "list_sdd_waivers",
-    "remove_sdd_waiver",
     "replace_record_body",
     "set_record_meta",
     "set_record_status",

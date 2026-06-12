@@ -28,7 +28,6 @@ def test_combo_trace_empty_arrays_for_missing_fields() -> None:
     assert payload["subject"] == {"type": "archledger_record", "id": "al_runtime_0123"}
     assert payload["task_ids"] == []
     assert payload["ac_ids"] == []
-    assert payload["bdd_ids"] == []
     assert payload["source_refs"] == []
     assert payload["test_refs"] == []
     assert payload["evidence_refs"] == []
@@ -45,7 +44,6 @@ def test_combo_trace_extracts_refs_from_trace_payload() -> None:
                 "metadata": {
                     "task_id": "task-0037",
                     "acceptance_criteria": ["ac-0001"],
-                    "bdd": {"id": "bdd-0002", "scenario_id": "bdd-0003"},
                     "related": ["al_requirement_0004"],
                 },
             },
@@ -58,7 +56,6 @@ def test_combo_trace_extracts_refs_from_trace_payload() -> None:
 
     assert payload["task_ids"] == ["task-0037"]
     assert payload["ac_ids"] == ["ac-0001"]
-    assert payload["bdd_ids"] == ["bdd-0002", "bdd-0003"]
     assert payload["archledger_refs"] == ["al_requirement_0004"]
     assert payload["source_refs"] == [
         {"path": "specs/behavior/features/a/b.feature", "role": "documents"}
@@ -67,7 +64,7 @@ def test_combo_trace_extracts_refs_from_trace_payload() -> None:
 
 
 def test_trace_cli_combo_json_preserves_default_human_output(tmp_path: Path) -> None:
-    init = runner.invoke(app, ["--root", str(tmp_path), "init", "--profile", "sdd"])
+    init = runner.invoke(app, ["--root", str(tmp_path), "init", "--profile", "arc42"])
     assert init.exit_code == 0, init.stdout
     created = runner.invoke(
         app,

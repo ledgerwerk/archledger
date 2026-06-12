@@ -131,8 +131,7 @@ def _normalize_source_ref_entry(
         )
     role = raw_role.strip()
     if role and role not in VALID_SOURCE_REF_ROLES:
-        # Invalid role is a warning (normal check) or error (sdd check).
-        # Return the role as-is for now; sdd.py will validate.
+        # Invalid role remains a warning to preserve unknown metadata.
         pass
     return _build_source_ref(
         record_id,

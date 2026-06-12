@@ -1230,3 +1230,16 @@ def test_doctor_repair_refuses_after_manual_segment_mode_change(tmp_path: Path) 
     assert not list(
         (tmp_path / ".archledger" / "archive" / "tombstones").glob("al_archive_*.md")
     )
+
+
+def test_check_tolerates_legacy_profiles_sdd_table(tmp_path: Path) -> None:
+    init_project(tmp_path)
+    config_path = tmp_path / "archledger.toml"
+    config_path.write_text(
+        config_path.read_text(encoding="utf-8")
+        + '\n[profiles.sdd]\nkind = "contract"\nrequire_test_refs = true\n',
+        encoding="utf-8",
+    )
+
+    checked = runner.invoke(app, ["--root", str(tmp_path), "check"])
+    assert checked.exit_code == 0, checked.stdout

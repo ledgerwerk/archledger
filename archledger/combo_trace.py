@@ -4,7 +4,6 @@ import re
 
 _TASK_ID_RE = re.compile(r"\btask-\d{4,}\b")
 _AC_ID_RE = re.compile(r"\bac-\d{4,}\b")
-_BDD_ID_RE = re.compile(r"\bbdd-\d{4,}\b")
 _ARCHLEDGER_ID_RE = re.compile(r"\bal_[A-Za-z0-9_]+\b")
 
 
@@ -21,7 +20,6 @@ def build_combo_trace(archledger_trace: dict[str, object]) -> dict[str, object]:
         },
         "task_ids": [],
         "ac_ids": [],
-        "bdd_ids": [],
         "archledger_refs": [],
         "source_refs": _list(archledger_trace.get("source_refs")),
         "test_refs": _list(archledger_trace.get("test_refs")),
@@ -36,7 +34,6 @@ def build_combo_trace(archledger_trace: dict[str, object]) -> dict[str, object]:
     searchable = [archledger_trace]
     payload["task_ids"] = _sorted_matches(searchable, _TASK_ID_RE)
     payload["ac_ids"] = _sorted_matches(searchable, _AC_ID_RE)
-    payload["bdd_ids"] = _sorted_matches(searchable, _BDD_ID_RE)
     payload["archledger_refs"] = _archledger_refs(archledger_trace, subject_id)
     return payload
 

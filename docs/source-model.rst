@@ -41,54 +41,19 @@ Generated build outputs are derived artifacts and should not be edited as
 source. New projects default to ``build/`` under the workspace root, and
 ``[build].default_output_dir`` may place outputs elsewhere.
 
-BDD / Gherkin behavior metadata
----------------------------------
+External references
+-------------------
 
-BDD (Behavior-Driven Development) is implemented as **metadata on existing records**,
-primarily ``runtime_scenario`` and ``quality_scenario``. Archledger records remain
-the canonical architecture/specification records. SpecWeave-owned files under
-``specs/behavior/features`` may be the canonical behavior specifications.
-Archledger-imported or exported ``.feature`` files are interop artifacts unless
-ownership is explicitly changed.
+Use generic ``links`` and ``source_refs`` for artifacts outside the architecture
+ledger. Archledger preserves these references as data and does not interpret
+external domain semantics.
 
-Records carry a ``bdd`` front-matter block:
+Example:
 
 .. code-block:: yaml
 
-   bdd:
-     feature: "Task lifecycle gates"
-     rule: "Implementation requires an accepted plan"
-     scenario: "Agent tries to implement before approval"
-     tags: [lifecycle, approval]
-     given:
-       - a task has a proposed plan
-     when:
-       - the agent starts implementation
-     then:
-       - implementation is blocked
-     automation:
-       status: pending
-       feature_file: specs/behavior/features/task-management/plan-gates.feature
-       scenario: "@bdd-implementation-blocked-before-plan-acceptance"
-   source_refs:
-     - path: specs/behavior/features/task-management/plan-gates.feature
-       role: documents
-       reason: Canonical behavior specification.
-   test_refs:
-     - path: tests/test_task_management_plan_gates.py
-       nodeid: tests/test_task_management_plan_gates.py::test_agent_cannot_start_implementation_before_plan_approval
-       role: validates
-       reason: Plain pytest enforcement.
-
-The ``automation.command`` field is **never executed** by archledger.
-``automation.status`` tracks whether automation has been wired
-(``pending``, ``linked``, ``automated``, ``not_applicable``). Under the default
-policy, ``linked`` is acceptable traceability; under ``--strict`` it warns when
-no executable ``test_refs`` are linked; under
-``require_bdd_automation_for_accepted_records`` it becomes an error until the
-record reaches ``automated`` or ``not_applicable``.
-
-Imported records include a ``source_refs`` entry with role ``documents`` linking to the originating ``.feature`` file. Use ``source_refs`` for behavior specs and ``test_refs`` for executable pytest validation so drift detection keeps documentation and enforcement separate.
-
-See :doc:`bdd-gherkin` and ``archledger bdd import`` / ``archledger bdd export``
-in :doc:`cli`.
+   links:
+     - rel: documents
+       target_kind: path
+       target: specs/behavior/features/task-management/plan-gates.feature
+       reason: External artifact documents the runtime flow.

@@ -22,7 +22,6 @@ from archledger.config.model import (
     ProfilesConfig,
     ProjectConfig,
     ProjectProfilesConfig,
-    SddProfileConfig,
     normalize_project_name,
     validate_uuid,
 )
@@ -90,21 +89,13 @@ _ALLOWED_IDS_KEYS = {
     "segment_map",
 }
 _ALLOWED_ARC42_KEYS = {"template_version", "language", "title", "include_help"}
-_ALLOWED_PROFILES_KEYS = {"enabled", "default", "arc42", "sdd"}
+_ALLOWED_PROFILES_KEYS = {"enabled", "default", "arc42"}
 _ALLOWED_PROFILES_ARC42_KEYS = {
     "kind",
     "template",
     "sections_dir",
     "build_template",
     "include_help",
-}
-_ALLOWED_PROFILES_SDD_KEYS = {
-    "kind",
-    "require_acceptance_criteria",
-    "require_implementation_refs",
-    "require_test_refs",
-    "require_bdd_gwt_for_behavior_records",
-    "require_bdd_automation_for_accepted_records",
 }
 _ALLOWED_SKILL_KEYS = {"installed", "path"}
 _ALLOWED_TRACKING_KEYS = {
@@ -262,12 +253,7 @@ def load_project_config(path: Path) -> ProjectConfig:
         _ALLOWED_DIAGRAM_KEYS,
         "diagrams",
     )
-    profiles_top_data = _validate_subtable(
-        path,
-        raw_data.get("profiles"),
-        _ALLOWED_PROFILES_KEYS,
-        "profiles",
-    )
+    profiles_top_data = _validate_profiles_table(path, raw_data.get("profiles"))
 
     config_version = raw_data.get("config_version")
     if isinstance(config_version, bool) or config_version not in {
@@ -473,6 +459,26 @@ def _validate_subtable(
         joined = ", ".join(unknown_keys)
         raise ConfigError(f"Unknown keys in {table_name}: {joined}")
     return dict(value)
+
+
+def _validate_profiles_table(path: Path, value: object) -> dict[str, object]:
+    if value is None:
+        return {}
+    if not isinstance(value, dict):
+        raise ConfigError(f"profiles in {path.name} must be a TOML table.")
+    allowed_keys = set(_ALLOWED_PROFILES_KEYS) | {"sdd"}
+    unknown_keys = sorted(set(value) - allowed_keys)
+    if unknown_keys:
+        joined = ", ".join(unknown_keys)
+        raise ConfigError(f"Unknown keys in profiles: {joined}")
+    if "bdd" in value:
+        raise ConfigError(
+            "Profile 'bdd' is not supported by archledger. "
+            "Use ledgerdeck or the behavior ledger/tool."
+        )
+    cleaned = dict(value)
+    cleaned.pop("sdd", None)
+    return cleaned
 
 
 def _parse_source_config(
@@ -689,7 +695,6 @@ def _parse_profiles_config(
         return ProjectProfilesConfig(
             profiles=ProfilesConfig(enabled=("arc42",), default="arc42"),
             arc42=Arc42ProfileConfig(sections_dir=legacy_sections_dir),
-            sdd=SddProfileConfig(),
         )
 
     enabled_raw = profiles_data.get("enabled", ["arc42"])
@@ -701,11 +706,19 @@ def _parse_profiles_config(
             raise ConfigError("profiles.enabled must contain only non-empty strings.")
         enabled_list.append(item.strip())
     enabled = tuple(dict.fromkeys(enabled_list))
-    unknown_enabled = sorted(set(enabled) - VALID_PROFILES)
+    unknown_enabled = sorted(set(enabled) - (VALID_PROFILES | {"sdd"}))
     if unknown_enabled:
         raise ConfigError(
             "profiles.enabled contains unknown profiles: " + ", ".join(unknown_enabled)
         )
+    if "bdd" in enabled:
+        raise ConfigError(
+            "Profile 'bdd' is not supported by archledger. "
+            "Use ledgerdeck or the behavior ledger/tool."
+        )
+    enabled = tuple(profile for profile in enabled if profile != "sdd")
+    if not enabled:
+        enabled = ("arc42",)
     if not enabled:
         raise ConfigError("profiles.enabled must contain at least one profile.")
 
@@ -713,6 +726,13 @@ def _parse_profiles_config(
     if not isinstance(default_raw, str) or not default_raw.strip():
         raise ConfigError("profiles.default must be a non-empty string.")
     default_profile = default_raw.strip()
+    if default_profile == "sdd":
+        default_profile = "arc42"
+    if default_profile == "bdd":
+        raise ConfigError(
+            "Profile 'bdd' is not supported by archledger. "
+            "Use ledgerdeck or the behavior ledger/tool."
+        )
     if default_profile not in enabled:
         raise ConfigError(
             f"profiles.default ({default_profile}) must be listed in profiles.enabled."
@@ -721,10 +741,8 @@ def _parse_profiles_config(
     arc42_sub = _extract_subtable(
         raw_data, "profiles.arc42", _ALLOWED_PROFILES_ARC42_KEYS
     )
-    sdd_sub = _extract_subtable(raw_data, "profiles.sdd", _ALLOWED_PROFILES_SDD_KEYS)
 
     arc42_cfg = _parse_arc42_profile(arc42_sub)
-    sdd_cfg = _parse_sdd_profile(sdd_sub)
 
     # Validate sections_dir stays inside the archledger directory.
     _validate_profile_sections_dir(arc42_cfg.sections_dir, archledger_dir)
@@ -732,7 +750,6 @@ def _parse_profiles_config(
     return ProjectProfilesConfig(
         profiles=ProfilesConfig(enabled=enabled, default=default_profile),
         arc42=arc42_cfg,
-        sdd=sdd_cfg,
     )
 
 
@@ -780,39 +797,6 @@ def _parse_arc42_profile(data: dict[str, object]) -> Arc42ProfileConfig:
         sections_dir=sections_dir,
         build_template=build_template,
         include_help=include_help,
-    )
-
-
-def _parse_sdd_profile(data: dict[str, object]) -> SddProfileConfig:
-    kind = _require_choice(
-        data.get("kind", "contract"), "profiles.sdd.kind", VALID_PROFILE_KINDS
-    )
-    require_acceptance_criteria = _require_bool(
-        data.get("require_acceptance_criteria", True),
-        "profiles.sdd.require_acceptance_criteria",
-    )
-    require_implementation_refs = _require_bool(
-        data.get("require_implementation_refs", True),
-        "profiles.sdd.require_implementation_refs",
-    )
-    require_test_refs = _require_bool(
-        data.get("require_test_refs", True), "profiles.sdd.require_test_refs"
-    )
-    require_bdd_gwt_for_behavior_records = _require_bool(
-        data.get("require_bdd_gwt_for_behavior_records", True),
-        "profiles.sdd.require_bdd_gwt_for_behavior_records",
-    )
-    require_bdd_automation_for_accepted_records = _require_bool(
-        data.get("require_bdd_automation_for_accepted_records", False),
-        "profiles.sdd.require_bdd_automation_for_accepted_records",
-    )
-    return SddProfileConfig(
-        kind=kind,
-        require_acceptance_criteria=require_acceptance_criteria,
-        require_implementation_refs=require_implementation_refs,
-        require_test_refs=require_test_refs,
-        require_bdd_gwt_for_behavior_records=require_bdd_gwt_for_behavior_records,
-        require_bdd_automation_for_accepted_records=require_bdd_automation_for_accepted_records,
     )
 
 
