@@ -725,13 +725,12 @@ class ArchitectureRepository:
                             )
                         )
                     continue
-                tombstone_path = self._write_archive_tombstone(number)
+                tombstone_path, tombstone_id = self._write_archive_tombstone(number)
                 repairs.append(
                     DoctorRepair(
                         kind="created_tombstone",
                         message=(
-                            f"Created archive tombstone"
-                            f" {self._display_missing_id(number)}"
+                            f"Created archive tombstone {tombstone_id}"
                         ),
                         path=tombstone_path,
                     )
@@ -825,7 +824,7 @@ class ArchitectureRepository:
             result.highest_seen,
         )
 
-    def _write_archive_tombstone(self, number: int) -> Path:
+    def _write_archive_tombstone(self, number: int) -> tuple[Path, str]:
         identity_kind = self.config.id_kind_map.get(
             "archive_tombstone",
             self.config.id_default_kind,
@@ -837,7 +836,7 @@ class ArchitectureRepository:
             / f"{record_id}{self.config.record_extension}"
         )
         if path.exists():
-            return path
+            return path, record_id
         now = utc_now_iso()
         metadata = {
             "schema_version": self.config.source_schema_version,
@@ -864,7 +863,7 @@ class ArchitectureRepository:
         )
         ensure_dir(path.parent)
         write_front_matter_document(path, metadata, body)
-        return path
+        return path, record_id
 
     def _id_segment_for_kind(self, kind: str) -> str:
         return normalize_resource_kind(
