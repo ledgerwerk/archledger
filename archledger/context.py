@@ -16,13 +16,46 @@ from archledger.repository import ArchitectureRepository
 from archledger.scopes import scope_matches_path
 from archledger.source_tracking import ChangeSet
 
-
 # ---------------------------------------------------------------------------
 # Topic query helpers
 # ---------------------------------------------------------------------------
 
 _TOKEN_RE = re.compile(r"[A-Za-z0-9_./:-]+")
-_STOPWORDS = frozenset({"the", "a", "an", "and", "or", "of", "to", "in", "for", "with", "is", "are", "on", "at", "by", "it", "that", "this", "as", "be", "from", "has", "have", "was", "will", "but", "not", "no", "all", "can", "do"})
+_STOPWORDS = frozenset(
+    {
+        "the",
+        "a",
+        "an",
+        "and",
+        "or",
+        "of",
+        "to",
+        "in",
+        "for",
+        "with",
+        "is",
+        "are",
+        "on",
+        "at",
+        "by",
+        "it",
+        "that",
+        "this",
+        "as",
+        "be",
+        "from",
+        "has",
+        "have",
+        "was",
+        "will",
+        "but",
+        "not",
+        "no",
+        "all",
+        "can",
+        "do",
+    }
+)
 
 CATEGORY_BY_TYPE: dict[str, str] = {
     "adr": "adrs",
@@ -216,12 +249,14 @@ def expand_linked_records(
             elif link.target in by_id:
                 target_rec = by_id[link.target]
                 if target_rec.type != "section":
-                    boosted.append(ScoredRecord(
-                        record=target_rec,
-                        score=15,
-                        category=category_for_record(target_rec),
-                        match_reasons=(f"linked from {sr.record.id}",),
-                    ))
+                    boosted.append(
+                        ScoredRecord(
+                            record=target_rec,
+                            score=15,
+                            category=category_for_record(target_rec),
+                            match_reasons=(f"linked from {sr.record.id}",),
+                        )
+                    )
                     scored_ids.add(target_rec.id)
         # incoming links
         for r in records:
@@ -229,12 +264,14 @@ def expand_linked_records(
                 continue
             for link in r.links:
                 if link.target == sr.record.id:
-                    boosted.append(ScoredRecord(
-                        record=r,
-                        score=10,
-                        category=category_for_record(r),
-                        match_reasons=(f"incoming link to {sr.record.id}",),
-                    ))
+                    boosted.append(
+                        ScoredRecord(
+                            record=r,
+                            score=10,
+                            category=category_for_record(r),
+                            match_reasons=(f"incoming link to {sr.record.id}",),
+                        )
+                    )
                     scored_ids.add(r.id)
                     break
 
@@ -261,12 +298,14 @@ def group_by_category(
         entries: list[dict[str, Any]] = []
         for sr in items:
             rec_dict = _serialize_single_record(sr.record, workspace_root, include_body)
-            entries.append({
-                "id": sr.record.id,
-                "score": sr.score,
-                "match_reasons": list(sr.match_reasons),
-                "record": rec_dict,
-            })
+            entries.append(
+                {
+                    "id": sr.record.id,
+                    "score": sr.score,
+                    "match_reasons": list(sr.match_reasons),
+                    "record": rec_dict,
+                }
+            )
         categories[cat] = entries
     return categories
 
@@ -296,9 +335,7 @@ def _serialize_single_record(
             for ref in r.source_refs
         ]
     if r.links:
-        item["links"] = [
-            {"rel": link.rel, "target": link.target} for link in r.links
-        ]
+        item["links"] = [{"rel": link.rel, "target": link.target} for link in r.links]
     if r.test_refs:
         item["test_refs"] = [
             {"path": tr.path, "nodeid": tr.nodeid, "role": tr.role}
@@ -307,8 +344,6 @@ def _serialize_single_record(
     if include_body:
         item["body"] = r.body
     return item
-
-
 
 
 def build_context_for_file(
@@ -443,7 +478,6 @@ def build_context_for_record(
     )
 
 
-
 def build_context_for_changed(
     repo: ArchitectureRepository,
     changes: ChangeSet,
@@ -547,12 +581,14 @@ def build_context_for_topic(
         s, reasons = score_record(r, tokens)
         s, reasons = score_record(r, tokens)
         if s > 0:
-            scored.append(ScoredRecord(
-                record=r,
-                score=s,
-                category=category_for_record(r),
-                match_reasons=reasons,
-            ))
+            scored.append(
+                ScoredRecord(
+                    record=r,
+                    score=s,
+                    category=category_for_record(r),
+                    match_reasons=reasons,
+                )
+            )
 
     # Expand linked records
     scored = expand_linked_records(scored, records)
@@ -614,6 +650,7 @@ def build_context_for_topic(
         "records": flat_serialized,
         "warnings": warnings,
     }
+
 
 def _build_payload(
     *,

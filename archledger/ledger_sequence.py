@@ -11,6 +11,9 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
+from ledgercore.errors import IdFormatError
+from ledgercore.refs import parse_local_ref
+
 from archledger.storage.frontmatter import iter_source_files
 from archledger.storage.meta import read_storage_meta
 from archledger.storage.paths import ProjectPaths
@@ -57,8 +60,8 @@ def collect_numbered_source_paths(
     for storage_area, root in roots:
         for path in iter_source_files(root, source_extensions):
             try:
-                number = config.id_format.parse(path.stem)
-            except ValueError:
+                number = parse_local_ref(path.stem, width=config.id_width).number
+            except IdFormatError:
                 continue
             results.append(
                 NumberedSourcePath(

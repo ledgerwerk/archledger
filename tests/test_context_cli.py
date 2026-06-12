@@ -36,7 +36,9 @@ def _init(path: Path) -> None:
     assert result.exit_code == 0, result.stdout
 
 
-def _create_record(path: Path, kind: str, title: str, *, status: str = "proposed") -> None:
+def _create_record(
+    path: Path, kind: str, title: str, *, status: str = "proposed"
+) -> None:
     result = runner.invoke(
         app,
         ["--root", str(path), "new", kind, title, "--status", status],
@@ -111,9 +113,7 @@ def test_context_topic_includes_glossary_terms(tmp_path: Path) -> None:
     payload = json.loads(result.stdout)
     glossary = payload["result"]["categories"]["glossary_terms"]
     assert len(glossary) >= 1
-    assert any(
-        "storage" in e["record"]["title"].lower() for e in glossary
-    )
+    assert any("storage" in e["record"]["title"].lower() for e in glossary)
 
 
 def test_context_topic_respects_max_per_category(tmp_path: Path) -> None:
@@ -124,10 +124,14 @@ def test_context_topic_respects_max_per_category(tmp_path: Path) -> None:
     result = runner.invoke(
         app,
         [
-            "--root", str(tmp_path),
-            "--json", "context",
-            "--topic", "storage risk",
-            "--max-per-category", "2",
+            "--root",
+            str(tmp_path),
+            "--json",
+            "context",
+            "--topic",
+            "storage risk",
+            "--max-per-category",
+            "2",
         ],
     )
 
@@ -154,9 +158,12 @@ def test_context_topic_can_include_drafts(tmp_path: Path) -> None:
     result = runner.invoke(
         app,
         [
-            "--root", str(tmp_path),
-            "--json", "context",
-            "--topic", "storage",
+            "--root",
+            str(tmp_path),
+            "--json",
+            "context",
+            "--topic",
+            "storage",
             "--include-drafts",
         ],
     )
@@ -170,10 +177,14 @@ def test_context_topic_multiple_selectors_errors(tmp_path: Path) -> None:
     result = runner.invoke(
         app,
         [
-            "--root", str(tmp_path),
-            "--json", "context",
-            "--topic", "storage",
-            "--for-file", "some.py",
+            "--root",
+            str(tmp_path),
+            "--json",
+            "context",
+            "--topic",
+            "storage",
+            "--for-file",
+            "some.py",
         ],
     )
     assert result.exit_code != 0
@@ -207,17 +218,29 @@ def test_context_topic_includes_linked_records(tmp_path: Path) -> None:
     _create_record(tmp_path, "risk", "Migration data loss")
     # Get the ADR id
     list_result = runner.invoke(
-        app, ["--root", str(tmp_path), "--json", "list", "adr"],
+        app,
+        ["--root", str(tmp_path), "--json", "list", "adr"],
     )
     adr_id = json.loads(list_result.stdout)["result"]["records"][0]["id"]
     risk_result = runner.invoke(
-        app, ["--root", str(tmp_path), "--json", "list", "risk"],
+        app,
+        ["--root", str(tmp_path), "--json", "list", "risk"],
     )
     risk_id = json.loads(risk_result.stdout)["result"]["records"][0]["id"]
     # Link risk to ADR
     link_result = runner.invoke(
         app,
-        ["--root", str(tmp_path), "links", "add", risk_id, "--rel", "relates_to", "--target", adr_id],
+        [
+            "--root",
+            str(tmp_path),
+            "links",
+            "add",
+            risk_id,
+            "--rel",
+            "relates_to",
+            "--target",
+            adr_id,
+        ],
     )
     assert link_result.exit_code == 0, link_result.stdout
 

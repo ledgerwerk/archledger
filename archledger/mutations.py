@@ -10,7 +10,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from archledger.errors import ValidationError
-from archledger.links import VALID_LINK_RELS
+from archledger.links import RELATION_RE
 from archledger.model import VALID_SOURCE_REF_ROLES
 from archledger.source_refs import RelativePosixPathError, validate_relative_posix_path
 from archledger.storage.common import utc_now_iso
@@ -164,7 +164,7 @@ def add_link(
     reason: str = "",
     workspace_root: Path,
 ) -> tuple[dict[str, object], str]:
-    if rel not in VALID_LINK_RELS:
+    if not RELATION_RE.fullmatch(rel):
         raise ValidationError(f"Invalid link rel: {rel!r}")
     metadata, body = read_front_matter_document(path)
     _assert_record_id(metadata, record_id)

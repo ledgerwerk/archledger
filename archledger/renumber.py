@@ -158,7 +158,6 @@ def renumber_project(
             paths.archledger_dir,
             meta_before.next_number,
             source_extensions=source_extensions,
-            id_format=new_format,
         )
         write_storage_meta(
             paths.storage_meta_path,

@@ -3,6 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from ledgercore.errors import IdFormatError
+from ledgercore.refs import parse_local_ref
+
 from archledger.ids import (
     DEFAULT_ID_PREFIX,
     DEFAULT_ID_SEGMENT_MODE,
@@ -37,7 +40,7 @@ SOURCE_FORMAT_NATIVE_OUTPUTS = {
     "markdown": "markdown",
     "asciidoc": "asciidoc",
 }
-CURRENT_SOURCE_SCHEMA_VERSION = 2
+CURRENT_SOURCE_SCHEMA_VERSION = 3
 VALID_OUTPUT_FORMATS = frozenset(
     {"asciidoc", "html", "pdf", "docx", "markdown", "rst", "textile"}
 )
@@ -54,7 +57,7 @@ VALID_STATUSES = frozenset(
     {"draft", "proposed", "accepted", "deprecated", "superseded", "archived"}
 )
 VISIBLE_BY_DEFAULT_STATUSES = frozenset({"proposed", "accepted", "deprecated"})
-REQUIRED_RECORD_FIELDS = ("id", "type", "title", "status", "section", "order")
+REQUIRED_RECORD_FIELDS = ("id", "kind", "type", "title", "status", "section", "order")
 VALID_SOURCE_REF_ROLES = frozenset(
     {
         "implements",
@@ -230,6 +233,7 @@ class SourceRef:
 @dataclass(frozen=True, slots=True)
 class ArchitectureRecord:
     id: str
+    kind: str
     type: str
     title: str
     status: str
@@ -280,18 +284,22 @@ def validate_record(
             f"Record id {record.id!r} does not match filename stem {record.path.stem!r}"
         )
     try:
-        parsed = resolved_format.parse_parts(record.id)
-    except ValueError:
+        parsed = parse_local_ref(record.id, width=id_width)
+    except IdFormatError:
         issues.append(
-            f"Record id {record.id!r} must match {resolved_format.pattern_text}."
+            f"Record id {record.id!r} must be a local ID like <kind>-{id_width * '0'}."
         )
     else:
-        if resolved_format.segment_mode != "none" and expected_segment is not None:
-            if parsed.segment != expected_segment:
-                issues.append(
-                    f"Record id {record.id!r} has segment {parsed.segment!r}, "
-                    f"but {expected_segment!r} is expected for type {record.type!r}."
-                )
+        if parsed.kind != record.kind:
+            issues.append(
+                f"Record id {record.id!r} has kind {parsed.kind!r}, "
+                f"but metadata kind is {record.kind!r}."
+            )
+        if expected_segment is not None and parsed.kind != expected_segment:
+            issues.append(
+                f"Record id {record.id!r} has kind {parsed.kind!r}, "
+                f"but {expected_segment!r} is expected for type {record.type!r}."
+            )
     return issues
 
 

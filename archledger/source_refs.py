@@ -1,6 +1,11 @@
 from __future__ import annotations
 
-from pathlib import Path, PurePosixPath
+from pathlib import Path
+
+from ledgercore.errors import PathValidationError
+from ledgercore.paths import (
+    validate_relative_posix_path as _validate_relative_posix_path,
+)
 
 from archledger.model import VALID_SOURCE_REF_ROLES, SourceRef
 
@@ -19,23 +24,19 @@ class RelativePosixPathError(ValueError):
 
 
 def validate_relative_posix_path(value: str, *, field_name: str) -> str:
-    # Normalize backslashes to forward slashes (Windows compatibility)
-    value = value.replace("\\", "/")
-
-    stripped = value.strip()
-    if not stripped:
-        raise RelativePosixPathError(field_name=field_name, kind="relative")
-
-    pure_path = PurePosixPath(stripped)
-    if pure_path.is_absolute():
-        raise RelativePosixPathError(field_name=field_name, kind="relative")
-    if ".." in pure_path.parts:
-        raise RelativePosixPathError(field_name=field_name, kind="dotdot")
-
-    normalized = pure_path.as_posix()
-    if normalized in {"", "."}:
-        raise RelativePosixPathError(field_name=field_name, kind="empty")
-    return normalized
+    try:
+        return _validate_relative_posix_path(value, field_name=field_name)
+    except PathValidationError as exc:
+        message = str(exc).lower()
+        if "backslashes" in message or "posix separators" in message:
+            kind = "posix"
+        elif "must be relative" in message:
+            kind = "relative"
+        elif "must not contain" in message and ".." in message:
+            kind = "dotdot"
+        else:
+            kind = "empty"
+        raise RelativePosixPathError(field_name=field_name, kind=kind) from exc
 
 
 def normalize_source_refs(

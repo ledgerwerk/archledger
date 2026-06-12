@@ -2,11 +2,16 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from urllib.parse import urlparse
 
+from ledgercore.errors import IdFormatError
+from ledgercore.refs import parse_resource_ref
+
 from archledger.source_refs import RelativePosixPathError, validate_relative_posix_path
 
+RELATION_RE = re.compile(r"^[a-z][a-z0-9_:-]{0,63}$")
 VALID_LINK_RELS: frozenset[str] = frozenset(
     {
         "satisfies",
@@ -21,9 +26,11 @@ VALID_LINK_RELS: frozenset[str] = frozenset(
         "relates_to",
         "blocks",
         "applies_to",
+        "implements",
     }
 )
 VALID_LINK_TARGET_KINDS: frozenset[str] = frozenset({"record", "path", "uri", "opaque"})
+LEGACY_UNSEGMENTED_RE = re.compile(r"^[a-z][a-z0-9]*_\d+$")
 
 
 @dataclass(frozen=True, slots=True)
@@ -77,13 +84,12 @@ def _normalize_link_entry(
             [f"Record {record_id} links entry {index} rel must be a non-empty string."],
         )
     rel = raw_rel.strip()
-    if rel not in VALID_LINK_RELS:
+    if not RELATION_RE.fullmatch(rel):
         return (
             None,
             [
                 f"Record {record_id} links entry {index} rel {rel!r} "
-                "is not an allowed relationship. "
-                f"Allowed: {', '.join(sorted(VALID_LINK_RELS))}"
+                "is not a valid relation token."
             ],
         )
 
@@ -142,6 +148,12 @@ def _validate_target(
     target: str,
 ) -> str | None:
     if target_kind == "record":
+        try:
+            parse_resource_ref(target)
+        except IdFormatError:
+            if LEGACY_UNSEGMENTED_RE.fullmatch(target):
+                return None
+            return f"Record {record_id} links entry {index} record target must be a valid reference."
         return None
     if target_kind == "path":
         try:
@@ -169,6 +181,7 @@ def _validate_target(
 
 
 __all__ = [
+    "RELATION_RE",
     "VALID_LINK_RELS",
     "VALID_LINK_TARGET_KINDS",
     "RecordLink",

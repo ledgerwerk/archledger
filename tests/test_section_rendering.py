@@ -38,16 +38,17 @@ def _black_box_record(
     risks: list[str],
 ) -> ArchitectureRecord:
     return ArchitectureRecord(
-        id="al_9999",
+        id="block-9999",
+        kind="block",
         type="black_box",
         title="Source Tracking Layer",
         status="accepted",
         section="building_block_view",
         order=9999,
-        path=Path(".archledger/records/building_blocks/al_9999.md"),
+        path=Path(".archledger/records/building_blocks/block-9999.md"),
         metadata={
             "level": 1,
-            "parent": "al_0001",
+            "parent": "content-0001",
             "interfaces": ["scan_workspace()"],
             "location": ["archledger/source_tracking.py"],
             "fulfilled_requirements": fulfilled_requirements,
@@ -59,13 +60,14 @@ def _black_box_record(
 
 def test_section_diagrams_renders_diagram_body_and_caption() -> None:
     record = ArchitectureRecord(
-        id="al_0201",
+        id="diagram-0201",
+        kind="diagram",
         type="diagram",
         title="Runtime login flow",
         status="accepted",
         section="runtime_view",
         order=10,
-        path=Path(".archledger/records/diagrams/al_0201.md"),
+        path=Path(".archledger/records/diagrams/diagram-0201.md"),
         metadata={"caption": "Runtime login flow"},
         body="```mermaid\nflowchart LR\n  A --> B\n```",
     )

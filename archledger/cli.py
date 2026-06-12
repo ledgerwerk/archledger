@@ -125,6 +125,7 @@ from archledger.cli_payloads import (
 )
 from archledger.errors import ArchledgerError, StorageError
 from archledger.id_format_drift import find_id_format_drift
+from archledger.identity_migration import migrate_identity
 from archledger.ids import DEFAULT_ID_PREFIX, DEFAULT_ID_SEGMENT_MODE, DEFAULT_ID_WIDTH
 from archledger.migration import convert_sources
 from archledger.model import ArchitectureRecord, known_source_extensions
@@ -160,6 +161,12 @@ app.add_typer(
     source_app,
     name="source",
     help="Inspect implementation drift and convert source dialects.",
+)
+migrate_app = typer.Typer(add_completion=False, no_args_is_help=True)
+app.add_typer(
+    migrate_app,
+    name="migrate",
+    help="Run one-off repository migrations.",
 )
 profile_app = typer.Typer(add_completion=False, no_args_is_help=True)
 app.add_typer(
@@ -1055,6 +1062,63 @@ def renumber(
     )
 
 
+@migrate_app.command("ids")
+def migrate_ids(
+    ctx: typer.Context,
+    to: Annotated[str, typer.Option("--to")] = "ledgercore",
+    apply: Annotated[bool, typer.Option("--apply")] = False,
+) -> None:
+    state = _state(ctx)
+    if to != "ledgercore":
+        raise ArchledgerError("--to must be ledgercore.")
+
+    def _build_migrate_result(
+        repo: ArchitectureRepository,
+        paths: ProjectPaths,
+        config: ProjectConfig,
+    ) -> dict[str, object]:
+        del repo
+        result = migrate_identity(paths, config, apply=apply)
+        return {
+            "schema": "archledger.migrate-ids.v1",
+            "apply": result.apply,
+            "ledger_code": result.ledger_code,
+            "migrated_count": len(result.migrated),
+            "rewritten_count": len(result.rewritten),
+            "migrated": [
+                {
+                    "old_id": item.old_id,
+                    "new_id": item.new_id,
+                    "old_ref": item.old_ref,
+                    "new_ref": item.new_ref,
+                    "from": str(item.old_path),
+                    "to": str(item.new_path),
+                }
+                for item in result.migrated
+            ],
+            "rewritten": [
+                {"path": str(item.path), "replacement_count": item.replacement_count}
+                for item in result.rewritten
+            ],
+            "config_path": str(result.config_path),
+            "storage_next_number_before": result.storage_next_number_before,
+            "storage_next_number_after": result.storage_next_number_after,
+        }
+
+    def _fmt(payload: dict[str, object]) -> str:
+        return (
+            f"Identity migration planned: {payload.get('migrated_count', 0)} file(s) "
+            f"({payload.get('rewritten_count', 0)} rewritten)."
+            if not apply
+            else (
+                f"Identity migration applied: {payload.get('migrated_count', 0)} file(s) "
+                f"({payload.get('rewritten_count', 0)} rewritten)."
+            )
+        )
+
+    _run_configured_command(state, "migrate ids", _build_migrate_result, _fmt)
+
+
 @source_app.command("snapshot")
 def snapshot(
     ctx: typer.Context,
@@ -1272,7 +1336,12 @@ def context_cmd(
     state = _state(ctx)
 
     # Mutually exclusive selectors
-    selectors = [for_file is not None, for_record is not None, changed, topic is not None]
+    selectors = [
+        for_file is not None,
+        for_record is not None,
+        changed,
+        topic is not None,
+    ]
     if sum(selectors) > 1:
         raise ArchledgerError(
             "Specify only one of --topic, --for-file, --for-record, or --changed."
@@ -1346,6 +1415,7 @@ def context_cmd(
         return "Context: no records."
 
     _run_configured_command(state, "context", _build_context, _format_context)
+
 
 @app.command("trace")
 def trace_cmd(

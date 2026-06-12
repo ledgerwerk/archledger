@@ -4,9 +4,13 @@ import json
 from pathlib import Path
 from uuid import uuid4
 
+from ledgercore.refs import normalize_kind, normalize_ref_token
+
 from archledger.config.model import (
     DEFAULT_ID_SEGMENT,
     DEFAULT_ID_SEGMENT_MAP,
+    DEFAULT_LEDGER_CODE,
+    DEFAULT_LEDGER_NAME,
     DEFAULT_TRACKING_EXCLUDE,
     DEFAULT_TRACKING_INCLUDE,
     VALID_BUILD_CONVERTERS,
@@ -46,6 +50,8 @@ def build_default_project_config(
     *,
     archledger_dir: str,
     source_format: str = "markdown",
+    ledger_code: str = DEFAULT_LEDGER_CODE,
+    ledger_name: str = DEFAULT_LEDGER_NAME,
     id_prefix: str = DEFAULT_ID_PREFIX,
     id_width: int = DEFAULT_ID_WIDTH,
     id_segment_mode: str = DEFAULT_ID_SEGMENT_MODE,
@@ -132,6 +138,12 @@ def build_default_project_config(
     )
     _validate_enum(build_converter, VALID_BUILD_CONVERTERS, "build.converter")
     _validate_enum(tracking_scanner, VALID_TRACKING_SCANNERS, "tracking.scanner")
+    try:
+        validated_ledger_code = normalize_ref_token(ledger_code, label="ledger")
+    except Exception as exc:
+        raise ConfigError(str(exc)) from exc
+    if not ledger_name.strip():
+        raise ConfigError("ledger_name must be a non-empty string.")
     validated_id_prefix = validate_id_prefix(id_prefix)
     validated_id_width = validate_id_width(id_width)
     validated_id_segment_mode = validate_id_segment_mode(id_segment_mode)
@@ -140,6 +152,9 @@ def build_default_project_config(
     if id_segment_map is not None:
         for key, value in id_segment_map.items():
             resolved_segment_map[key] = validate_id_segment(value)
+    resolved_kind_map = {
+        key: normalize_kind(value) for key, value in resolved_segment_map.items()
+    }
 
     default_extension = default_extension_for_source_format(normalized_source_format)
     native_format = native_output_format_for_source_format(normalized_source_format)
@@ -167,15 +182,19 @@ def build_default_project_config(
     )
 
     return ProjectConfig(
-        config_version=8,
+        config_version=9,
         archledger_dir=archledger_dir,
         project_uuid=normalized_uuid,
         project_name=normalized_project_name,
+        ledger_code=validated_ledger_code,
+        ledger_name=ledger_name.strip(),
         id_prefix=validated_id_prefix,
         id_width=validated_id_width,
         id_segment_mode=validated_id_segment_mode,
         id_default_segment=validated_id_default_segment,
         id_segment_map=resolved_segment_map,
+        id_default_kind=resolved_kind_map.get("section", validated_id_default_segment),
+        id_kind_map=resolved_kind_map,
         source_format=normalized_source_format,
         front_matter="yaml",
         section_extension=default_extension,
@@ -269,17 +288,18 @@ def render_project_config(config: ProjectConfig) -> str:
         f"project_uuid = {_toml_string(config.project_uuid)}",
         f"project_name = {_toml_string(config.project_name)}",
         "",
-        "[ids]",
-        f"prefix = {_toml_string(config.id_prefix)}",
-        f"width = {config.id_width}",
-        f"segment_mode = {_toml_string(config.id_segment_mode)}",
-        f"default_segment = {_toml_string(config.id_default_segment)}",
+        "[ledger]",
+        f"code = {_toml_string(config.ledger_code)}",
+        f"name = {_toml_string(config.ledger_name)}",
         "",
-        "[ids.segment_map]",
+        "[ids]",
+        f"width = {config.id_width}",
+        "",
+        "[ids.kind_map]",
     ]
     lines.extend(
-        f"{segment_key} = {_toml_string(config.id_segment_map[segment_key])}"
-        for segment_key in sorted(config.id_segment_map)
+        f"{segment_key} = {_toml_string(config.id_kind_map[segment_key])}"
+        for segment_key in sorted(config.id_kind_map)
     )
     lines.extend(
         [

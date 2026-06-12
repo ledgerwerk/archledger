@@ -28,13 +28,24 @@
       "properties": {
         "records_considered": { "type": "integer" },
         "records_returned": { "type": "integer" },
-        "categories_returned": { "type": "array", "items": { "type": "string" } }
+        "categories_returned": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
       }
     },
     "categories": {
       "type": "object",
       "propertyNames": {
-        "enum": ["adrs", "constraints", "glossary_terms", "system_boundaries", "architecture_docs", "risks", "unresolved_questions"]
+        "enum": [
+          "adrs",
+          "constraints",
+          "glossary_terms",
+          "system_boundaries",
+          "architecture_docs",
+          "risks",
+          "unresolved_questions"
+        ]
       },
       "additionalProperties": {
         "type": "array",

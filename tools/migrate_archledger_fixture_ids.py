@@ -63,6 +63,7 @@ def main() -> None:
         metadata = doc.metadata
         record = ArchitectureRecord(
             id=str(metadata["id"]),
+            kind=str(metadata.get("kind", metadata.get("type", "content"))),
             type=str(metadata["type"]),
             title=str(metadata["title"]),
             status=str(metadata["status"]),

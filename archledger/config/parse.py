@@ -4,10 +4,14 @@ import sys
 from pathlib import Path
 from typing import cast
 
+from ledgercore.refs import normalize_kind, normalize_ref_token
+
 from archledger.config.model import (
     DEFAULT_ARC42_SECTIONS_DIR,
     DEFAULT_ID_SEGMENT,
     DEFAULT_ID_SEGMENT_MAP,
+    DEFAULT_LEDGER_CODE,
+    DEFAULT_LEDGER_NAME,
     DEFAULT_TRACKING_EXCLUDE,
     DEFAULT_TRACKING_INCLUDE,
     VALID_BUILD_CONVERTERS,
@@ -57,6 +61,7 @@ _ALLOWED_TOP_LEVEL_KEYS = {
     "archledger_dir",
     "project_uuid",
     "project_name",
+    "ledger",
     "ids",
     "source",
     "build",
@@ -87,7 +92,9 @@ _ALLOWED_IDS_KEYS = {
     "segment_mode",
     "default_segment",
     "segment_map",
+    "kind_map",
 }
+_ALLOWED_LEDGER_KEYS = {"code", "name"}
 _ALLOWED_ARC42_KEYS = {"template_version", "language", "title", "include_help"}
 _ALLOWED_PROFILES_KEYS = {"enabled", "default", "arc42"}
 _ALLOWED_PROFILES_ARC42_KEYS = {
@@ -217,6 +224,12 @@ def load_project_config(path: Path) -> ProjectConfig:
         _ALLOWED_BUILD_KEYS,
         "build",
     )
+    ledger_data = _validate_subtable(
+        path,
+        raw_data.get("ledger"),
+        _ALLOWED_LEDGER_KEYS,
+        "ledger",
+    )
     ids_data = _validate_subtable(
         path,
         raw_data.get("ids"),
@@ -265,8 +278,9 @@ def load_project_config(path: Path) -> ProjectConfig:
         6,
         7,
         8,
+        9,
     }:
-        raise ConfigError("config_version must be 1, 2, 3, 4, 5, 6, 7, or 8.")
+        raise ConfigError("config_version must be 1, 2, 3, 4, 5, 6, 7, 8, or 9.")
 
     archledger_dir = raw_data.get("archledger_dir")
     if not isinstance(archledger_dir, str) or not archledger_dir.strip():
@@ -301,12 +315,15 @@ def load_project_config(path: Path) -> ProjectConfig:
         build_outputs,
     ) = _parse_build_config(build_data, cast(int, config_version), source_format)
     template_version, language, title, include_help = _parse_arc42_config(arc42_data)
+    ledger_code, ledger_name = _parse_ledger_config(ledger_data, ids_data)
     (
         id_prefix,
         id_width,
         id_segment_mode,
         id_default_segment,
         id_segment_map,
+        id_default_kind,
+        id_kind_map,
     ) = _parse_ids_config(ids_data)
     skill_installed, skill_path = _parse_skill_config(skill_data)
     (
@@ -339,11 +356,15 @@ def load_project_config(path: Path) -> ProjectConfig:
         archledger_dir=archledger_dir,
         project_uuid=validate_uuid(project_uuid),
         project_name=normalize_project_name(project_name),
+        ledger_code=ledger_code,
+        ledger_name=ledger_name,
         id_prefix=id_prefix,
         id_width=id_width,
         id_segment_mode=id_segment_mode,
         id_default_segment=id_default_segment,
         id_segment_map=id_segment_map,
+        id_default_kind=id_default_kind,
+        id_kind_map=id_kind_map,
         source_format=source_format,
         source_schema_version=source_schema_version,
         front_matter=front_matter.strip().lower(),
@@ -386,7 +407,7 @@ def load_project_config(path: Path) -> ProjectConfig:
 
 def _parse_ids_config(
     ids_data: dict[str, object],
-) -> tuple[str, int, str, str, dict[str, str]]:
+) -> tuple[str, int, str, str, dict[str, str], str, dict[str, str]]:
     prefix_value = ids_data.get("prefix", DEFAULT_ID_PREFIX)
     width_value = ids_data.get("width", DEFAULT_ID_WIDTH)
     segment_mode_value = ids_data.get("segment_mode", DEFAULT_ID_SEGMENT_MODE)
@@ -441,7 +462,58 @@ def _parse_ids_config(
             except ValueError as exc:
                 raise ConfigError(str(exc)) from exc
 
-    return prefix, width, segment_mode, default_segment, segment_map
+    kind_map_value = ids_data.get("kind_map")
+    kind_map = dict(DEFAULT_ID_SEGMENT_MAP)
+    if kind_map_value is not None:
+        if not isinstance(kind_map_value, dict):
+            raise ConfigError("ids.kind_map must be a TOML table.")
+        allowed_kind_keys = set(VALID_RECORD_TYPES) | {"section", "archive_tombstone"}
+        unknown_keys = sorted(set(kind_map_value) - allowed_kind_keys)
+        if unknown_keys:
+            joined = ", ".join(unknown_keys)
+            raise ConfigError("ids.kind_map contains unknown record types: " + joined)
+        for key, value in kind_map_value.items():
+            if not isinstance(value, str):
+                raise ConfigError(f"ids.kind_map.{key} must be a string.")
+            try:
+                kind_map[key] = normalize_kind(value)
+            except Exception as exc:
+                raise ConfigError(str(exc)) from exc
+    else:
+        for key, value in segment_map.items():
+            kind_map[key] = value
+
+    default_kind = kind_map.get("section", default_segment)
+    return (
+        prefix,
+        width,
+        segment_mode,
+        default_segment,
+        segment_map,
+        default_kind,
+        kind_map,
+    )
+
+
+def _parse_ledger_config(
+    ledger_data: dict[str, object],
+    ids_data: dict[str, object],
+) -> tuple[str, str]:
+    raw_code = ledger_data.get("code")
+    raw_name = ledger_data.get("name")
+    if raw_code is None:
+        raw_code = ids_data.get("prefix", DEFAULT_LEDGER_CODE)
+    if raw_name is None:
+        raw_name = DEFAULT_LEDGER_NAME
+    if not isinstance(raw_code, str):
+        raise ConfigError("ledger.code must be a string.")
+    if not isinstance(raw_name, str) or not raw_name.strip():
+        raise ConfigError("ledger.name must be a non-empty string.")
+    try:
+        code = normalize_ref_token(raw_code, label="ledger")
+    except Exception as exc:
+        raise ConfigError(str(exc)) from exc
+    return code, raw_name.strip()
 
 
 def _validate_subtable(

@@ -39,6 +39,7 @@ dependencies = [
     "typer",
     "PyYAML",
     "Jinja2>=3.1",
+    "ledgercore>=0.1.0",
     'tomli; python_version < "3.11"',
 ]
 classifiers = [

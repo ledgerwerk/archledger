@@ -3,6 +3,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from ledgercore.errors import PathValidationError
+from ledgercore.paths import (
+    is_relative_to as core_is_relative_to,
+)
+from ledgercore.paths import resolve_relative_child as core_resolve_relative_child
+
 from archledger.errors import ConfigError
 from archledger.storage.project_config import ProjectConfig, load_project_config
 
@@ -16,16 +22,7 @@ DEFAULT_ARCHLEDGER_DIR_NAME = ".archledger"
 
 
 def is_relative_to(path: Path, parent: Path) -> bool:
-    """Check whether *path* is inside *parent*.
-
-    Wrapper around ``Path.relative_to`` that returns ``bool`` instead of
-    raising.  Centralises the compatibility/normalisation policy.
-    """
-    try:
-        path.relative_to(parent)
-    except ValueError:
-        return False
-    return True
+    return core_is_relative_to(path, parent)
 
 
 @dataclass(frozen=True, slots=True)
@@ -203,17 +200,20 @@ def _resolve_relative_child(
     *,
     parent_label: str,
 ) -> Path:
-    candidate = Path(relative_path)
-    if candidate.is_absolute():
-        raise ConfigError(f"{field_name} must be relative to {parent_label}.")
     try:
-        resolved = (base_dir / candidate).resolve()
-    except OSError as exc:
+        return core_resolve_relative_child(
+            base_dir,
+            relative_path,
+            field_name=field_name,
+        )
+    except PathValidationError as exc:
+        message = str(exc)
+        if "must stay inside" in message:
+            raise ConfigError(f"{field_name} must stay inside {parent_label}.") from exc
+        if "must be relative" in message:
+            raise ConfigError(
+                f"{field_name} must be relative to {parent_label}."
+            ) from exc
         raise ConfigError(
             f"{field_name} could not be resolved: {relative_path!r}"
         ) from exc
-    try:
-        resolved.relative_to(base_dir)
-    except ValueError as exc:
-        raise ConfigError(f"{field_name} must stay inside {parent_label}.") from exc
-    return resolved

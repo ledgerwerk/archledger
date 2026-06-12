@@ -1,7 +1,9 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
+
+from ledgercore.errors import JsonStoreError
+from ledgercore.jsonio import load_json_object, write_json
 
 from archledger.errors import StorageError
 from archledger.source_refs import RelativePosixPathError, validate_relative_posix_path
@@ -11,24 +13,20 @@ from archledger.source_tracking import (
     SourceState,
     TrackedFile,
 )
-from archledger.storage.common import read_text, write_text_atomic
 
 
 def read_source_state(path: Path) -> SourceState | None:
     if not path.is_file():
         return None
     try:
-        data = json.loads(read_text(path))
-    except json.JSONDecodeError as exc:
+        data = load_json_object(path, label="source-state JSON")
+    except JsonStoreError as exc:
         raise StorageError(f"Invalid source-state JSON in {path}.") from exc
     return source_state_from_json(data)
 
 
 def write_source_state(path: Path, state: SourceState) -> None:
-    write_text_atomic(
-        path,
-        json.dumps(source_state_to_json(state), indent=2, sort_keys=True) + "\n",
-    )
+    write_json(path, source_state_to_json(state))
 
 
 def source_state_to_json(state: SourceState) -> dict[str, object]:

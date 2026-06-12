@@ -3,17 +3,33 @@
   "$id": "https://archledger.dev/schemas/archledger.record.v2.schema.json",
   "title": "Archledger record front matter",
   "type": "object",
-  "required": ["schema_version", "id", "type", "title", "status", "section"],
+  "required": [
+    "schema_version",
+    "id",
+    "kind",
+    "type",
+    "title",
+    "status",
+    "section"
+  ],
   "properties": {
     "schema_version": { "type": "integer", "minimum": 1 },
-    "id": { "type": "string", "minLength": 1 },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*-\\d{4,}$"
+    },
+    "kind": { "type": "string", "minLength": 1 },
     "type": { "type": "string", "minLength": 1 },
     "title": { "type": "string", "minLength": 1 },
     "status": { "type": "string" },
     "section": { "type": "string" },
     "source_refs": { "type": "array" },
     "test_refs": { "type": "array" },
-    "links": { "type": "array" }
+    "links": { "type": "array" },
+    "ref": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*:[a-z][a-z0-9]*(?:-[a-z0-9]+)*-\\d+$"
+    }
   },
   "additionalProperties": true
 }

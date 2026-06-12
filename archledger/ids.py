@@ -4,7 +4,17 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
+from ledgercore.refs import (
+    LedgerResourceRef,
+    parse_local_ref,
+    parse_resource_ref,
+)
+from ledgercore.refs import (
+    normalize_kind as normalize_resource_kind,
+)
+
 DEFAULT_ID_PREFIX = "al"
+DEFAULT_LEDGER_CODE = DEFAULT_ID_PREFIX
 DEFAULT_ID_WIDTH = 4
 DEFAULT_ID_SEGMENT_MODE = "none"
 VALID_ID_SEGMENT_MODES: frozenset[str] = frozenset({"none", "type"})
@@ -17,6 +27,13 @@ _WORD_CHAR_CLASS = "A-Za-z0-9"
 class ParsedLedgerId:
     number: int
     segment: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class ParsedRecordId:
+    kind: str
+    number: int
+    ledger: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -223,3 +240,61 @@ def ledger_id_from_filename(
         segment_mode=segment_mode,
     )
     return record_id
+
+
+def format_local_id(kind: str, number: int, *, width: int = DEFAULT_ID_WIDTH) -> str:
+    normalized_kind = normalize_resource_kind(kind)
+    return f"{normalized_kind}-{number:0{validate_id_width(width)}d}"
+
+
+def parse_record_id(value: str, *, width: int = DEFAULT_ID_WIDTH) -> ParsedRecordId:
+    ref = parse_local_ref(value, width=width)
+    return ParsedRecordId(kind=ref.kind, number=ref.number, ledger=ref.ledger)
+
+
+def parse_record_ref(
+    value: str,
+    *,
+    default_ledger: str | None = None,
+    width: int = DEFAULT_ID_WIDTH,
+) -> LedgerResourceRef:
+    return parse_resource_ref(
+        value,
+        default_ledger=default_ledger,
+        width=width,
+        allow_legacy_alias=True,
+    )
+
+
+def parse_legacy_archledger_id(
+    value: str,
+    *,
+    ledger_code: str = DEFAULT_LEDGER_CODE,
+    width: int = DEFAULT_ID_WIDTH,
+) -> LedgerResourceRef:
+    return parse_resource_ref(
+        value,
+        default_ledger=ledger_code,
+        width=width,
+        allow_legacy_alias=True,
+    )
+
+
+def global_ref_for(
+    record_id: str,
+    ledger_code: str,
+    *,
+    width: int = DEFAULT_ID_WIDTH,
+) -> str:
+    ref = parse_local_ref(record_id, width=width).with_ledger(ledger_code)
+    return ref.global_ref
+
+
+def file_ref_for(
+    record_id: str,
+    ledger_code: str,
+    *,
+    width: int = DEFAULT_ID_WIDTH,
+) -> str:
+    ref = parse_local_ref(record_id, width=width).with_ledger(ledger_code)
+    return ref.file_ref

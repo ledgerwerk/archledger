@@ -4,12 +4,14 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import cast
 
-import yaml
+from ledgercore.errors import IdFormatError
+from ledgercore.errors import StorageError as CoreStorageError
+from ledgercore.refs import parse_local_ref
+from ledgercore.yamlio import load_yaml_object, write_yaml
 
 from archledger.errors import StorageError
-from archledger.ids import LedgerIdFormat
 from archledger.model import SOURCE_FORMAT_EXTENSIONS
-from archledger.storage.common import read_text, utc_now_iso, write_text_atomic
+from archledger.storage.common import utc_now_iso
 
 
 @dataclass(frozen=True, slots=True)
@@ -35,11 +37,9 @@ def read_storage_meta(path: Path) -> StorageMeta:
     if not path.is_file():
         raise StorageError(f"Missing storage metadata file: {path}")
     try:
-        raw_data = yaml.safe_load(read_text(path))
-    except yaml.YAMLError as exc:
+        raw_data = load_yaml_object(path, label="storage.yaml")
+    except CoreStorageError as exc:
         raise StorageError(f"Failed to parse storage metadata: {path}") from exc
-    if not isinstance(raw_data, dict):
-        raise StorageError("storage.yaml must contain a mapping.")
 
     storage_version = raw_data.get("storage_version")
     created_with_archledger = raw_data.get("created_with_archledger")
@@ -74,7 +74,8 @@ def read_storage_meta(path: Path) -> StorageMeta:
 
 
 def write_storage_meta(path: Path, meta: StorageMeta) -> None:
-    content = yaml.safe_dump(
+    write_yaml(
+        path,
         {
             "storage_version": meta.storage_version,
             "created_with_archledger": meta.created_with_archledger,
@@ -84,16 +85,13 @@ def write_storage_meta(path: Path, meta: StorageMeta) -> None:
         },
         sort_keys=False,
     )
-    write_text_atomic(path, content)
 
 
 def recompute_next_number(
     archledger_dir: Path,
     *,
     source_extensions: tuple[str, ...] = (),
-    id_format: LedgerIdFormat | None = None,
 ) -> int:
-    resolved_id_format = LedgerIdFormat() if id_format is None else id_format
     known_extensions = {
         *SOURCE_FORMAT_EXTENSIONS.values(),
         *(extension.lower() for extension in source_extensions),
@@ -107,8 +105,8 @@ def recompute_next_number(
             if not path.is_file() or path.suffix.lower() not in known_extensions:
                 continue
             try:
-                number = resolved_id_format.parse(path.stem)
-            except ValueError:
+                number = parse_local_ref(path.stem).number
+            except IdFormatError:
                 continue
             highest = max(highest, number)
     return highest + 1
@@ -119,13 +117,11 @@ def next_number_floor(
     current_next_number: int,
     *,
     source_extensions: tuple[str, ...] = (),
-    id_format: LedgerIdFormat | None = None,
 ) -> int:
     return max(
         current_next_number,
         recompute_next_number(
             archledger_dir,
             source_extensions=source_extensions,
-            id_format=id_format,
         ),
     )

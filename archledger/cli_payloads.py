@@ -9,8 +9,10 @@ from archledger.ids import (
     DEFAULT_ID_PREFIX,
     DEFAULT_ID_SEGMENT_MODE,
     DEFAULT_ID_WIDTH,
+    DEFAULT_LEDGER_CODE,
     LedgerIdFormat,
     format_ledger_id,
+    format_local_id,
 )
 from archledger.migration import MigrationResult
 from archledger.model import (
@@ -50,7 +52,9 @@ def _record_identity(record: ArchitectureRecord) -> dict[str, object]:
     """Core identity fields shared by most record payloads."""
     return {
         "id": record.id,
+        "kind": record.kind,
         "type": record.type,
+        "ref": f"{DEFAULT_LEDGER_CODE}:{record.id}",
         "title": record.title,
         "status": record.status,
         "section": record.section,
@@ -143,7 +147,6 @@ def schema_payload(
     config: ProjectConfig,
 ) -> dict[str, object]:
     del repo, paths
-    id_format = config.id_format
     return {
         "schema": "archledger.schema.v1",
         "record_types": [
@@ -155,20 +158,17 @@ def schema_payload(
             }
             for spec in RECORD_TYPE_SPECS
         ],
-        "id_strategy": "ledger-wide",
+        "id_strategy": "ledger-wide-local-resource-id",
         "id_format": {
-            "prefix": config.id_prefix,
+            "ledger_code": config.ledger_code,
             "width": config.id_width,
-            "segment_mode": config.id_segment_mode,
         },
-        "id_pattern": id_format.pattern_text,
+        "id_pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*-\\d{4,}$",
         "reserved_section_ids": {
-            section.key: id_format.format(
+            section.key: format_local_id(
+                config.id_kind_map.get("section", config.id_default_kind),
                 section.number,
-                segment=config.id_segment_map.get(
-                    "section",
-                    config.id_default_segment,
-                ),
+                width=config.id_width,
             )
             for section in MAJOR_SECTION_SPECS
         },
@@ -187,7 +187,13 @@ def schema_payload(
 
 
 def new_record_payload(record: ArchitectureRecord) -> dict[str, object]:
-    return {"id": record.id, "type": record.type, "path": str(record.path)}
+    return {
+        "id": record.id,
+        "kind": record.kind,
+        "type": record.type,
+        "ref": f"{DEFAULT_LEDGER_CODE}:{record.id}",
+        "path": str(record.path),
+    }
 
 
 def seed_payload(preset: str, records: list[ArchitectureRecord]) -> dict[str, object]:
@@ -196,7 +202,9 @@ def seed_payload(preset: str, records: list[ArchitectureRecord]) -> dict[str, ob
         "records": [
             {
                 "id": record.id,
+                "kind": record.kind,
                 "type": record.type,
+                "ref": f"{DEFAULT_LEDGER_CODE}:{record.id}",
                 "path": str(record.path),
             }
             for record in records
@@ -266,7 +274,9 @@ def read_payload(
                     continue
         item: dict[str, object] = {
             "id": record.id,
+            "kind": record.kind,
             "type": record.type,
+            "ref": f"{config.ledger_code}:{record.id}",
             "title": record.title,
             "status": record.status,
             "section": record.section,
@@ -378,7 +388,9 @@ def impacted_record_payload(
 ) -> dict[str, object]:
     return {
         "id": item.id,
+        "kind": getattr(item, "kind", item.type),
         "type": item.type,
+        "ref": f"{DEFAULT_LEDGER_CODE}:{item.id}",
         "title": item.title,
         "status": item.status,
         "section": item.section,

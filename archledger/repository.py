@@ -6,13 +6,16 @@ from pathlib import Path
 from typing import cast
 
 from jinja2 import Environment, PackageLoader, select_autoescape
+from ledgercore.errors import IdFormatError
+from ledgercore.refs import normalize_kind as normalize_resource_kind
+from ledgercore.refs import parse_local_ref
 
 from archledger import __version__
 from archledger.checks import content_warnings
 from archledger.errors import StorageError, ValidationError
 from archledger.id_format_drift import find_id_format_drift
-from archledger.id_segments import id_segment_for_metadata
-from archledger.ids import validate_id_segment
+from archledger.id_segments import identity_kind_for_metadata
+from archledger.ids import format_local_id, global_ref_for
 from archledger.ledger_sequence import (
     NumberedSourcePath as _NumberedSourcePath,
 )
@@ -172,9 +175,9 @@ class ArchitectureRepository:
 
         if self._arc42_enabled():
             for section_spec in MAJOR_SECTION_SPECS:
-                section_id = self.config.id_format.format(
+                section_id = self._format_record_id(
+                    self._id_segment_for_section(section_spec),
                     section_spec.number,
-                    segment=self._id_segment_for_section(section_spec),
                 )
                 section_path = (
                     self.paths.sections_dir
@@ -204,7 +207,6 @@ class ArchitectureRepository:
                         self.config.section_extension,
                         self.config.record_extension,
                     ),
-                    id_format=self.config.id_format,
                 ),
             )
             write_storage_meta(self.paths.storage_meta_path, meta)
@@ -266,16 +268,15 @@ class ArchitectureRepository:
                 self.config.section_extension,
                 self.config.record_extension,
             ),
-            id_format=self.config.id_format,
         )
-        segment = self._id_segment_for_kind(normalized_kind)
-        record_id = self.config.id_format.format(number, segment=segment)
+        identity_kind = self._id_segment_for_kind(normalized_kind)
+        record_id = self._format_record_id(identity_kind, number)
         filename = f"{record_id}{self.config.record_extension}"
         target_dir = self.paths.records_dir / RECORD_TYPE_TO_DIR[normalized_kind]
         target_path = target_dir / filename
         while target_path.exists():
             number += 1
-            record_id = self.config.id_format.format(number, segment=segment)
+            record_id = self._format_record_id(identity_kind, number)
             filename = f"{record_id}{self.config.record_extension}"
             target_path = target_dir / filename
         order = self._next_order(normalized_kind)
@@ -396,11 +397,7 @@ class ArchitectureRepository:
                 findings_errors.append(CheckFinding("error", exc.message, path))
                 continue
 
-            expected_segment = (
-                self._id_segment_for_metadata(record.metadata)
-                if self.config.id_segment_mode != "none"
-                else None
-            )
+            expected_segment = self._id_segment_for_metadata(record.metadata)
             issues = validate_record(
                 record,
                 id_format=self.config.id_format,
@@ -508,9 +505,9 @@ class ArchitectureRepository:
 
         if self._arc42_enabled():
             for section_spec in MAJOR_SECTION_SPECS:
-                section_id = self.config.id_format.format(
+                section_id = self._format_record_id(
+                    self._id_segment_for_section(section_spec),
                     section_spec.number,
-                    segment=self._id_segment_for_section(section_spec),
                 )
                 section_paths = [
                     self.paths.sections_dir / f"{section_id}{extension}"
@@ -567,7 +564,9 @@ class ArchitectureRepository:
 
     def archive_record(self, record_id: str, *, reason: str = "") -> ArchiveResult:
         self._ensure_storage_ready()
-        if not self.config.id_format.is_id(record_id):
+        try:
+            parse_local_ref(record_id, width=self.config.id_width)
+        except IdFormatError:
             raise ValidationError(f"Invalid ledger ID: {record_id}")
 
         active_path: Path | None = None
@@ -700,9 +699,9 @@ class ArchitectureRepository:
                     None,
                 )
                 if section_spec is not None:
-                    section_id = self.config.id_format.format(
+                    section_id = self._format_record_id(
+                        self._id_segment_for_section(section_spec),
                         section_spec.number,
-                        segment=self._id_segment_for_section(section_spec),
                     )
                     section_path = (
                         self.paths.sections_dir
@@ -753,7 +752,6 @@ class ArchitectureRepository:
                 self.config.section_extension,
                 self.config.record_extension,
             ),
-            id_format=self.config.id_format,
         )
         if repair and next_number_after != meta_before.next_number:
             self._write_counter(next_number_after)
@@ -828,13 +826,11 @@ class ArchitectureRepository:
         )
 
     def _write_archive_tombstone(self, number: int) -> Path:
-        record_id = self.config.id_format.format(
-            number,
-            segment=self.config.id_segment_map.get(
-                "archive_tombstone",
-                self.config.id_default_segment,
-            ),
+        identity_kind = self.config.id_kind_map.get(
+            "archive_tombstone",
+            self.config.id_default_kind,
         )
+        record_id = self._format_record_id(identity_kind, number)
         path = (
             self.paths.archive_dir
             / "tombstones"
@@ -846,6 +842,7 @@ class ArchitectureRepository:
         metadata = {
             "schema_version": self.config.source_schema_version,
             "id": record_id,
+            "kind": identity_kind,
             "type": "archive_tombstone",
             "title": f"Archived placeholder for missing ledger ID {record_id}",
             "status": "archived",
@@ -870,27 +867,33 @@ class ArchitectureRepository:
         return path
 
     def _id_segment_for_kind(self, kind: str) -> str:
-        return validate_id_segment(
-            self.config.id_segment_map.get(kind, self.config.id_default_segment)
+        return normalize_resource_kind(
+            self.config.id_kind_map.get(kind, self.config.id_default_kind)
         )
 
     def _id_segment_for_section(self, section_spec: SectionSpec) -> str:
         del section_spec
-        return validate_id_segment(
-            self.config.id_segment_map.get("section", self.config.id_default_segment)
+        return normalize_resource_kind(
+            self.config.id_kind_map.get("section", self.config.id_default_kind)
         )
 
     def _id_segment_for_metadata(self, metadata: dict[str, object]) -> str:
-        return id_segment_for_metadata(
+        return identity_kind_for_metadata(
             metadata,
-            default_segment=self.config.id_default_segment,
-            segment_map=self.config.id_segment_map,
+            default_kind=self.config.id_default_kind,
+            kind_map=self.config.id_kind_map,
         )
 
     def _display_missing_id(self, number: int) -> str:
-        if self.config.id_segment_mode == "none":
-            return self.config.id_format.format(number)
-        return f"{self.config.id_prefix}_<segment>_{number:0{self.config.id_width}d}"
+        return f"<kind>-{number:0{self.config.id_width}d}"
+
+    def _format_record_id(self, kind: str, number: int) -> str:
+        return format_local_id(kind, number, width=self.config.id_width)
+
+    def _global_ref(self, record_id: str) -> str:
+        return global_ref_for(
+            record_id, self.config.ledger_code, width=self.config.id_width
+        )
 
     def _template_context(
         self,
@@ -911,6 +914,7 @@ class ArchitectureRepository:
         context: dict[str, object] = {
             "schema_version": self.config.source_schema_version,
             "id": target_path.stem,
+            "kind": self._id_segment_for_kind(kind),
             "type": kind,
             "title": title,
             "status": status,
@@ -974,9 +978,19 @@ class ArchitectureRepository:
 
     def _load_record_from_path(self, path: Path) -> ArchitectureRecord:
         metadata, body = read_front_matter_document(path)
-        missing_fields = [
-            field for field in REQUIRED_RECORD_FIELDS if field not in metadata
-        ]
+        schema_version_value = metadata.get("schema_version")
+        schema_version = (
+            schema_version_value
+            if isinstance(schema_version_value, int)
+            and not isinstance(schema_version_value, bool)
+            else self.config.source_schema_version
+        )
+        required_fields = REQUIRED_RECORD_FIELDS
+        if schema_version < 3:
+            required_fields = tuple(
+                field for field in REQUIRED_RECORD_FIELDS if field != "kind"
+            )
+        missing_fields = [field for field in required_fields if field not in metadata]
         if missing_fields:
             missing = ", ".join(missing_fields)
             raise ValidationError(f"Missing required key(s): {missing}")
@@ -986,8 +1000,14 @@ class ArchitectureRepository:
         section = metadata["section"]
         order = metadata["order"]
         record_type = metadata["type"]
+        raw_kind = metadata.get("kind")
+        if isinstance(raw_kind, str) and raw_kind.strip():
+            record_kind = normalize_resource_kind(raw_kind)
+        else:
+            record_kind = self._id_segment_for_metadata(metadata)
+            metadata = {**metadata, "kind": record_kind}
         record_id = metadata["id"]
-        required_strings = (title, status, section, record_type, record_id)
+        required_strings = (title, status, section, record_type, record_id, record_kind)
         if not all(isinstance(value, str) for value in required_strings):
             raise ValidationError("Required string fields must be strings.")
         if isinstance(order, bool) or not isinstance(order, int):
@@ -995,6 +1015,7 @@ class ArchitectureRepository:
 
         record = ArchitectureRecord(
             id=cast(str, record_id),
+            kind=cast(str, record_kind),
             type=cast(str, record_type),
             title=cast(str, title),
             status=cast(str, status),
@@ -1058,7 +1079,6 @@ class ArchitectureRepository:
                             self.config.section_extension,
                             self.config.record_extension,
                         ),
-                        id_format=self.config.id_format,
                     ),
                     next_number,
                 ),
@@ -1148,6 +1168,7 @@ def _section_document(
         "---",
         f"schema_version: {source_schema_version}",
         f"id: {record_id}",
+        f"kind: {record_id.split('-', 1)[0]}",
         "type: section",
         f"section: {section_spec.key}",
         f"title: {section_spec.title}",

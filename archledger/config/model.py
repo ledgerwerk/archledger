@@ -56,8 +56,10 @@ DEFAULT_TRACKING_EXCLUDE = tuple(
     )
 )
 
-DEFAULT_ID_SEGMENT = "content"
-DEFAULT_ID_SEGMENT_MAP: dict[str, str] = {
+DEFAULT_LEDGER_CODE = "al"
+DEFAULT_LEDGER_NAME = "archledger"
+DEFAULT_ID_KIND = "content"
+DEFAULT_ID_KIND_MAP: dict[str, str] = {
     "section": "content",
     "requirement": "content",
     "acceptance_criterion": "ac",
@@ -80,6 +82,14 @@ DEFAULT_ID_SEGMENT_MAP: dict[str, str] = {
     "glossary_term": "glossary",
     "archive_tombstone": "archive",
 }
+DEFAULT_ID_SEGMENT = DEFAULT_ID_KIND
+DEFAULT_ID_SEGMENT_MAP = DEFAULT_ID_KIND_MAP
+
+
+@dataclass(frozen=True, slots=True)
+class LedgerConfig:
+    code: str
+    name: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -135,6 +145,8 @@ class IdConfig:
     segment_mode: str
     default_segment: str
     segment_map: dict[str, str]
+    default_kind: str
+    kind_map: dict[str, str]
 
 
 @dataclass(frozen=True, slots=True)
@@ -191,12 +203,20 @@ class ProjectConfig:
     archledger_dir: str
     project_uuid: str
     project_name: str
-    id_prefix: str = DEFAULT_ID_PREFIX
+    ledger_code: str = DEFAULT_LEDGER_CODE
+    ledger_name: str = DEFAULT_LEDGER_NAME
     id_width: int = DEFAULT_ID_WIDTH
+    id_default_kind: str = DEFAULT_ID_KIND
+    id_kind_map: dict[str, str] = field(
+        default_factory=lambda: dict(DEFAULT_ID_KIND_MAP)
+    )
+
+    # Deprecated legacy fields retained for compatibility.
+    id_prefix: str = DEFAULT_ID_PREFIX
     id_segment_mode: str = DEFAULT_ID_SEGMENT_MODE
-    id_default_segment: str = DEFAULT_ID_SEGMENT
+    id_default_segment: str = DEFAULT_ID_KIND
     id_segment_map: dict[str, str] = field(
-        default_factory=lambda: dict(DEFAULT_ID_SEGMENT_MAP)
+        default_factory=lambda: dict(DEFAULT_ID_KIND_MAP)
     )
     source_format: str = "markdown"
     source_schema_version: int = CURRENT_SOURCE_SCHEMA_VERSION
@@ -298,6 +318,8 @@ class ProjectConfig:
             segment_mode=self.id_segment_mode,
             default_segment=self.id_default_segment,
             segment_map=dict(self.id_segment_map),
+            default_kind=self.id_default_kind,
+            kind_map=dict(self.id_kind_map),
         )
 
     @property
@@ -364,3 +386,7 @@ def validate_uuid(value: str) -> str:
         return str(UUID(value))
     except ValueError as exc:
         raise ConfigError("project_uuid must be a valid UUID.") from exc
+
+    @property
+    def ledger(self) -> LedgerConfig:
+        return LedgerConfig(code=self.ledger_code, name=self.ledger_name)
