@@ -10,6 +10,7 @@ from archledger.errors import ArchledgerError
 SCHEMA_FILES = {
     "record": "archledger.record.v2.schema.json",
     "context": "archledger.context.v1.schema.json",
+    "context-v2": "archledger.context.v2.schema.json",
     "trace": "archledger.trace.v1.schema.json",
     "changed": "archledger.changed.v1.schema.json",
 }

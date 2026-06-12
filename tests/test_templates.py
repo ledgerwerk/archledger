@@ -110,6 +110,15 @@ def test_all_markdown_templates_include_schema_version_date_body_format() -> Non
         validation={"command": "", "expected": "passes"},
         test_refs=[],
         links=[],
+        # architecture_question fields
+        question="Test question",
+        resolution_status="open",
+        owner="",
+        decision_due="",
+        options=[],
+        constraints=[],
+        risks=[],
+        linked_decision="",
     )
     for path in sorted(template_root.glob("*.md.j2")):
         tmpl_name = path.relative_to("archledger/templates").as_posix()
@@ -150,6 +159,15 @@ def test_all_asciidoc_templates_include_schema_version_date_body_format() -> Non
         validation={"command": "", "expected": "passes"},
         test_refs=[],
         links=[],
+        # architecture_question fields
+        question="Test question",
+        resolution_status="open",
+        owner="",
+        decision_due="",
+        options=[],
+        constraints=[],
+        risks=[],
+        linked_decision="",
     )
     for path in sorted(template_root.glob("*.adoc.j2")):
         tmpl_name = path.relative_to("archledger/templates").as_posix()
@@ -221,8 +239,10 @@ def test_new_succeeds_for_every_record_type(tmp_path: Path) -> None:
         "quality-requirement",
         "quality-scenario",
         "risk",
+        "risk",
         "diagram",
         "glossary-term",
+        "question",
     ]:
         result = runner.invoke(
             app,

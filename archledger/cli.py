@@ -1259,10 +1259,24 @@ def context_cmd(
     for_file: Annotated[str | None, typer.Option("--for-file")] = None,
     for_record: Annotated[str | None, typer.Option("--for-record")] = None,
     changed: Annotated[bool, typer.Option("--changed")] = False,
+    topic: Annotated[str | None, typer.Option("--topic")] = None,
     include_body: Annotated[bool, typer.Option("--include-body")] = False,
+    include_drafts: Annotated[bool, typer.Option("--include-drafts")] = False,
+    include_superseded: Annotated[bool, typer.Option("--include-superseded")] = False,
     max_records: Annotated[int, typer.Option("--max-records")] = 20,
+    max_per_category: Annotated[int, typer.Option("--max-per-category")] = 8,
+    scope: Annotated[str | None, typer.Option("--scope")] = None,
+    scope_kind: Annotated[str | None, typer.Option("--scope-kind")] = None,
+    addon: Annotated[str | None, typer.Option("--addon")] = None,
 ) -> None:
     state = _state(ctx)
+
+    # Mutually exclusive selectors
+    selectors = [for_file is not None, for_record is not None, changed, topic is not None]
+    if sum(selectors) > 1:
+        raise ArchledgerError(
+            "Specify only one of --topic, --for-file, --for-record, or --changed."
+        )
 
     def _build_context(
         repo: ArchitectureRepository,
@@ -1273,6 +1287,7 @@ def context_cmd(
             build_context_for_changed,
             build_context_for_file,
             build_context_for_record,
+            build_context_for_topic,
         )
 
         if for_file is not None:
@@ -1292,10 +1307,6 @@ def context_cmd(
             from archledger.storage.source_state import read_source_state
 
             baseline = read_source_state(paths.source_state_path)
-            if baseline is None:
-                raise ArchledgerError(
-                    "No source baseline. Run: archledger source snapshot"
-                )
             current = scan_workspace(paths, config, reason="context-changed")
             changes = diff_source_states(baseline, current)
             changes = resolve_impacts(
@@ -1307,16 +1318,34 @@ def context_cmd(
             return build_context_for_changed(
                 repo, changes, include_body=include_body, max_records=max_records
             )
-        raise ArchledgerError("Specify --for-file, --for-record, or --changed.")
+        if topic is not None:
+            return build_context_for_topic(
+                repo,
+                topic,
+                include_body=include_body,
+                include_draft=include_drafts,
+                include_superseded=include_superseded,
+                max_records=max_records,
+                max_per_category=max_per_category,
+                scope=scope,
+                scope_kind=scope_kind,
+                addon=addon,
+            )
+        raise ArchledgerError(
+            "Specify --topic, --for-file, --for-record, or --changed."
+        )
 
     def _format_context(payload: dict[str, object]) -> str:
         records = payload.get("records", [])
+        categories = payload.get("categories")
+        if isinstance(categories, dict):
+            total = sum(len(v) for v in categories.values() if isinstance(v, list))
+            return f"Topic context: {total} categorized record(s)."
         if isinstance(records, list):
             return f"Context: {len(records)} record(s)."
         return "Context: no records."
 
     _run_configured_command(state, "context", _build_context, _format_context)
-
 
 @app.command("trace")
 def trace_cmd(

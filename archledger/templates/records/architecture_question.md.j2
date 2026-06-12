@@ -1,0 +1,38 @@
+---
+schema_version: 2
+id: {{ id }}
+type: architecture_question
+title: {{ title | tojson }}
+status: {{ status }}
+section: {{ section }}
+order: {{ order }}
+date: {{ date | tojson }}
+question: {{ question | tojson }}
+resolution_status: {{ resolution_status }}
+owner: {{ owner | tojson }}
+decision_due: {{ decision_due | tojson }}
+options: {{ options | tojson }}
+constraints: {{ constraints | tojson }}
+risks: {{ risks | tojson }}
+linked_decision: {{ linked_decision | tojson }}
+body_format: markdown
+created_at: {{ created_at | tojson }}
+updated_at: {{ updated_at | tojson }}
+---
+
+## Question
+
+State the unresolved architecture question.
+
+## Context
+
+Why this question matters now.
+
+## Options
+
+- Option A:
+- Option B:
+
+## Decision needed
+
+What evidence or decision will close this question.

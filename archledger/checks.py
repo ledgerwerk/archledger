@@ -481,6 +481,26 @@ def _body_syntax_warnings(record: ArchitectureRecord) -> list[str]:
     return []
 
 
+def _architecture_question_warnings(record: ArchitectureRecord) -> list[str]:
+    warnings: list[str] = []
+    question = record.metadata.get("question")
+    if not _has_non_empty_text(question):
+        warnings.append(f"Architecture question {record.id} has no question text.")
+    resolution_status = str(record.metadata.get("resolution_status", "open"))
+    valid_statuses = {"open", "answered", "deferred", "obsolete"}
+    if resolution_status not in valid_statuses:
+        warnings.append(
+            f"Architecture question {record.id} has unsupported resolution_status: {resolution_status}"
+        )
+    if resolution_status == "answered":
+        linked = record.metadata.get("linked_decision")
+        if not _has_non_empty_text(linked):
+            warnings.append(
+                f"Architecture question {record.id} is answered but has no linked_decision."
+            )
+    return warnings
+
+
 _CONTENT_WARNING_CHECKERS: dict[str, Callable[[ArchitectureRecord], list[str]]] = {
     "quality_goal": _quality_goal_warnings,
     "stakeholder": _stakeholder_warnings,
@@ -495,4 +515,5 @@ _CONTENT_WARNING_CHECKERS: dict[str, Callable[[ArchitectureRecord], list[str]]] 
     "risk": _risk_warnings,
     "diagram": _diagram_warnings,
     "glossary_term": _glossary_term_warnings,
+    "architecture_question": _architecture_question_warnings,
 }

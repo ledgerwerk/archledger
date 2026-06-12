@@ -163,6 +163,20 @@ def _glossary_term_context(input_data: RecordContextInput) -> dict[str, object]:
     return {"term": input_data.title, "definition": ""}
 
 
+def _architecture_question_context(input_data: RecordContextInput) -> dict[str, object]:
+    return {
+        "question": input_data.title,
+        "resolution_status": "open",
+        "owner": "",
+        "decision_due": "",
+        "options": [],
+        "constraints": [],
+        "risks": [],
+        "linked_decision": "",
+    }
+    return {"term": input_data.title, "definition": ""}
+
+
 def _diagram_context(input_data: RecordContextInput) -> dict[str, object]:
     caption = _string_kwarg(input_data.kwargs, "caption", "")
     return {
@@ -338,6 +352,14 @@ RECORD_TYPE_SPECS = (
         default_section="glossary",
         template_basename="glossary_term",
         context_factory=_glossary_term_context,
+    ),
+    RecordTypeSpec(
+        kind="architecture_question",
+        aliases=("architecture-question", "architecture_question", "question", "aq"),
+        directory="questions",
+        default_section="architecture_decisions",
+        template_basename="architecture_question",
+        context_factory=_architecture_question_context,
     ),
 )
 

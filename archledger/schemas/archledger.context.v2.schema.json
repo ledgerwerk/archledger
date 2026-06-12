@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://archledger.dev/schemas/archledger.context.v2.schema.json",
+  "title": "Archledger topic context pack",
+  "type": "object",
+  "required": ["schema", "query", "summary", "categories", "records"],
+  "properties": {
+    "schema": { "const": "archledger.context.v2" },
+    "query": {
+      "type": "object",
+      "properties": {
+        "topic": { "type": "string" },
+        "for_file": { "type": ["string", "null"] },
+        "for_record": { "type": ["string", "null"] },
+        "changed": { "type": "boolean" },
+        "include_body": { "type": "boolean" },
+        "max_records": { "type": "integer" },
+        "max_per_category": { "type": "integer" },
+        "include_drafts": { "type": "boolean" },
+        "include_superseded": { "type": "boolean" },
+        "scope": { "type": ["string", "null"] },
+        "scope_kind": { "type": ["string", "null"] },
+        "addon": { "type": ["string", "null"] }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "properties": {
+        "records_considered": { "type": "integer" },
+        "records_returned": { "type": "integer" },
+        "categories_returned": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "categories": {
+      "type": "object",
+      "propertyNames": {
+        "enum": ["adrs", "constraints", "glossary_terms", "system_boundaries", "architecture_docs", "risks", "unresolved_questions"]
+      },
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": ["id", "score", "match_reasons", "record"],
+          "properties": {
+            "id": { "type": "string" },
+            "score": { "type": "number" },
+            "match_reasons": { "type": "array", "items": { "type": "string" } },
+            "record": { "type": "object" }
+          }
+        }
+      }
+    },
+    "records": { "type": "array", "items": { "type": "object" } },
+    "warnings": { "type": "array", "items": { "type": "string" } }
+  }
+}
