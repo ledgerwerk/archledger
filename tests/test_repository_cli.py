@@ -1146,7 +1146,7 @@ def test_doctor_repair_creates_tombstone_for_missing_record_number(
 
     assert result.exit_code == 0
     tombstone = (
-        tmp_path / ".archledger" / "archive" / "tombstones" / "content-0013.adoc"
+        tmp_path / ".archledger" / "archive" / "tombstones" / "archive-0013.adoc"
     )
     assert tombstone.is_file()
     payload = json.loads(result.stdout)
@@ -1227,18 +1227,25 @@ def init_project(tmp_path: Path) -> None:
     assert result.exit_code == 0
 
 
-def test_doctor_repair_refuses_after_manual_segment_mode_change(tmp_path: Path) -> None:
+def test_doctor_repair_refuses_legacy_ids_before_migration(tmp_path: Path) -> None:
     init_project(tmp_path)
-    # create some records
-    runner.invoke(app, ["--root", str(tmp_path), "new", "requirement", "A"])
-    runner.invoke(app, ["--root", str(tmp_path), "new", "risk", "B"])
 
-    config_path = tmp_path / "archledger.toml"
-    config_path.write_text(
-        config_path.read_text(encoding="utf-8").replace(
-            'segment_mode = "none"',
-            'segment_mode = "type"',
-        ),
+    # Remove current local-ID files and replace one with legacy form.
+    sections_dir = tmp_path / ".archledger" / "profiles" / "arc42" / "sections"
+    for path in sections_dir.glob("*.adoc"):
+        path.unlink()
+    legacy = sections_dir / "al_0001.adoc"
+    legacy.write_text(
+        "---\n"
+        "schema_version: 2\n"
+        "id: al_0001\n"
+        "type: section\n"
+        "title: Introduction and Goals\n"
+        "status: accepted\n"
+        "section: introduction_and_goals\n"
+        "order: 10\n"
+        "body_format: asciidoc\n"
+        "---\n\nLegacy section.\n",
         encoding="utf-8",
     )
 
@@ -1247,17 +1254,13 @@ def test_doctor_repair_refuses_after_manual_segment_mode_change(tmp_path: Path) 
         ["--root", str(tmp_path), "--json", "doctor", "--repair"],
     )
 
-    assert result.exit_code == 1, result.stdout
+    assert result.exit_code == 1
     payload = json.loads(result.stdout)
     messages = [item["message"] for item in payload["error"]["details"]["errors"]]
-    assert any("ID format mismatch" in message for message in messages)
-    assert any(
-        "renumber --from-id-segment-mode none --id-segment-mode type" in message
-        for message in messages
-    )
+    assert any("migrate ids --to ledgercore --apply" in message for message in messages)
 
     assert not list(
-        (tmp_path / ".archledger" / "archive" / "tombstones").glob("al_archive_*.md")
+        (tmp_path / ".archledger" / "archive" / "tombstones").glob("*.adoc")
     )
 
 

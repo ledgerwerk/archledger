@@ -15,6 +15,7 @@ from archledger.checks import content_warnings
 from archledger.errors import StorageError, ValidationError
 from archledger.id_format_drift import find_id_format_drift
 from archledger.id_segments import identity_kind_for_metadata
+from archledger.identity_detection import detect_identity_format_state
 from archledger.ids import format_local_id, global_ref_for
 from archledger.ledger_sequence import (
     NumberedSourcePath as _NumberedSourcePath,
@@ -638,7 +639,34 @@ class ArchitectureRepository:
                     path=self.paths.archive_dir,
                 )
             )
-
+        if repair:
+            identity_state = detect_identity_format_state(
+                self.paths,
+                self.config,
+                self._known_source_extensions(),
+            )
+            if identity_state.legacy_paths and not identity_state.current_paths:
+                examples = "\n".join(
+                    f"  - {path}" for path in identity_state.legacy_paths[:10]
+                )
+                message = (
+                    "Legacy archledger IDs were found, but no current ledgercore"
+                    " local record IDs were found. Refusing repair because repair"
+                    " would create tombstones against the wrong identity schema."
+                    " Run: archledger migrate ids --to ledgercore --apply first."
+                )
+                if examples:
+                    message += "\nLegacy files:\n" + examples
+                return DoctorResult(
+                    errors=(CheckFinding("error", message, None),),
+                    warnings=(),
+                    repairs=(),
+                    storage_next_number_before=meta_before.next_number,
+                    storage_next_number_after=meta_before.next_number,
+                    highest_seen=0,
+                    missing_numbers=(),
+                    duplicate_numbers=(),
+                )
         if repair:
             drift = find_id_format_drift(
                 self.paths,

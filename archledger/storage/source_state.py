@@ -72,9 +72,10 @@ def source_state_from_json(data: object) -> SourceState:
     )
     files: dict[str, TrackedFile] = {}
     for path, raw_entry in sorted(files_data.items()):
+        candidate_path = path.replace("\\", "/")
         try:
             normalized_path = validate_relative_posix_path(
-                path,
+                candidate_path,
                 field_name="source-state file paths",
             )
         except RelativePosixPathError as exc:

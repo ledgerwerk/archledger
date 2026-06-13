@@ -238,11 +238,11 @@ def test_convert_sources_preserves_v5_tracking_and_build_config(
 
     assert result.exit_code == 0
     migrated_config = config_path.read_text(encoding="utf-8")
-    assert "config_version = 8" in migrated_config
+    assert "config_version = 9" in migrated_config
     assert 'format = "asciidoc"' in migrated_config
     assert 'section_extension = ".adoc"' in migrated_config
     assert 'record_extension = ".adoc"' in migrated_config
-    assert "schema_version = 2" in migrated_config
+    assert "schema_version = 3" in migrated_config
     assert 'default_output = "architecture.adoc"' in migrated_config
     assert 'default_format = "asciidoc"' in migrated_config
     assert 'default_output_dir = "site-build"' in migrated_config

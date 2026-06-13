@@ -113,7 +113,13 @@ def renumber_project(
     source_extensions = known_source_extensions(config)
     numbered_paths = _collect_numbered_paths(paths, source_extensions, old_format)
     if not numbered_paths:
-        raise ValidationError("No source files match the current ledger ID format.")
+        raise ValidationError(
+            "renumber is a legacy command that operates on the old prefix-based "
+            "ID format (e.g. al_0001). The current project uses ledgercore local IDs "
+            "(e.g. content-0001). Use 'archledger migrate ids --to ledgercore --apply' "
+            "for migration from legacy IDs, or 'archledger renumber' is not needed "
+            "for current-format projects."
+        )
 
     rename_plan, id_mapping = _build_rename_plan(numbered_paths, config, new_format)
     _validate_no_target_collisions(rename_plan, paths, config)

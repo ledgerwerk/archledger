@@ -205,7 +205,7 @@ def test_resolve_impacts_reports_linked_records_and_unlinked_files(
 
     assert len(resolved.impacted_records) == 1
     impacted = resolved.impacted_records[0]
-    assert impacted.id == "al_0013"
+    assert impacted.id == "block-0013"
     assert impacted.section == "building_block_view"
     assert impacted.matched_refs == ("src/module.py",)
     assert "building_block_view" in resolved.impacted_sections

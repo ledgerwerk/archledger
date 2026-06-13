@@ -93,6 +93,16 @@ def _normalize_link_entry(
             ],
         )
 
+    if rel not in VALID_LINK_RELS:
+        return (
+            None,
+            [
+                f"Record {record_id} links entry {index} rel {rel!r} "
+                "is not an allowed relationship. "
+                f"Allowed: {', '.join(sorted(VALID_LINK_RELS))}"
+            ],
+        )
+
     if not isinstance(raw_target_kind, str) or not raw_target_kind.strip():
         return (
             None,

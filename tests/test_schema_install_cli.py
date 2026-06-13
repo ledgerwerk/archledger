@@ -88,7 +88,7 @@ def test_install_refuses_overwrite_without_force(tmp_path: Path) -> None:
 
     assert first.exit_code == 0, first.stdout
     assert second.exit_code == 1
-    assert "Refusing to overwrite" in second.stderr
+    assert "Refusing to overwrite" in second.output
     assert forced.exit_code == 0, forced.stdout
 
 

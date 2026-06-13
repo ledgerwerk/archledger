@@ -34,8 +34,9 @@ def _write_tombstone(tmp_path: Path, record_id: str, order: int) -> Path:
 
     path.write_text(
         "---\n"
-        "schema_version: 2\n"
+        "schema_version: 3\n"
         f"id: {record_id}\n"
+        "kind: archive\n"
         "type: archive_tombstone\n"
         f"title: Archived placeholder for missing ledger ID {record_id}\n"
         "status: archived\n"
@@ -47,8 +48,7 @@ def _write_tombstone(tmp_path: Path, record_id: str, order: int) -> Path:
         'updated_at: "2026-06-07T00:00:00Z"\n'
         'archived_at: "2026-06-07T00:00:00Z"\n'
         "archived_reason: Created by test setup.\n"
-        "---\n"
-        "\n"
+        "---\n\n"
         "This tombstone preserves a ledger number.\n"
     )
     return path
@@ -61,8 +61,8 @@ class TestCheckWithArchiveTombstones:
     def test_check_accepts_archive_tombstones(self, tmp_path: Path) -> None:
         init_project(tmp_path)
         # Use IDs 13+ to stay within the project's counter sequence
-        _write_tombstone(tmp_path, "content-0013", 13)
-        _write_tombstone(tmp_path, "content-0014", 14)
+        _write_tombstone(tmp_path, "archive-0013", 13)
+        _write_tombstone(tmp_path, "archive-0014", 14)
 
         result = runner.invoke(app, ["--root", str(tmp_path), "check"])
 
@@ -74,8 +74,8 @@ class TestCheckWithArchiveTombstones:
 
     def test_build_succeeds_with_archive_tombstones(self, tmp_path: Path) -> None:
         init_project(tmp_path)
-        _write_tombstone(tmp_path, "content-0013", 13)
-        _write_tombstone(tmp_path, "content-0014", 14)
+        _write_tombstone(tmp_path, "archive-0013", 13)
+        _write_tombstone(tmp_path, "archive-0014", 14)
 
         result = runner.invoke(
             app,
