@@ -1,7 +1,7 @@
 ---
 title: "archledger Architecture Documentation"
 date: "2026-06-07"
-generator: "archledger 0.2.1.dev3+gaf0af85a8.d20260606"
+generator: "archledger 0.3.1.dev6+g5c58990ed"
 arc42_template_version: "9.0-EN"
 ---
 
@@ -147,7 +147,7 @@ The build pipeline is visualized in the [Build Pipeline Flow diagram](#diagram-a
 
 **Drivers:** Maintainability, Traceability, Reproducibility
 **Constraints:** Markdown or AsciiDoc with YAML front matter as canonical source, No external database dependency, Typer CLI interface
-**Related ADRs:** al_adr_0077, al_adr_0078, al_adr_0079
+**Related ADRs:** adr-0077, adr-0078, adr-0079
 
 ## Strategy
 
@@ -230,17 +230,17 @@ archledger is decomposed into focused black-box building blocks within one white
 - **ID Utilities** (`ids.py`): ID parsing and formatting helpers for ledger-prefixed IDs
 - **Renumber Service** (`renumber.py`): ID migration planning and apply operations across records and links
 - **ID Segment Resolution** (`id_segments.py`): Segment-aware ID routing and section scoping logic
-- **Context and Trace Services** (`context.py`, `trace.py`, `mutations.py`): bounded architecture context, record trace traversal, safe record mutation, and generic references
+- **Specification and Traceability Services** (`sdd.py`, `context.py`, `trace.py`, `mutations.py`, `bdd/`): SDD policy enforcement, bounded agent context, record trace traversal, validated record mutation, and Gherkin/pytest traceability interop
 
 ## Important interfaces
 
-The primary interface is the CLI (`archledger` console script). The CLI delegates to `cli_payloads.py` for JSON output construction and `cli_formatting.py` for human-readable messages. Internally, the Repository exposes source-model operations used by the CLI and context/trace services, and delegates persistence to Storage. Config parsing is handled by the Config Layer independently from Storage. The Render Layer delegates to Assembly and Converters. Source Tracking feeds `source changed` and focused context queries. Context, trace, and mutation modules remain domain services; the CLI owns command gating and presentation.
+The primary interface is the CLI (`archledger` console script). The CLI delegates to `cli_payloads.py` for JSON output construction and `cli_formatting.py` for human-readable messages. Internally, the Repository exposes source-model operations used by the CLI and specification services, and delegates persistence to Storage. Config parsing is handled by the Config Layer independently from Storage. The Render Layer delegates to Assembly and Converters. Source Tracking feeds `source changed`, focused context queries, and the SDD pull-request gate. SDD, context, trace, mutation, and BDD modules remain domain services; the CLI owns command gating and presentation.
 
 ### Level 1
 
 #### CLI Layer
 
-**Parent:** al_block_0041
+**Parent:** block-0041
 **Interfaces:** archledger console script (stdin/stdout)
 **Location:** archledger/cli.py, archledger/cli_formatting.py, archledger/cli_payloads.py, archledger/launcher.py
 
@@ -256,7 +256,7 @@ The `source snapshot` and `source changed` commands integrate the source trackin
 
 #### Repository Layer
 
-**Parent:** al_block_0041
+**Parent:** block-0041
 **Interfaces:** create_record(), list_records(), get_record(), load_all_records(), check(), init(), status()
 **Location:** archledger/repository.py
 
@@ -266,7 +266,7 @@ Record ID allocation uses `ProjectConfig.id_format` to format the next number wi
 
 #### Render Layer
 
-**Parent:** al_block_0041
+**Parent:** block-0041
 **Interfaces:** build_document()
 **Location:** archledger/render.py
 
@@ -274,7 +274,7 @@ The render module (`render.py`) is a thin facade that orchestrates the build pip
 
 #### Storage Layer
 
-**Parent:** al_block_0041
+**Parent:** block-0041
 **Interfaces:** read_text() / write_text(), read_markdown_front_matter(), resolve_project_paths(), read_source_state() / write_source_state()
 **Location:** archledger/storage/common.py, archledger/storage/frontmatter.py, archledger/storage/meta.py, archledger/storage/paths.py, archledger/storage/source_state.py
 
@@ -282,7 +282,7 @@ The storage subpackage handles all file system I/O. `paths.py` discovers the pro
 
 #### Model Layer
 
-**Parent:** al_block_0041
+**Parent:** block-0041
 **Interfaces:** ArchitectureRecord dataclass, SourceRef dataclass, validate_record(), filename_for(), record_sort_key(), normalize_kind()
 **Location:** archledger/model.py, archledger/errors.py
 
@@ -290,7 +290,7 @@ The model module defines the core data structures and validation rules. `Archite
 
 #### Assembly Layer
 
-**Parent:** al_block_0041
+**Parent:** block-0041
 **Interfaces:** assemble_document(), assemble_asciidoc_document()
 **Location:** archledger/assembly.py
 
@@ -298,7 +298,7 @@ The assembly module loads all records from the repository, groups them by arc42 
 
 #### Dialect Layer
 
-**Parent:** al_block_0041
+**Parent:** block-0041
 **Interfaces:** get_dialect(), Dialect base class, MarkdownDialect / AsciiDocDialect
 **Location:** archledger/dialects.py
 
@@ -306,7 +306,7 @@ The dialects module provides a format-neutral abstraction for document rendering
 
 #### Section Rendering Layer
 
-**Parent:** al_block_0041
+**Parent:** block-0041
 **Interfaces:** section_body(), building_block_hierarchy(), adr_sections(), quality_scenarios(), risk_table(), glossary_table(), (and other per-type renderers)
 **Location:** archledger/section_rendering.py
 
@@ -314,7 +314,7 @@ The section rendering module contains all per-record-type rendering functions. E
 
 #### Converter Layer
 
-**Parent:** al_block_0041
+**Parent:** block-0041
 **Interfaces:** convert_assembled_document()
 **Location:** archledger/converters.py, archledger/conversion_plan.py, archledger/formats.py
 
@@ -324,7 +324,7 @@ Conversion planning is handled by `conversion_plan.py`, which produces a `Conver
 
 #### Source Tracking Layer
 
-**Parent:** al_block_0041
+**Parent:** block-0041
 **Interfaces:** scan_workspace(), diff_source_states(), resolve_impacts()
 **Location:** archledger/source_tracking.py, archledger/storage/source_state.py
 
@@ -334,7 +334,7 @@ The storage sub-module (`storage/source_state.py`) handles JSON serialization an
 
 #### Migration Layer
 
-**Parent:** al_block_0041
+**Parent:** block-0041
 **Interfaces:** convert_sources()
 **Location:** archledger/migration.py
 
@@ -342,7 +342,7 @@ The migration module converts source fragments from one dialect to another. Curr
 
 #### Config Layer
 
-**Parent:** al_block_0041
+**Parent:** block-0041
 **Interfaces:** load_project_config(), build_default_project_config(), render_project_config(), ProjectConfig dataclass
 **Location:** archledger/config/**init**.py, archledger/config/model.py, archledger/config/parse.py, archledger/config/render.py
 
@@ -358,7 +358,7 @@ The `[ids]` section (config version 7+) configures the ledger ID format: `prefix
 
 #### Record Type Registry
 
-**Parent:** al_block_0041
+**Parent:** block-0041
 **Interfaces:** RECORD_TYPES registry, CLI_KIND_ALIASES, RecordTypeSpec dataclass
 **Location:** archledger/record_types.py
 
@@ -370,7 +370,7 @@ This module was extracted from `model.py` to keep the model focused on data stru
 
 #### Check Layer
 
-**Parent:** al_block_0041
+**Parent:** block-0041
 **Interfaces:** content_warnings()
 **Location:** archledger/checks.py
 
@@ -382,7 +382,7 @@ This module was extracted from `repository.py` to isolate validation logic.
 
 #### Source Ref Validation
 
-**Parent:** al_block_0041
+**Parent:** block-0041
 **Interfaces:** normalize_source_refs(), validate_relative_posix_path()
 **Location:** archledger/source_refs.py
 
@@ -390,7 +390,7 @@ The `source_refs.py` module handles validation and normalization of source trace
 
 #### ID Utilities
 
-**Parent:** al_block_0041
+**Parent:** block-0041
 **Interfaces:** LedgerIdFormat.format(), LedgerIdFormat.parse(), LedgerIdFormat.parse_parts(), LedgerIdFormat.is_id(), LedgerIdFormat.pattern(), LedgerIdFormat.reference_pattern(), format_ledger_id(), parse_ledger_id(), parse_ledger_id_parts(), is_ledger_id(), filename_for_ledger_id(), ledger_id_from_filename(), validate_id_prefix(), validate_id_width(), validate_id_segment_mode(), validate_id_segment()
 **Location:** archledger/ids.py
 
@@ -398,7 +398,7 @@ The `ids` module provides centralized ledger ID handling with configurable prefi
 
 **Unsegmented mode** (`segment_mode=none`, default): IDs follow `<prefix>_<number>` (e.g., `al_0001`). `format(number)` produces the zero-padded string, `parse(id)` extracts the number, and `pattern()`/`reference_pattern()` produce regexes for exact matching and cross-reference detection respectively.
 
-**Segmented mode** (`segment_mode=type`): IDs follow `<prefix>_<segment>_<number>` (e.g., `al_adr_0077`). `format(number, segment=...)` includes the validated segment token, and `parse_parts()` returns a `ParsedLedgerId` with both `number` and `segment` fields.
+**Segmented mode** (`segment_mode=type`): IDs follow `<prefix>_<segment>_<number>` (e.g., `adr-0077`). `format(number, segment=...)` includes the validated segment token, and `parse_parts()` returns a `ParsedLedgerId` with both `number` and `segment` fields.
 
 Module-level convenience functions (`format_ledger_id`, `parse_ledger_id`, `is_ledger_id`, etc.) accept optional `prefix`, `width`, and `segment_mode` parameters for callers that need ad-hoc format handling. Validators (`validate_id_prefix`, `validate_id_width`, `validate_id_segment_mode`, `validate_id_segment`) enforce format constraints shared across config parsing, CLI validation, and record checks.
 
@@ -406,7 +406,7 @@ The `LedgerIdFormat` instance is constructed from `ProjectConfig.id_format` and 
 
 #### Renumber Service
 
-**Parent:** al_block_0041
+**Parent:** block-0041
 **Interfaces:** renumber_project()
 **Location:** archledger/renumber.py
 
@@ -420,7 +420,7 @@ Key data structures: `RenumberResult` (top-level result with old/new format, ren
 
 #### ID Segment Resolution
 
-**Parent:** al_block_0041
+**Parent:** block-0041
 **Interfaces:** id_segment_for_metadata(), id_segment_for_record(), id_segment_for_new_record()
 **Location:** archledger/id_segments.py
 
@@ -438,10 +438,10 @@ This module is intentionally thin — it isolates the resolution policy so that 
 
 #### Specification and traceability services
 
-**Parent:** al_block_0041
+**Parent:** block-0041
 **Interfaces:**
 **Location:**
-**Fulfilled requirements:** al_content_0136, al_content_0137, al_content_0138
+**Fulfilled requirements:** content-0136, content-0137, content-0138
 
 This logical subsystem turns architecture records into enforceable,
 agent-consumable specifications.
@@ -451,8 +451,10 @@ agent-consumable specifications.
 - **Context service** selects bounded record sets from a file, record, or source
   drift query.
 - **Trace service** traverses links and evidence around a record.
-- **BDD service** parses a constrained Gherkin subset and imports or exports
-  behavior metadata without executing test runners.
+- **BDD service** parses a constrained Gherkin subset, imports or exports
+  behavior metadata, links SpecWeave-owned feature files through `source_refs`,
+  links plain pytest enforcement through `test_refs`, and never executes test
+  runners.
 - **Mutation service** updates status, metadata, bodies, links, references, and
   acceptance criteria while reusing repository validation.
 
@@ -555,7 +557,7 @@ delegate to pandoc or asciidoctor.
 4. CLI writes the config file and resolves project paths.
 5. Repository creates the archledger_dir, sections_dir, records_dir, and build_dir.
 6. Repository creates one subdirectory for each unique record type directory from `RECORD_TYPE_TO_DIR` (currently 16 directories).
-7. Repository writes 12 section files named with the configured ledger ID format and section extension, for example `al_0001.adoc` in unsegmented AsciiDoc projects or `al_content_0001.md` in segmented Markdown projects.
+7. Repository writes 12 section files named with the configured ledger ID format and section extension, for example `al_0001.adoc` in unsegmented AsciiDoc projects or `content-0001.md` in segmented Markdown projects.
 8. Repository writes the storage.yaml metadata file.
 9. The project is ready for `archledger new` commands. Record creation will use the configured ID format (prefix, width, segment mode).
 
@@ -904,7 +906,7 @@ Format: `<prefix>_<number>` (e.g., `al_0001`). The prefix defaults to `al` and w
 
 ### Segmented mode (`segment_mode=type`)
 
-Format: `<prefix>_<segment>_<number>` (e.g., `al_adr_0077`, `al_block_0042`). The segment is derived from the record's `type` field via the configured `segment_map`, with an explicit `id_segment` override in front matter, falling back to `default_segment`.
+Format: `<prefix>_<segment>_<number>` (e.g., `adr-0077`, `block-0042`). The segment is derived from the record's `type` field via the configured `segment_map`, with an explicit `id_segment` override in front matter, falling back to `default_segment`.
 
 ### Resolution chain
 
@@ -1184,7 +1186,7 @@ Repair/recount operations can restore consistency without data loss.
 **Date:** 2026-05-22
 **Deciders:** archledger maintainers
 **Supersedes:**
-**Related:** al_adr_0082
+**Related:** adr-0082
 
 ## Context
 
@@ -1291,7 +1293,7 @@ In projects with many records (50+), flat `al_NNNN` numbering makes it hard to i
 
 ## Decision
 
-When `segment_mode=type`, ledger IDs include a type-derived segment token: `<prefix>_<segment>_<number>` (e.g., `al_adr_0077`, `al_block_0042`). The segment is resolved deterministically from the record's `type` metadata via the configured `segment_map`, with an explicit `id_segment` front-matter field as an override, and `default_segment` as fallback.
+When `segment_mode=type`, ledger IDs include a type-derived segment token: `<prefix>_<segment>_<number>` (e.g., `adr-0077`, `block-0042`). The segment is resolved deterministically from the record's `type` metadata via the configured `segment_map`, with an explicit `id_segment` front-matter field as an override, and `default_segment` as fallback.
 
 Segment tokens are validated against `^[a-z][a-z0-9-]{1,31}$`. The default segment map maps each record type to a short token (e.g., `adr` → `adr`, `white_box` → `block`, `runtime_scenario` → `runtime`).
 
@@ -1299,8 +1301,8 @@ The global numeric sequence is preserved: numbering remains sequential across al
 
 ## Consequences
 
-- IDs become self-describing: `al_adr_0077` is clearly an architecture decision.
-- File names sort predictably within type directories (e.g., `.archledger/records/decisions/al_adr_0077.md`).
+- IDs become self-describing: `adr-0077` is clearly an architecture decision.
+- File names sort predictably within type directories (e.g., `.archledger/records/decisions/adr-0077.md`).
 - Cross-references in record bodies update correctly during renumber.
 - The `none` segment mode preserves backward compatibility for projects that prefer flat numbering.
 
@@ -1315,14 +1317,14 @@ The top quality scenarios address deterministic builds and agent-friendly CLI in
 
 ## Quality Requirements Overview
 
-| Title                                      | Category      | Measure                                                                         | Scenarios                        |
-| ------------------------------------------ | ------------- | ------------------------------------------------------------------------------- | -------------------------------- |
-| Deterministic native build output          | reliability   | Byte-identical output for equal accepted records and deterministic date source. | al_quality_0093, al_quality_0101 |
-| Fast check and build on small repositories | performance   | check/build complete in under 5s on representative small repositories.          | al_quality_0101                  |
-| Safe path validation                       | safety        | Path escape attempts are rejected with explicit errors.                         | al_quality_0099                  |
-| Clear converter failure diagnostics        | operability   | Converter failures identify missing tool and installation hint.                 | al_quality_0095                  |
-| JSON output stability                      | compatibility | JSON payload keys for stable commands remain backward compatible.               | al_quality_0100                  |
-| Source tracking correctness                | correctness   | Source tracking reports file and impact deltas accurately.                      | al_quality_0097                  |
+| Title                                      | Category      | Measure                                                                         | Scenarios                  |
+| ------------------------------------------ | ------------- | ------------------------------------------------------------------------------- | -------------------------- |
+| Deterministic native build output          | reliability   | Byte-identical output for equal accepted records and deterministic date source. | quality-0093, quality-0101 |
+| Fast check and build on small repositories | performance   | check/build complete in under 5s on representative small repositories.          | quality-0101               |
+| Safe path validation                       | safety        | Path escape attempts are rejected with explicit errors.                         | quality-0099               |
+| Clear converter failure diagnostics        | operability   | Converter failures identify missing tool and installation hint.                 | quality-0095               |
+| JSON output stability                      | compatibility | JSON payload keys for stable commands remain backward compatible.               | quality-0100               |
+| Source tracking correctness                | correctness   | Source tracking reports file and impact deltas accurately.                      | quality-0097               |
 
 ## Quality Scenarios
 

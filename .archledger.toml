@@ -1,19 +1,20 @@
 # Project-local archledger configuration.
 # This file lives in the source project root.
-config_version = 8
+config_version = 9
 archledger_dir = ".archledger"
 
 # Stable project identity. Commit this with your source tree.
 project_uuid = "6bddbb56-b273-4aae-9860-bfa4de93f115"
 project_name = "archledger"
 
-[ids]
-prefix = "al"
-width = 4
-segment_mode = "type"
-default_segment = "content"
+[ledger]
+code = "al"
+name = "archledger"
 
-[ids.segment_map]
+[ids]
+width = 4
+
+[ids.kind_map]
 acceptance_criterion = "ac"
 adr = "adr"
 archive_tombstone = "archive"
@@ -60,7 +61,6 @@ reference_docx = ""
 [profiles]
 enabled = [
   "arc42",
-  "sdd",
 ]
 default = "arc42"
 
@@ -70,14 +70,6 @@ template = "arc42"
 sections_dir = "profiles/arc42/sections"
 build_template = "arc42_document"
 include_help = false
-
-[profiles.sdd]
-kind = "contract"
-require_acceptance_criteria = true
-require_implementation_refs = true
-require_test_refs = true
-require_bdd_gwt_for_behavior_records = true
-require_bdd_automation_for_accepted_records = false
 
 [diagrams]
 enabled = true

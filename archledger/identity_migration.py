@@ -63,6 +63,15 @@ def migrate_identity(
     meta_before = read_storage_meta(paths.storage_meta_path)
 
     if apply:
+        # Rewrite cross-record references before renaming any source file.
+        #
+        # The rewrite plan is built from the pre-migration path set.  Applying it
+        # after renames recreates the old filenames with rewritten front matter,
+        # leaving duplicate source files such as both ``al_content_0001.md`` and
+        # ``content-0001.md``.  Apply global text rewrites first, then perform the
+        # canonical metadata/body write, then rename the source files.
+        for item in rewrite_plan:
+            item.path.write_text(item.new_text, encoding="utf-8")
         for old_id, new_id, path in numbered:
             metadata, body = read_front_matter_document(path)
             metadata = _rewrite_metadata(metadata, old_id, new_id, id_mapping)
@@ -72,8 +81,6 @@ def migrate_identity(
             if old_id == new_id:
                 continue
             path.rename(path.with_name(f"{new_id}{path.suffix}"))
-        for item in rewrite_plan:
-            item.path.write_text(item.new_text, encoding="utf-8")
 
         new_config = dataclass_replace(
             config,

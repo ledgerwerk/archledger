@@ -41,29 +41,41 @@ def test_migrate_ids_converts_legacy_segmented_record(tmp_path: Path) -> None:
     )
     assert init.exit_code == 0, init.stdout
 
-    old_file = tmp_path / ".archledger" / "records" / "decisions" / "adr-0013.md"
+    old_file = tmp_path / ".archledger" / "records" / "decisions" / "al_adr_0013.md"
     old_file.write_text(
         "\n".join(
             [
                 "---",
-                "schema_version: 2",
-                "id: adr-0013",
+                "schema_version: 3",
+                "id: al_adr_0013",
+                "kind: adr",
                 "type: adr",
                 "title: Legacy ADR",
                 "status: accepted",
                 "section: architecture_decisions",
+                'date: "2026-01-01"',
+                "body_format: markdown",
                 "order: 10",
                 "---",
                 "",
-                "Legacy body",
+                "## Context",
+                "",
+                "Legacy body links to al_adr_0013.",
+                "",
+                "## Decision",
+                "",
+                "Use the canonical local ID.",
+                "",
+                "## Consequences",
+                "",
+                "References are rewritten.",
                 "",
             ]
         ),
         encoding="utf-8",
     )
     new_file = tmp_path / ".archledger" / "records" / "decisions" / "adr-0013.md"
-    if new_file.exists():
-        new_file.unlink()
+    assert not new_file.exists()
 
     migrated = runner.invoke(
         app,
@@ -82,9 +94,11 @@ def test_migrate_ids_converts_legacy_segmented_record(tmp_path: Path) -> None:
     payload = json.loads(migrated.stdout)["result"]
     assert payload["migrated_count"] >= 1
     assert new_file.is_file()
+    assert not old_file.exists()
     migrated_text = new_file.read_text(encoding="utf-8")
     assert "id: adr-0013" in migrated_text
     assert "kind: adr" in migrated_text
+    assert "Legacy body links to adr-0013." in migrated_text
 
 
 def test_read_json_exposes_kind_and_ref(tmp_path: Path) -> None:

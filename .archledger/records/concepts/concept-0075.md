@@ -1,0 +1,32 @@
+---
+schema_version: 2
+id: concept-0075
+type: concept
+title: Multi-type diagram records
+status: accepted
+section: cross_cutting_concepts
+order: 50
+date: "2026-05-22"
+applies_to:
+  - Record Type Registry
+  - Check Layer
+  - Config Layer
+  - Assembly Layer
+body_format: markdown
+created_at: "2026-05-22T07:07:32Z"
+updated_at: "2026-05-22T21:45:00Z"
+source_refs:
+  - archledger/record_types.py
+  - archledger/checks.py
+  - archledger/templates/records/diagram.md.j2
+  - archledger/templates/records/diagram.adoc.j2
+kind: concept
+---
+
+Diagram records support five types: `text`, `ascii`, `unicode`, `svgbob`, and `mermaid`. The default type is `text`, configured via `[diagrams].default_type` in `archledger.toml` and overridable per-record with `--diagram-type` on the CLI.
+
+Text-based types (`text`, `ascii`, `unicode`) store diagram content as plain text in fenced Markdown blocks (` ```textdiagram `) or AsciiDoc literal blocks (`[source,text]` + `----`). They render directly in native builds without external tools, are readable in Git diffs and terminals, and are validated with a 120-character line-length limit.
+
+`svgbob` uses the svgbob markup syntax in dedicated fenced/literal blocks. `mermaid` uses Mermaid syntax in dedicated fenced/literal blocks and requires an external renderer (`mermaid-cli` or `asciidoctor-diagram`) for image output. Three diagram renderers are supported: `pass-through` (default, embeds source as-is), `mermaid-cli`, and `asciidoctor-diagram`.
+
+The Check Layer validates diagram type against the allowed set, verifies that the body contains the correct block syntax for the declared type and dialect, checks for empty blocks, and enforces line-length limits on text diagrams. Templates produce type-appropriate scaffolding when creating new diagram records.
