@@ -28,7 +28,7 @@ def test_convert_sources_requires_write_for_mutation(tmp_path: Path) -> None:
     assert "Planned" in result.stdout
     assert "Re-run with --apply" in result.stdout
     assert not (
-        tmp_path / ".archledger" / "records" / "requirements" / "al_0013.adoc"
+        tmp_path / ".archledger" / "records" / "requirements" / "content-0013.adoc"
     ).exists()
 
 
@@ -58,7 +58,7 @@ def test_convert_sources_write_requires_pandoc_unless_mixed_is_allowed(
     assert "pandoc" in result.output.lower()
     assert "allow-mixed-body-format" in result.output
     assert not (
-        tmp_path / ".archledger" / "records" / "requirements" / "al_0013.adoc"
+        tmp_path / ".archledger" / "records" / "requirements" / "content-0013.adoc"
     ).exists()
 
 
@@ -95,7 +95,7 @@ def test_convert_sources_allow_mixed_body_format_without_pandoc(
 
     assert result.exit_code == 0
     migrated_path = (
-        tmp_path / ".archledger" / "records" / "requirements" / "al_0013.adoc"
+        tmp_path / ".archledger" / "records" / "requirements" / "content-0013.adoc"
     )
     assert migrated_path.is_file()
     migrated_text = migrated_path.read_text(encoding="utf-8")
@@ -152,7 +152,7 @@ def test_convert_sources_uses_pandoc_when_available(
     assert result.exit_code == 0
     assert seen_commands
     migrated_text = (
-        tmp_path / ".archledger" / "records" / "requirements" / "al_0013.adoc"
+        tmp_path / ".archledger" / "records" / "requirements" / "content-0013.adoc"
     ).read_text(encoding="utf-8")
     assert "body_format: asciidoc" in migrated_text
     assert "Converted body" in migrated_text
@@ -306,10 +306,10 @@ def test_convert_sources_replace_removes_markdown_files(
 
     assert result.exit_code == 0
     assert not (
-        tmp_path / ".archledger" / "records" / "requirements" / "al_0013.md"
+        tmp_path / ".archledger" / "records" / "requirements" / "content-0013.md"
     ).exists()
     assert (
-        tmp_path / ".archledger" / "records" / "requirements" / "al_0013.adoc"
+        tmp_path / ".archledger" / "records" / "requirements" / "content-0013.adoc"
     ).is_file()
 
 

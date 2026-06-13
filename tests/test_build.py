@@ -35,11 +35,13 @@ def test_build_generates_all_arc42_major_sections(tmp_path: Path) -> None:
 
 def test_build_includes_structured_arc42_sections(tmp_path: Path) -> None:
     init_project(tmp_path)
-    runner.invoke(
+    # Create parent building block and capture its ID
+    parent_result = runner.invoke(
         app,
         [
             "--root",
             str(tmp_path),
+            "--json",
             "new",
             "white-box",
             "Overall System",
@@ -47,6 +49,7 @@ def test_build_includes_structured_arc42_sections(tmp_path: Path) -> None:
             "accepted",
         ],
     )
+    parent_id = json.loads(parent_result.stdout)["result"]["id"]
     runner.invoke(
         app,
         [
@@ -140,7 +143,7 @@ def test_build_includes_structured_arc42_sections(tmp_path: Path) -> None:
             "--status",
             "accepted",
             "--parent",
-            "al_0013",
+            parent_id,
         ],
     )
 
@@ -293,7 +296,9 @@ def test_build_uses_latest_record_metadata_date_when_epoch_not_set(
             "accepted",
         ],
     )
-    record_path = tmp_path / ".archledger" / "records" / "requirements" / "al_0013.adoc"
+    record_path = (
+        tmp_path / ".archledger" / "records" / "requirements" / "content-0013.adoc"
+    )
     lines = record_path.read_text(encoding="utf-8").splitlines()
     updated_lines: list[str] = []
     for line in lines:

@@ -1223,7 +1223,7 @@ def changed(
             include_draft=visibility.include_drafts,
             include_superseded=visibility.include_superseded,
         )
-        payload = _changed_payload(paths, changes)
+        payload = _changed_payload(paths, changes, config)
         if fail_on_unlinked and changes.unlinked_changed_files:
             raise ArchledgerError(
                 f"{len(changes.unlinked_changed_files)} unlinked changed file(s).",
@@ -1364,11 +1364,19 @@ def context_cmd(
 
         if for_file is not None:
             return build_context_for_file(
-                repo, for_file, include_body=include_body, max_records=max_records
+                repo,
+                for_file,
+                config,
+                include_body=include_body,
+                max_records=max_records,
             )
         if for_record is not None:
             return build_context_for_record(
-                repo, for_record, include_body=include_body, max_records=max_records
+                repo,
+                for_record,
+                config,
+                include_body=include_body,
+                max_records=max_records,
             )
         if changed:
             from archledger.source_tracking import (
@@ -1388,12 +1396,17 @@ def context_cmd(
                 include_superseded=False,
             )
             return build_context_for_changed(
-                repo, changes, include_body=include_body, max_records=max_records
+                repo,
+                changes,
+                config,
+                include_body=include_body,
+                max_records=max_records,
             )
         if topic is not None:
             return build_context_for_topic(
                 repo,
                 topic,
+                config,
                 include_body=include_body,
                 include_draft=include_drafts,
                 include_superseded=include_superseded,
@@ -1436,10 +1449,10 @@ def trace_cmd(
         paths: ProjectPaths,
         config: ProjectConfig,
     ) -> dict[str, object]:
-        del paths, config
+        del paths
         from archledger.trace import build_trace
 
-        trace_payload = build_trace(repo, record_id)
+        trace_payload = build_trace(repo, record_id, config)
         if output_format == "combo-json":
             from archledger.combo_trace import build_combo_trace
 

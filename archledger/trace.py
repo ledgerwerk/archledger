@@ -8,13 +8,22 @@ Which risks remain open?
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from archledger.model import ArchitectureRecord
 from archledger.repository import ArchitectureRepository
 
+if TYPE_CHECKING:
+    from archledger.config.model import ProjectConfig
 
-def build_trace(repo: ArchitectureRepository, record_id: str) -> dict[str, Any]:
+from archledger.ids import ref_for
+
+
+def build_trace(
+    repo: ArchitectureRepository,
+    record_id: str,
+    config: ProjectConfig | None = None,
+) -> dict[str, Any]:
     records = repo.load_all_records(include_sections=True)
     by_id = {r.id: r for r in records}
 
@@ -101,12 +110,13 @@ def build_trace(repo: ArchitectureRepository, record_id: str) -> dict[str, Any]:
             "title": root.title,
             "status": root.status,
             "metadata": dict(root.metadata),
+            **({"ref": ref_for(root, config)} if config is not None else {}),
         },
-        "requirements": [_record_ref(r) for r in requirements],
-        "acceptance_criteria": [_record_ref(r) for r in acceptance_criteria],
-        "decisions": [_record_ref(r) for r in decisions],
-        "constraints": [_record_ref(r) for r in constraints],
-        "risks": [_record_ref(r) for r in risks],
+        "requirements": [_record_ref(r, config) for r in requirements],
+        "acceptance_criteria": [_record_ref(r, config) for r in acceptance_criteria],
+        "decisions": [_record_ref(r, config) for r in decisions],
+        "constraints": [_record_ref(r, config) for r in constraints],
+        "risks": [_record_ref(r, config) for r in risks],
         "source_refs": source_refs,
         "test_refs": test_refs,
         "incoming_links": incoming,
@@ -114,8 +124,18 @@ def build_trace(repo: ArchitectureRepository, record_id: str) -> dict[str, Any]:
     }
 
 
-def _record_ref(r: ArchitectureRecord) -> dict[str, Any]:
-    return {"id": r.id, "type": r.type, "title": r.title, "status": r.status}
+def _record_ref(
+    r: ArchitectureRecord, config: ProjectConfig | None = None
+) -> dict[str, Any]:
+    result: dict[str, Any] = {
+        "id": r.id,
+        "type": r.type,
+        "title": r.title,
+        "status": r.status,
+    }
+    if config is not None:
+        result["ref"] = ref_for(r, config)
+    return result
 
 
 def _categorize(

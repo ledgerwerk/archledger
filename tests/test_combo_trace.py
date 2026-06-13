@@ -19,13 +19,13 @@ def test_combo_trace_empty_arrays_for_missing_fields() -> None:
     payload = build_combo_trace(
         {
             "schema": "archledger.trace.v1",
-            "root": {"id": "al_runtime_0123", "status": "accepted"},
+            "root": {"id": "runtime-0123", "status": "accepted"},
         }
     )
 
     assert payload["schema"] == "combi.trace.v1"
     assert payload["producer"] == "archledger"
-    assert payload["subject"] == {"type": "archledger_record", "id": "al_runtime_0123"}
+    assert payload["subject"] == {"type": "archledger_record", "id": "runtime-0123"}
     assert payload["task_ids"] == []
     assert payload["ac_ids"] == []
     assert payload["source_refs"] == []
@@ -39,7 +39,7 @@ def test_combo_trace_extracts_refs_from_trace_payload() -> None:
         {
             "schema": "archledger.trace.v1",
             "root": {
-                "id": "al_runtime_0123",
+                "id": "runtime-0123",
                 "status": "accepted",
                 "metadata": {
                     "task_id": "task-0037",

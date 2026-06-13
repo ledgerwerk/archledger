@@ -61,8 +61,8 @@ class TestCheckWithArchiveTombstones:
     def test_check_accepts_archive_tombstones(self, tmp_path: Path) -> None:
         init_project(tmp_path)
         # Use IDs 13+ to stay within the project's counter sequence
-        _write_tombstone(tmp_path, "al_0013", 13)
-        _write_tombstone(tmp_path, "al_0014", 14)
+        _write_tombstone(tmp_path, "content-0013", 13)
+        _write_tombstone(tmp_path, "content-0014", 14)
 
         result = runner.invoke(app, ["--root", str(tmp_path), "check"])
 
@@ -74,8 +74,8 @@ class TestCheckWithArchiveTombstones:
 
     def test_build_succeeds_with_archive_tombstones(self, tmp_path: Path) -> None:
         init_project(tmp_path)
-        _write_tombstone(tmp_path, "al_0013", 13)
-        _write_tombstone(tmp_path, "al_0014", 14)
+        _write_tombstone(tmp_path, "content-0013", 13)
+        _write_tombstone(tmp_path, "content-0014", 14)
 
         result = runner.invoke(
             app,

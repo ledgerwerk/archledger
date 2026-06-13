@@ -83,7 +83,7 @@ def test_all_markdown_templates_include_schema_version_date_body_format() -> Non
     template_root = Path("archledger/templates/records")
     env = Environment(loader=PackageLoader("archledger", "templates"))
     common_vars = dict(
-        id="al_0001",
+        id="content-0001",
         title="Test",
         status="draft",
         section="context_and_scope",
@@ -92,7 +92,7 @@ def test_all_markdown_templates_include_schema_version_date_body_format() -> Non
         body_format="markdown",
         created_at="2024-01-01",
         updated_at="2024-01-01",
-        schema_version=2,
+        schema_version=3,
         # Extra metadata fields some templates reference
         level=1,
         parent="",
@@ -124,7 +124,7 @@ def test_all_markdown_templates_include_schema_version_date_body_format() -> Non
         tmpl_name = path.relative_to("archledger/templates").as_posix()
         tmpl = env.get_template(tmpl_name)
         rendered = tmpl.render(type=path.stem.split(".")[0], **common_vars)
-        assert "schema_version: 2" in rendered, path.name
+        assert "schema_version: 3" in rendered, path.name
         assert "body_format: markdown" in rendered, path.name
 
 
@@ -132,7 +132,7 @@ def test_all_asciidoc_templates_include_schema_version_date_body_format() -> Non
     template_root = Path("archledger/templates/records")
     env = Environment(loader=PackageLoader("archledger", "templates"))
     common_vars = dict(
-        id="al_0001",
+        id="content-0001",
         title="Test",
         status="draft",
         section="context_and_scope",
@@ -141,7 +141,7 @@ def test_all_asciidoc_templates_include_schema_version_date_body_format() -> Non
         body_format="asciidoc",
         created_at="2024-01-01",
         updated_at="2024-01-01",
-        schema_version=2,
+        schema_version=3,
         # Extra metadata fields some templates reference
         level=1,
         parent="",
@@ -173,7 +173,7 @@ def test_all_asciidoc_templates_include_schema_version_date_body_format() -> Non
         tmpl_name = path.relative_to("archledger/templates").as_posix()
         tmpl = env.get_template(tmpl_name)
         rendered = tmpl.render(type=path.stem.split(".")[0], **common_vars)
-        assert "schema_version: 2" in rendered, path.name
+        assert "schema_version: 3" in rendered, path.name
         assert "body_format: asciidoc" in rendered, path.name
 
 
@@ -198,7 +198,12 @@ def test_section_templates_include_schema_version_date_body_format(
     )
 
     markdown_section = (
-        markdown_root / ".archledger" / "profiles" / "arc42" / "sections" / "al_0001.md"
+        markdown_root
+        / ".archledger"
+        / "profiles"
+        / "arc42"
+        / "sections"
+        / "content-0001.md"
     ).read_text(encoding="utf-8")
     asciidoc_section = (
         asciidoc_root
@@ -206,14 +211,14 @@ def test_section_templates_include_schema_version_date_body_format(
         / "profiles"
         / "arc42"
         / "sections"
-        / "al_0001.adoc"
+        / "content-0001.adoc"
     ).read_text(encoding="utf-8")
 
     for text, body_format in (
         (markdown_section, "markdown"),
         (asciidoc_section, "asciidoc"),
     ):
-        assert "schema_version: 2" in text
+        assert "schema_version: 3" in text
         assert 'date: "' in text
         assert f"body_format: {body_format}" in text
         assert 'created_at: "' in text

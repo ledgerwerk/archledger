@@ -9,11 +9,11 @@ from archledger.ids import (
     DEFAULT_ID_PREFIX,
     DEFAULT_ID_SEGMENT_MODE,
     DEFAULT_ID_WIDTH,
-    DEFAULT_LEDGER_CODE,
     LedgerIdFormat,
     format_ledger_id,
     format_local_id,
     global_ref_for,
+    ref_for,
 )
 from archledger.migration import MigrationResult
 from archledger.model import (
@@ -51,16 +51,14 @@ T = TypeVar("T")
 
 def _record_identity(
     record: ArchitectureRecord,
-    *,
-    ledger_code: str = DEFAULT_LEDGER_CODE,
-    id_width: int = DEFAULT_ID_WIDTH,
+    config: ProjectConfig,
 ) -> dict[str, object]:
     """Core identity fields shared by most record payloads."""
     return {
         "id": record.id,
         "kind": record.kind,
         "type": record.type,
-        "ref": global_ref_for(record.id, ledger_code, width=id_width),
+        "ref": ref_for(record, config),
         "title": record.title,
         "status": record.status,
         "section": record.section,
@@ -70,14 +68,13 @@ def _record_identity(
 
 def _record_detail(
     record: ArchitectureRecord,
+    config: ProjectConfig,
     *,
     include_body: bool = False,
     workspace_root: Path | None = None,
-    ledger_code: str = DEFAULT_LEDGER_CODE,
-    id_width: int = DEFAULT_ID_WIDTH,
 ) -> dict[str, object]:
     """Extended record payload with metadata and optional body."""
-    payload = _record_identity(record, ledger_code=ledger_code, id_width=id_width)
+    payload = _record_identity(record, config)
     if workspace_root is not None:
         payload["path"] = display_path(workspace_root, record.path)
     payload["metadata"] = record.metadata
@@ -233,14 +230,7 @@ def list_records_payload(
     records: list[ArchitectureRecord],
     config: ProjectConfig,
 ) -> dict[str, object]:
-    return {
-        "records": [
-            _record_identity(
-                record, ledger_code=config.ledger_code, id_width=config.id_width
-            )
-            for record in records
-        ]
-    }
+    return {"records": [_record_identity(record, config) for record in records]}
 
 
 def show_record_payload(
@@ -249,9 +239,8 @@ def show_record_payload(
 ) -> dict[str, object]:
     return _record_detail(
         record,
+        config,
         include_body=True,
-        ledger_code=config.ledger_code,
-        id_width=config.id_width,
     )
 
 
@@ -355,7 +344,11 @@ def snapshot_payload(paths: ProjectPaths, state: SourceState) -> dict[str, objec
     }
 
 
-def changed_payload(paths: ProjectPaths, changes: ChangeSet) -> dict[str, object]:
+def changed_payload(
+    paths: ProjectPaths,
+    changes: ChangeSet,
+    config: ProjectConfig,
+) -> dict[str, object]:
     baseline: dict[str, object] = {"exists": changes.baseline_exists}
     if changes.baseline_exists:
         baseline["updated_at"] = changes.baseline_updated_at
@@ -396,7 +389,7 @@ def changed_payload(paths: ProjectPaths, changes: ChangeSet) -> dict[str, object
         },
         "impact": {
             "records": [
-                impacted_record_payload(paths, item)
+                impacted_record_payload(paths, item, config)
                 for item in changes.impacted_records
             ],
             "sections": list(changes.impacted_sections),
@@ -420,12 +413,13 @@ def changed_file_payload(item: ChangedFile) -> dict[str, object]:
 def impacted_record_payload(
     paths: ProjectPaths,
     item: ImpactedRecord,
+    config: ProjectConfig,
 ) -> dict[str, object]:
     return {
         "id": item.id,
         "kind": getattr(item, "kind", item.type),
         "type": item.type,
-        "ref": f"{DEFAULT_LEDGER_CODE}:{item.id}",
+        "ref": ref_for(item.id, config),
         "title": item.title,
         "status": item.status,
         "section": item.section,

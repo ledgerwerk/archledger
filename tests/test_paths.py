@@ -300,11 +300,15 @@ def test_project_config_fields_are_accounted_for() -> None:
         "archledger_dir",
         "project_uuid",
         "project_name",
+        "ledger_code",
+        "ledger_name",
         "id_prefix",
         "id_width",
         "id_segment_mode",
         "id_default_segment",
         "id_segment_map",
+        "id_default_kind",
+        "id_kind_map",
         "source_format",
         "source_schema_version",
         "front_matter",
@@ -688,7 +692,7 @@ def test_config_version_bool_is_rejected(tmp_path: Path) -> None:
 
     with pytest.raises(ConfigError) as excinfo:
         resolve_project_paths(workspace_root)
-    assert str(excinfo.value) == "config_version must be 1, 2, 3, 4, 5, 6, 7, or 8."
+    assert str(excinfo.value) == "config_version must be 1, 2, 3, 4, 5, 6, 7, 8, or 9."
 
 
 def test_v6_config_supports_ids_table(tmp_path: Path) -> None:

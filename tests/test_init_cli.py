@@ -24,7 +24,7 @@ def test_init_writes_archledger_toml_and_default_storage(tmp_path: Path) -> None
     assert (tmp_path / ".archledger" / "profiles" / "arc42" / "sections").is_dir()
     assert (tmp_path / ".archledger" / "records" / "building_blocks").is_dir()
     assert (
-        tmp_path / ".archledger" / "profiles" / "arc42" / "sections" / "al_0001.md"
+        tmp_path / ".archledger" / "profiles" / "arc42" / "sections" / "content-0001.md"
     ).is_file()
     storage_text = (tmp_path / ".archledger" / "storage.yaml").read_text(
         encoding="utf-8"
@@ -37,16 +37,13 @@ def test_init_project_name_defaults_to_workspace_basename(tmp_path: Path) -> Non
 
     assert result.exit_code == 0
     config_text = (tmp_path / "archledger.toml").read_text(encoding="utf-8")
-    assert "config_version = 8" in config_text
+    assert "config_version = 9" in config_text
     assert "[ids]" in config_text
-    assert 'prefix = "al"' in config_text
     assert "width = 4" in config_text
-    assert 'segment_mode = "none"' in config_text
-    assert 'default_segment = "content"' in config_text
-    assert "[ids.segment_map]" in config_text
+    assert "[ids.kind_map]" in config_text
     assert "[source]" in config_text
     assert 'format = "markdown"' in config_text
-    assert "schema_version = 2" in config_text
+    assert "schema_version = 3" in config_text
     assert 'section_extension = ".md"' in config_text
     assert f'project_name = "{normalize_project_name(tmp_path.name)}"' in config_text
     assert 'default_format = "markdown"' in config_text
@@ -73,9 +70,9 @@ def test_init_markdown_source_writes_markdown_config(tmp_path: Path) -> None:
     assert 'record_extension = ".md"' in config_text
     assert 'default_format = "markdown"' in config_text
     assert 'default_output = "architecture.md"' in config_text
-    assert "schema_version = 2" in config_text
+    assert "schema_version = 3" in config_text
     assert (
-        tmp_path / ".archledger" / "profiles" / "arc42" / "sections" / "al_0001.md"
+        tmp_path / ".archledger" / "profiles" / "arc42" / "sections" / "content-0001.md"
     ).is_file()
 
 
@@ -92,7 +89,7 @@ def test_init_asciidoc_source_writes_asciidoc_config(tmp_path: Path) -> None:
     assert 'record_extension = ".adoc"' in config_text
     assert 'default_format = "asciidoc"' in config_text
     assert 'default_output = "architecture.adoc"' in config_text
-    assert "schema_version = 2" in config_text
+    assert "schema_version = 3" in config_text
 
 
 def test_init_project_name_option_overrides_basename(tmp_path: Path) -> None:
@@ -278,11 +275,10 @@ def test_schema_json_lists_record_types_statuses_sections_and_formats(
     assert schema["source_formats"]
     assert schema["output_formats"]
     assert schema["id_format"] == {
-        "prefix": "al",
+        "ledger_code": "al",
         "width": 4,
-        "segment_mode": "none",
     }
-    assert schema["id_pattern"] == r"^al_(?P<number>\d{4,})$"
+    assert schema["id_pattern"] == r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*-\d{4,}$"
 
 
 def test_repo_init_does_not_rewrite_existing_storage_meta_without_overwrite(
@@ -499,14 +495,13 @@ def test_init_custom_id_format_writes_config_and_sections(tmp_path: Path) -> Non
     assert result.exit_code == 0
     config_text = (tmp_path / "archledger.toml").read_text(encoding="utf-8")
     assert "[ids]" in config_text
-    assert 'prefix = "ta"' in config_text
     assert "width = 3" in config_text
-    assert 'segment_mode = "none"' in config_text
+    assert "[ids.kind_map]" in config_text
     assert (
-        tmp_path / ".archledger" / "profiles" / "arc42" / "sections" / "ta_001.md"
+        tmp_path / ".archledger" / "profiles" / "arc42" / "sections" / "content-001.md"
     ).is_file()
     assert (
-        tmp_path / ".archledger" / "profiles" / "arc42" / "sections" / "ta_012.md"
+        tmp_path / ".archledger" / "profiles" / "arc42" / "sections" / "content-012.md"
     ).is_file()
 
     new_result = runner.invoke(
@@ -515,7 +510,7 @@ def test_init_custom_id_format_writes_config_and_sections(tmp_path: Path) -> Non
     )
     assert new_result.exit_code == 0
     assert (
-        tmp_path / ".archledger" / "records" / "requirements" / "ta_013.md"
+        tmp_path / ".archledger" / "records" / "requirements" / "content-013.md"
     ).is_file()
 
 
@@ -535,13 +530,7 @@ def test_init_can_enable_id_segments(tmp_path: Path) -> None:
 
     assert result.exit_code == 0, result.stdout
     assert (
-        tmp_path
-        / ".archledger"
-        / "profiles"
-        / "arc42"
-        / "sections"
-        / "al_content_0001.md"
+        tmp_path / ".archledger" / "profiles" / "arc42" / "sections" / "content-0001.md"
     ).is_file()
     config_text = (tmp_path / "archledger.toml").read_text(encoding="utf-8")
-    assert 'segment_mode = "type"' in config_text
-    assert "[ids.segment_map]" in config_text
+    assert "[ids.kind_map]" in config_text

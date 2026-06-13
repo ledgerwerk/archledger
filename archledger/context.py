@@ -9,7 +9,10 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from archledger.config.model import ProjectConfig
 
 from archledger.model import ArchitectureRecord, record_sort_key
 from archledger.repository import ArchitectureRepository
@@ -300,6 +303,7 @@ def group_by_category(
     max_per_category: int,
     workspace_root: Path,
     include_body: bool,
+    config: ProjectConfig | None = None,
 ) -> dict[str, list[dict[str, Any]]]:
     """Group scored records by category and serialize."""
     buckets: dict[str, list[ScoredRecord]] = {cat: [] for cat in ALL_CATEGORIES}
@@ -314,7 +318,9 @@ def group_by_category(
         items = items[:max_per_category]
         entries: list[dict[str, Any]] = []
         for sr in items:
-            rec_dict = _serialize_single_record(sr.record, workspace_root, include_body)
+            rec_dict = _serialize_single_record(
+                sr.record, workspace_root, include_body, config
+            )
             entries.append(
                 {
                     "id": sr.record.id,
@@ -331,7 +337,10 @@ def _serialize_single_record(
     r: ArchitectureRecord,
     workspace_root: Path,
     include_body: bool,
+    config: ProjectConfig | None = None,
 ) -> dict[str, Any]:
+    from archledger.ids import ref_for
+
     path_str = str(r.path)
     try:
         path_str = str(r.path.relative_to(workspace_root))
@@ -346,6 +355,8 @@ def _serialize_single_record(
         "order": r.order,
         "path": path_str,
     }
+    if config is not None:
+        item["ref"] = ref_for(r, config)
     if r.source_refs:
         item["source_refs"] = [
             {"path": ref.path, "symbols": list(ref.symbols), "role": ref.role}
@@ -366,6 +377,7 @@ def _serialize_single_record(
 def build_context_for_file(
     repo: ArchitectureRepository,
     file_path: str,
+    config: ProjectConfig | None = None,
     *,
     include_body: bool = False,
     max_records: int = 20,
@@ -429,6 +441,7 @@ def build_context_for_file(
         records=relevant,
         workspace_root=workspace_root,
         include_body=include_body,
+        config=config,
         query={
             "for_file": file_path,
             "for_record": None,
@@ -442,6 +455,7 @@ def build_context_for_file(
 def build_context_for_record(
     repo: ArchitectureRepository,
     record_id: str,
+    config: ProjectConfig | None = None,
     *,
     include_body: bool = False,
     max_records: int = 20,
@@ -457,6 +471,7 @@ def build_context_for_record(
             records=[],
             workspace_root=workspace_root,
             include_body=include_body,
+            config=config,
             query={
                 "for_file": None,
                 "for_record": record_id,
@@ -488,6 +503,7 @@ def build_context_for_record(
         records=relevant,
         workspace_root=workspace_root,
         include_body=include_body,
+        config=config,
         query={
             "for_file": None,
             "for_record": record_id,
@@ -501,6 +517,7 @@ def build_context_for_record(
 def build_context_for_changed(
     repo: ArchitectureRepository,
     changes: ChangeSet,
+    config: ProjectConfig | None = None,
     *,
     include_body: bool = False,
     max_records: int = 20,
@@ -527,6 +544,7 @@ def build_context_for_changed(
         records=relevant,
         workspace_root=workspace_root,
         include_body=include_body,
+        config=config,
         query={
             "for_file": None,
             "for_record": None,
@@ -540,6 +558,7 @@ def build_context_for_changed(
 def build_context_for_topic(
     repo: ArchitectureRepository,
     topic: str,
+    config: ProjectConfig | None = None,
     *,
     include_body: bool = False,
     include_draft: bool = False,
@@ -626,12 +645,14 @@ def build_context_for_topic(
 
     # Group by category
     categories = group_by_category(
-        unique, max_per_category, workspace_root, include_body
+        unique, max_per_category, workspace_root, include_body, config
     )
 
     # Build flat records list (deduplicated, capped)
     flat_records = [sr.record for sr in unique[:max_records]]
-    flat_serialized = _serialize_records(flat_records, workspace_root, include_body)
+    flat_serialized = _serialize_records(
+        flat_records, workspace_root, include_body, config
+    )
 
     # Summary
     categories_returned = [cat for cat, items in categories.items() if items]
@@ -678,10 +699,13 @@ def _build_payload(
     records: list[ArchitectureRecord],
     workspace_root: Path,
     include_body: bool,
+    config: ProjectConfig | None = None,
     query: dict[str, Any],
 ) -> dict[str, Any]:
     result: dict[str, Any] = {"schema": "archledger.context.v1", "query": query}
-    result["records"] = _serialize_records(records, workspace_root, include_body)
+    result["records"] = _serialize_records(
+        records, workspace_root, include_body, config
+    )
     return result
 
 
@@ -689,7 +713,10 @@ def _serialize_records(
     records: list[ArchitectureRecord],
     workspace_root: Path,
     include_body: bool,
+    config: ProjectConfig | None = None,
 ) -> list[dict[str, Any]]:
+    from archledger.ids import ref_for
+
     items: list[dict[str, Any]] = []
     for r in records:
         path_str = str(r.path)
@@ -706,6 +733,8 @@ def _serialize_records(
             "order": r.order,
             "path": path_str,
         }
+        if config is not None:
+            item["ref"] = ref_for(r, config)
         if r.source_refs:
             item["source_refs"] = [
                 {"path": ref.path, "symbols": list(ref.symbols), "role": ref.role}

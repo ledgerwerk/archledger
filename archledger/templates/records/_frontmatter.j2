@@ -2,7 +2,7 @@
 {#- Required variables: id, title, status, section, order, date, body_format, created_at, updated_at -#}
 {#- Optional variable: type (defaults to record kind) -#}
 ---
-schema_version: {{ schema_version | default(2, true) }}
+schema_version: {{ schema_version | default(3, true) }}
 id: {{ id }}
 kind: {{ kind }}
 type: {{ type }}

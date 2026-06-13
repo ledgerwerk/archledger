@@ -266,6 +266,10 @@ class ProjectConfig:
         return self.profiles.profiles.default
 
     @property
+    def ledger(self) -> LedgerConfig:
+        return LedgerConfig(code=self.ledger_code, name=self.ledger_name)
+
+    @property
     def source(self) -> SourceConfig:
         return SourceConfig(
             format=self.source_format,
@@ -386,7 +390,3 @@ def validate_uuid(value: str) -> str:
         return str(UUID(value))
     except ValueError as exc:
         raise ConfigError("project_uuid must be a valid UUID.") from exc
-
-    @property
-    def ledger(self) -> LedgerConfig:
-        return LedgerConfig(code=self.ledger_code, name=self.ledger_name)

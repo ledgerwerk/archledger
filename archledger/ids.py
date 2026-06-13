@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from ledgercore.refs import (
     LedgerResourceRef,
@@ -12,6 +13,10 @@ from ledgercore.refs import (
 from ledgercore.refs import (
     normalize_kind as normalize_resource_kind,
 )
+
+if TYPE_CHECKING:
+    from archledger.config.model import ProjectConfig
+    from archledger.model import ArchitectureRecord
 
 DEFAULT_ID_PREFIX = "al"
 DEFAULT_LEDGER_CODE = DEFAULT_ID_PREFIX
@@ -298,3 +303,12 @@ def file_ref_for(
 ) -> str:
     ref = parse_local_ref(record_id, width=width).with_ledger(ledger_code)
     return ref.file_ref
+
+
+def ref_for(
+    record: ArchitectureRecord | str,
+    config: ProjectConfig,
+) -> str:
+    """Build a global ref for a record using the configured ledger code and id width."""
+    record_id = record if isinstance(record, str) else record.id
+    return global_ref_for(record_id, config.ledger_code, width=config.id_width)

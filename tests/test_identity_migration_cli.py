@@ -41,13 +41,13 @@ def test_migrate_ids_converts_legacy_segmented_record(tmp_path: Path) -> None:
     )
     assert init.exit_code == 0, init.stdout
 
-    old_file = tmp_path / ".archledger" / "records" / "decisions" / "al_adr_0013.md"
+    old_file = tmp_path / ".archledger" / "records" / "decisions" / "adr-0013.md"
     old_file.write_text(
         "\n".join(
             [
                 "---",
                 "schema_version: 2",
-                "id: al_adr_0013",
+                "id: adr-0013",
                 "type: adr",
                 "title: Legacy ADR",
                 "status: accepted",

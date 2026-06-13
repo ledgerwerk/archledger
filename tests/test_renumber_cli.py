@@ -25,7 +25,9 @@ def test_renumber_dry_run_does_not_mutate(tmp_path: Path) -> None:
         ["--root", str(tmp_path), "new", "requirement", "A"],
     )
     assert create.exit_code == 0
-    old_path = tmp_path / ".archledger" / "records" / "requirements" / "al_0013.adoc"
+    old_path = (
+        tmp_path / ".archledger" / "records" / "requirements" / "content-0013.adoc"
+    )
 
     result = runner.invoke(
         app,
@@ -91,7 +93,7 @@ def test_renumber_apply_renames_files_updates_frontmatter_and_config(
 
     assert result.exit_code == 0
     assert not (
-        tmp_path / ".archledger" / "records" / "building_blocks" / "al_0013.adoc"
+        tmp_path / ".archledger" / "records" / "building_blocks" / "block-0013.adoc"
     ).exists()
     child = tmp_path / ".archledger" / "records" / "building_blocks" / "ta_014.adoc"
     assert child.is_file()
@@ -135,24 +137,17 @@ def test_renumber_can_enable_content_segments_without_changing_numbers(
     payload = json.loads(result.stdout)
 
     renamed = {item["old_id"]: item["new_id"] for item in payload["result"]["renamed"]}
-    assert renamed["al_0004"] == "al_content_0004"
-    assert renamed["al_0013"] == "al_content_0013"
-    assert renamed["al_0014"] == "al_risk_0014"
+    assert renamed["al_0004"] == "content-0004"
+    assert renamed["al_0013"] == "content-0013"
+    assert renamed["al_0014"] == "risk-0014"
 
     assert (
-        tmp_path
-        / ".archledger"
-        / "profiles"
-        / "arc42"
-        / "sections"
-        / "al_content_0004.md"
+        tmp_path / ".archledger" / "profiles" / "arc42" / "sections" / "content-0004.md"
     ).is_file()
     assert (
-        tmp_path / ".archledger" / "records" / "requirements" / "al_content_0013.md"
+        tmp_path / ".archledger" / "records" / "requirements" / "content-0013.md"
     ).is_file()
-    assert (
-        tmp_path / ".archledger" / "records" / "risks" / "al_risk_0014.md"
-    ).is_file()
+    assert (tmp_path / ".archledger" / "records" / "risks" / "risk-0014.md").is_file()
 
     check = runner.invoke(app, ["--root", str(tmp_path), "check"])
     assert check.exit_code == 0, check.stdout
@@ -184,7 +179,7 @@ def test_renumber_can_disable_content_segments(tmp_path: Path) -> None:
         ],
     )
     assert disable.exit_code == 0, disable.stdout
-    assert (tmp_path / ".archledger" / "records" / "risks" / "al_0013.md").is_file()
+    assert (tmp_path / ".archledger" / "records" / "risks" / "risk-0013.md").is_file()
 
 
 def test_renumber_segments_rewrite_parent_references(tmp_path: Path) -> None:
@@ -219,11 +214,11 @@ def test_renumber_segments_rewrite_parent_references(tmp_path: Path) -> None:
     assert result.exit_code == 0, result.output
 
     child_path = (
-        tmp_path / ".archledger" / "records" / "building_blocks" / "al_block_0014.md"
+        tmp_path / ".archledger" / "records" / "building_blocks" / "block-0014.md"
     )
     assert child_path.is_file()
     child_text = child_path.read_text(encoding="utf-8")
-    assert "parent: al_block_0013" in child_text
+    assert "parent: block-0013" in child_text
     assert "parent: al_0013" not in child_text
 
 
@@ -234,7 +229,9 @@ def test_renumber_apply_includes_archive_tombstones(tmp_path: Path) -> None:
         ["--root", str(tmp_path), "new", "requirement", "A"],
     )
     assert create.exit_code == 0
-    missing = tmp_path / ".archledger" / "records" / "requirements" / "al_0013.adoc"
+    missing = (
+        tmp_path / ".archledger" / "records" / "requirements" / "content-0013.adoc"
+    )
     missing.unlink()
     repair = runner.invoke(app, ["--root", str(tmp_path), "doctor", "--repair"])
     assert repair.exit_code == 0, repair.output
@@ -269,7 +266,9 @@ def test_renumber_segments_include_archive_tombstones(tmp_path: Path) -> None:
         ["--root", str(tmp_path), "new", "requirement", "A"],
     )
     assert create.exit_code == 0
-    missing = tmp_path / ".archledger" / "records" / "requirements" / "al_0013.adoc"
+    missing = (
+        tmp_path / ".archledger" / "records" / "requirements" / "content-0013.adoc"
+    )
     missing.unlink()
     repair = runner.invoke(app, ["--root", str(tmp_path), "doctor", "--repair"])
     assert repair.exit_code == 0, repair.output
@@ -361,13 +360,11 @@ def test_renumber_from_flat_to_type_after_config_already_changed(
 
     assert result.exit_code == 0, result.stdout
     assert (
-        tmp_path / ".archledger" / "records" / "requirements" / "al_content_0013.md"
+        tmp_path / ".archledger" / "records" / "requirements" / "content-0013.md"
     ).is_file()
-    assert (
-        tmp_path / ".archledger" / "records" / "risks" / "al_risk_0014.md"
-    ).is_file()
+    assert (tmp_path / ".archledger" / "records" / "risks" / "risk-0014.md").is_file()
     assert not (
-        tmp_path / ".archledger" / "records" / "requirements" / "al_0013.md"
+        tmp_path / ".archledger" / "records" / "requirements" / "content-0013.md"
     ).exists()
 
     check = runner.invoke(app, ["--root", str(tmp_path), "check"])
@@ -518,21 +515,14 @@ def test_renumber_infers_hidden_flat_to_type(tmp_path: Path) -> None:
     assert payload["result"]["old_format"]["segment_mode"] == "none"
     assert payload["result"]["new_format"]["segment_mode"] == "type"
     assert (
-        tmp_path
-        / ".archledger"
-        / "profiles"
-        / "arc42"
-        / "sections"
-        / "al_content_0001.md"
+        tmp_path / ".archledger" / "profiles" / "arc42" / "sections" / "content-0001.md"
     ).is_file()
     assert (
-        tmp_path / ".archledger" / "records" / "requirements" / "al_content_0013.md"
+        tmp_path / ".archledger" / "records" / "requirements" / "content-0013.md"
     ).is_file()
-    assert (
-        tmp_path / ".archledger" / "records" / "risks" / "al_risk_0014.md"
-    ).is_file()
+    assert (tmp_path / ".archledger" / "records" / "risks" / "risk-0014.md").is_file()
     assert not (
-        tmp_path / ".archledger" / "records" / "requirements" / "al_0013.md"
+        tmp_path / ".archledger" / "records" / "requirements" / "content-0013.md"
     ).exists()
     assert not canonical_config.exists()
     assert hidden_config.exists()
