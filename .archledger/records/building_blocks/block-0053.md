@@ -1,5 +1,5 @@
 ---
-schema_version: 2
+schema_version: 4
 id: block-0053
 type: black_box
 title: Config Layer
@@ -8,7 +8,6 @@ section: building_block_view
 level: 1
 parent: block-0041
 order: 105
-date: "2026-05-21"
 interfaces:
   - load_project_config()
   - build_default_project_config()
@@ -23,14 +22,13 @@ fulfilled_requirements: []
 risks: []
 tags: []
 body_format: markdown
-created_at: "2026-05-21T11:30:43Z"
-updated_at: "2026-05-23T11:30:00Z"
 source_refs:
   - path: archledger/config/
     reason: Config subpackage with model, parse, render
   - docs/configuration.rst
   - docs/source-model.rst
 kind: block
+version: 1
 ---
 
 The `config` subpackage owns all project configuration concerns. `config/model.py` defines frozen dataclasses for each configuration domain: `SourceConfig`, `BuildConfig` (with nested `BuildOutputConfig`), `Arc42Config`, `SkillConfig`, `TrackingConfig`, and the unified `ProjectConfig` facade that composes them via properties. It also exports public allowed-value constants (`VALID_BUILD_CONVERTERS`, `VALID_DIAGRAM_RENDERERS`, `VALID_DIAGRAM_TYPES`, `VALID_DIAGRAM_IMAGE_FORMATS`, `VALID_TRACKING_SCANNERS`) shared by `parse.py`, `render.py`, and `cli.py`.

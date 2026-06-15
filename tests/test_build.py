@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
 from typer.testing import CliRunner
 
 from archledger.cli import app
@@ -264,26 +263,31 @@ def test_build_is_deterministic(tmp_path: Path) -> None:
     assert first_output == second_output
 
 
-def test_build_uses_source_date_epoch_for_document_date(tmp_path: Path) -> None:
-    init_project(tmp_path)
-
-    result = runner.invoke(
-        app,
-        ["--root", str(tmp_path), "build"],
-        env={"SOURCE_DATE_EPOCH": "946684800"},
-    )
-
-    assert result.exit_code == 0
-    output = (tmp_path / "build" / "architecture.adoc").read_text(encoding="utf-8")
-    assert ":revdate: 2000-01-01" in output
-
-
-def test_build_uses_latest_record_metadata_date_when_epoch_not_set(
+def test_build_reuses_document_version_when_inputs_are_unchanged(
     tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     init_project(tmp_path)
-    monkeypatch.delenv("SOURCE_DATE_EPOCH", raising=False)
+
+    first = runner.invoke(app, ["--root", str(tmp_path), "build"])
+    first_output = (tmp_path / "build" / "architecture.adoc").read_text(
+        encoding="utf-8"
+    )
+    second = runner.invoke(app, ["--root", str(tmp_path), "build"])
+    second_output = (tmp_path / "build" / "architecture.adoc").read_text(
+        encoding="utf-8"
+    )
+
+    assert first.exit_code == 0
+    assert second.exit_code == 0
+    assert ":revnumber: 1" in first_output
+    assert ":revdate:" not in first_output
+    assert second_output == first_output
+
+
+def test_build_increments_document_version_when_record_version_changes(
+    tmp_path: Path,
+) -> None:
+    init_project(tmp_path)
     runner.invoke(
         app,
         [
@@ -291,31 +295,27 @@ def test_build_uses_latest_record_metadata_date_when_epoch_not_set(
             str(tmp_path),
             "new",
             "requirement",
-            "Date anchor requirement",
+            "Version anchor requirement",
             "--status",
             "accepted",
         ],
     )
+    first = runner.invoke(app, ["--root", str(tmp_path), "build"])
     record_path = (
         tmp_path / ".archledger" / "records" / "requirements" / "content-0013.adoc"
     )
-    lines = record_path.read_text(encoding="utf-8").splitlines()
-    updated_lines: list[str] = []
-    for line in lines:
-        if line.startswith("date: "):
-            updated_lines.append('date: "2042-12-31"')
-            continue
-        if line.startswith("updated_at: "):
-            updated_lines.append('updated_at: "2042-12-31T23:59:59Z"')
-            continue
-        updated_lines.append(line)
-    record_path.write_text("\n".join(updated_lines) + "\n", encoding="utf-8")
+    record_path.write_text(
+        record_path.read_text(encoding="utf-8").replace("version: 1", "version: 2"),
+        encoding="utf-8",
+    )
 
-    result = runner.invoke(app, ["--root", str(tmp_path), "build"])
+    second = runner.invoke(app, ["--root", str(tmp_path), "build"])
 
-    assert result.exit_code == 0
+    assert first.exit_code == 0
+    assert second.exit_code == 0
     output = (tmp_path / "build" / "architecture.adoc").read_text(encoding="utf-8")
-    assert ":revdate: 2042-12-31" in output
+    assert ":revnumber: 2" in output
+    assert (tmp_path / ".archledger" / "document-state.json").is_file()
 
 
 def test_build_output_path_can_be_overridden(tmp_path: Path) -> None:

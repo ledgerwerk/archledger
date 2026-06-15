@@ -17,6 +17,10 @@ Mermaid is available for compact sequence, state, or flow diagrams but is not th
 
 Fragments contain YAML front matter and a body in the configured dialect.
 Archived fragments keep normal front matter and use ``status: archived``.
+Archledger does not store creation, update, or archive timestamps in ledger
+source. Every current source fragment has a positive monotonic ``version``.
+CLI mutation commands increment it exactly once; manual source edits must
+increment it manually.
 
 Ledger ID format
 ----------------

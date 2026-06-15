@@ -2,9 +2,7 @@
 id: runtime-0060
 type: runtime_scenario
 title: Initialize a new project
-schema_version: 2
-date: "2026-05-22"
-updated_at: "2026-05-23T11:30:00Z"
+schema_version: 4
 body_format: markdown
 status: accepted
 section: runtime_view
@@ -22,6 +20,7 @@ source_refs:
   - archledger/config/render.py
   - tests/test_init_cli.py
 kind: runtime
+version: 1
 ---
 
 1. CLI checks that `archledger.toml` does not already exist.

@@ -1,14 +1,17 @@
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass
-from datetime import date, datetime, timezone
 from pathlib import Path
 
 from jinja2 import Environment, PackageLoader, select_autoescape
 
 from archledger import __version__
 from archledger.dialects import get_dialect
+from archledger.document_state import (
+    build_document_fingerprint,
+    build_document_state_key,
+    resolve_document_version,
+)
 from archledger.errors import RenderError
 from archledger.model import (
     ArchitectureRecord,
@@ -37,7 +40,7 @@ from archledger.section_rendering import (
     solution_strategy_items,
     stakeholders_table,
 )
-from archledger.storage.common import utc_now_iso, write_text
+from archledger.storage.common import write_text
 
 
 @dataclass(frozen=True, slots=True)
@@ -77,6 +80,27 @@ def assemble_document(
         include_draft=include_draft,
         include_superseded=include_superseded,
     )
+    fingerprint = build_document_fingerprint(
+        title=repo.config.arc42_title,
+        arc42_template_version=repo.config.arc42_template_version,
+        source_format=resolved_source_format,
+        include_draft=include_draft,
+        include_superseded=include_superseded,
+        records=records,
+        sections=sections.values(),
+    )
+    document_version = resolve_document_version(
+        repo.paths.archledger_dir / "document-state.json",
+        logical_key=build_document_state_key(
+            profile="arc42",
+            source_format=resolved_source_format,
+            include_draft=include_draft,
+            include_superseded=include_superseded,
+        ),
+        fingerprint=fingerprint,
+        input_count=len(records) + len(sections),
+        write=write,
+    )
     env = Environment(
         loader=PackageLoader("archledger", "templates"),
         autoescape=select_autoescape(
@@ -90,7 +114,7 @@ def assemble_document(
     )
     rendered = template.render(
         title=repo.config.arc42_title,
-        date=_document_date(records),
+        version=document_version,
         generator=f"archledger {__version__}",
         arc42_template_version=repo.config.arc42_template_version,
         section_body=lambda section_key: section_body(sections, section_key, dialect),
@@ -130,54 +154,6 @@ def assemble_document(
         rendered_text=rendered,
         source_format=resolved_source_format,
     )
-
-
-def _document_date(records: list[ArchitectureRecord]) -> str:
-    source_date_epoch = os.getenv("SOURCE_DATE_EPOCH")
-    if source_date_epoch:
-        try:
-            timestamp = int(source_date_epoch)
-        except ValueError as exc:
-            raise RenderError(
-                "SOURCE_DATE_EPOCH must be an integer Unix timestamp."
-            ) from exc
-        return datetime.fromtimestamp(timestamp, tz=timezone.utc).date().isoformat()
-
-    latest_date: date | None = None
-    for record in records:
-        for key in ("updated_at", "date"):
-            metadata_value = record.metadata.get(key)
-            parsed = _parse_record_datetime(metadata_value)
-            if parsed is None:
-                continue
-            candidate = parsed.date()
-            if latest_date is None or candidate > latest_date:
-                latest_date = candidate
-
-    if latest_date is not None:
-        return latest_date.isoformat()
-    return utc_now_iso()[:10]
-
-
-def _parse_record_datetime(value: object) -> datetime | None:
-    if not isinstance(value, str):
-        return None
-    candidate = value.strip()
-    if not candidate:
-        return None
-    if len(candidate) == 10:
-        try:
-            return datetime.strptime(candidate, "%Y-%m-%d")
-        except ValueError:
-            return None
-
-    normalized = candidate
-    if normalized.endswith("Z"):
-        normalized = f"{normalized[:-1]}+00:00"
-    try:
-        return datetime.fromisoformat(normalized)
-    except ValueError:
-        return None
 
 
 def assemble_asciidoc_document(

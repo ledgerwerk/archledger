@@ -1,5 +1,5 @@
 ---
-schema_version: 2
+schema_version: 4
 id: block-0112
 type: black_box
 title: ID Utilities
@@ -8,7 +8,6 @@ section: building_block_view
 level: 1
 parent: block-0041
 order: 145
-date: "2026-05-22"
 interfaces:
   - LedgerIdFormat.format()
   - LedgerIdFormat.parse()
@@ -32,12 +31,11 @@ fulfilled_requirements: []
 risks: []
 tags: []
 body_format: markdown
-created_at: "2026-05-22T21:47:42Z"
-updated_at: "2026-05-23T11:30:00Z"
 source_refs:
   - archledger/ids.py
   - tests/test_ids.py
 kind: block
+version: 1
 ---
 
 The `ids` module provides centralized ledger ID handling with configurable prefix, width, and segment mode. The core abstraction is `LedgerIdFormat`, a frozen dataclass that encapsulates the three ID format parameters and exposes methods for formatting, parsing, pattern generation, and validation.

@@ -2,8 +2,7 @@
 id: deploy-0064
 type: infrastructure
 title: Local development
-schema_version: 2
-date: "2026-05-21"
+schema_version: 4
 body_format: markdown
 status: accepted
 section: deployment_view
@@ -20,6 +19,7 @@ source_refs:
   - pyproject.toml
   - docs/index.rst
 kind: deploy
+version: 1
 ---
 
 Developer machine with Python >= 3.10. archledger is installed via `pip install -e .` in a virtual environment. The project directory contains `archledger.toml` at the root. The storage directory (default `.archledger/`) holds sections, records, and build output. No network access, database, or server process is required.

@@ -2,8 +2,7 @@
 id: quality-0019
 type: quality_goal
 title: Traceability
-schema_version: 2
-date: "2026-05-21"
+schema_version: 4
 body_format: markdown
 status: accepted
 section: introduction_and_goals
@@ -17,6 +16,7 @@ source_refs:
   - tests/test_build.py
   - tests/test_source_tracking.py
 kind: quality
+version: 1
 ---
 
 Each record carries a machine-readable YAML front matter with fields for source references, parent IDs, and related ADRs. The check command validates that all cross-references resolve. This makes it possible to navigate the architecture document both top-down (from goals to building blocks) and bottom-up (from source files to architectural decisions).

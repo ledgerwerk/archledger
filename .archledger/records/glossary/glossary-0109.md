@@ -2,8 +2,7 @@
 id: glossary-0109
 type: glossary_term
 title: Dialect
-schema_version: 2
-date: "2026-05-21"
+schema_version: 4
 body_format: markdown
 status: accepted
 section: glossary
@@ -17,6 +16,7 @@ source_refs:
   - README.md
   - docs/agent-workflow.rst
 kind: glossary
+version: 1
 ---
 
 A source format abstraction that defines how to render markup elements (headings, tables, bullets, strong text). archledger provides `MarkdownDialect` and `AsciiDocDialect`. All section rendering uses dialects to produce format-correct output.

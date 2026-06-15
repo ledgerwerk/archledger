@@ -1,12 +1,11 @@
 ---
-schema_version: 2
+schema_version: 4
 id: quality-0088
 type: quality_requirement
 title: Deterministic native build output
 status: accepted
 section: quality_requirements
 order: 10
-date: "2026-05-21"
 category: reliability
 source: release architecture review
 measure: Byte-identical output for equal accepted records and deterministic date source.
@@ -14,12 +13,11 @@ scenarios:
   - quality-0093
   - quality-0101
 body_format: markdown
-created_at: "2026-05-21T18:18:44Z"
-updated_at: "2026-05-21T18:18:44Z"
 source_refs:
   - tests/test_build.py
   - tests/test_source_tracking.py
 kind: quality
+version: 1
 ---
 
 ## Requirement

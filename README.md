@@ -123,21 +123,21 @@ Each section file and record file has YAML front matter plus a body in the confi
 
 ```yaml
 ---
-schema_version: 2
-id: al_0013
+schema_version: 4
+id: adr-0013
+kind: adr
 type: adr
 title: "Treat source fragments as canonical"
 status: accepted
 section: architecture_decisions
 order: 10
-date: "2026-05-20"
+version: 1
 body_format: markdown
-created_at: "2026-05-20T00:00:00Z"
-updated_at: "2026-05-20T00:00:00Z"
 ---
 ```
 
 `body_format` must match the project `source.format` unless you explicitly use the migration escape hatch during a manual source conversion.
+Archledger CLI mutations increment `version`; manual source edits must increment it manually.
 
 ### Sections and records
 

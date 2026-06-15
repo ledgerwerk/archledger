@@ -79,7 +79,7 @@ def test_all_registry_entries_have_context_factories_or_empty_defaults() -> None
         assert isinstance(context, dict)
 
 
-def test_all_markdown_templates_include_schema_version_date_body_format() -> None:
+def test_all_markdown_templates_include_schema_version_version_body_format() -> None:
     template_root = Path("archledger/templates/records")
     env = Environment(loader=PackageLoader("archledger", "templates"))
     common_vars = dict(
@@ -88,11 +88,9 @@ def test_all_markdown_templates_include_schema_version_date_body_format() -> Non
         status="draft",
         section="context_and_scope",
         order=1,
-        date="2024-01-01",
+        version=3,
         body_format="markdown",
-        created_at="2024-01-01",
-        updated_at="2024-01-01",
-        schema_version=3,
+        schema_version=4,
         # Extra metadata fields some templates reference
         level=1,
         parent="",
@@ -124,11 +122,14 @@ def test_all_markdown_templates_include_schema_version_date_body_format() -> Non
         tmpl_name = path.relative_to("archledger/templates").as_posix()
         tmpl = env.get_template(tmpl_name)
         rendered = tmpl.render(type=path.stem.split(".")[0], **common_vars)
-        assert "schema_version: 3" in rendered, path.name
+        assert "schema_version: 4" in rendered, path.name
+        assert "version: 3" in rendered, path.name
         assert "body_format: markdown" in rendered, path.name
+        for field in ("date:", "created_at:", "updated_at:", "archived_at:"):
+            assert field not in rendered, path.name
 
 
-def test_all_asciidoc_templates_include_schema_version_date_body_format() -> None:
+def test_all_asciidoc_templates_include_schema_version_version_body_format() -> None:
     template_root = Path("archledger/templates/records")
     env = Environment(loader=PackageLoader("archledger", "templates"))
     common_vars = dict(
@@ -137,11 +138,9 @@ def test_all_asciidoc_templates_include_schema_version_date_body_format() -> Non
         status="draft",
         section="context_and_scope",
         order=1,
-        date="2024-01-01",
+        version=3,
         body_format="asciidoc",
-        created_at="2024-01-01",
-        updated_at="2024-01-01",
-        schema_version=3,
+        schema_version=4,
         # Extra metadata fields some templates reference
         level=1,
         parent="",
@@ -173,11 +172,14 @@ def test_all_asciidoc_templates_include_schema_version_date_body_format() -> Non
         tmpl_name = path.relative_to("archledger/templates").as_posix()
         tmpl = env.get_template(tmpl_name)
         rendered = tmpl.render(type=path.stem.split(".")[0], **common_vars)
-        assert "schema_version: 3" in rendered, path.name
+        assert "schema_version: 4" in rendered, path.name
+        assert "version: 3" in rendered, path.name
         assert "body_format: asciidoc" in rendered, path.name
+        for field in ("date:", "created_at:", "updated_at:", "archived_at:"):
+            assert field not in rendered, path.name
 
 
-def test_section_templates_include_schema_version_date_body_format(
+def test_section_templates_include_schema_version_version_body_format(
     tmp_path: Path,
 ) -> None:
     markdown_root = tmp_path / "markdown"
@@ -218,11 +220,11 @@ def test_section_templates_include_schema_version_date_body_format(
         (markdown_section, "markdown"),
         (asciidoc_section, "asciidoc"),
     ):
-        assert "schema_version: 3" in text
-        assert 'date: "' in text
+        assert "schema_version: 4" in text
+        assert "version: 1" in text
         assert f"body_format: {body_format}" in text
-        assert 'created_at: "' in text
-        assert 'updated_at: "' in text
+        for field in ("date:", "created_at:", "updated_at:", "archived_at:"):
+            assert field not in text
 
 
 def test_new_succeeds_for_every_record_type(tmp_path: Path) -> None:

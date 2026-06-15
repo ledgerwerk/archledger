@@ -1,7 +1,7 @@
 """Patch-safe mutation commands for archledger records.
 
 Each helper reads front matter, mutates only the requested key or body,
-updates ``updated_at``, and writes back.  The caller should re-validate
+increments ``version``, and writes back.  The caller should re-validate
 with ``repository.check()`` or targeted validation after mutation.
 """
 
@@ -11,9 +11,9 @@ from pathlib import Path
 
 from archledger.errors import ValidationError
 from archledger.links import RELATION_RE
+from archledger.metadata_version import bump_metadata_version
 from archledger.model import VALID_SOURCE_REF_ROLES
 from archledger.source_refs import RelativePosixPathError, validate_relative_posix_path
-from archledger.storage.common import utc_now_iso
 from archledger.storage.frontmatter import (
     read_front_matter_document,
     write_front_matter_document,
@@ -29,8 +29,7 @@ def set_record_status(
 ) -> tuple[dict[str, object], str]:
     metadata, body = read_front_matter_document(path)
     _assert_record_id(metadata, record_id)
-    now = utc_now_iso()
-    metadata = {**metadata, "status": status, "updated_at": now}
+    metadata = bump_metadata_version({**metadata, "status": status})
     write_front_matter_document(path, metadata, body)
     return metadata, body
 
@@ -45,8 +44,7 @@ def set_record_meta(
 ) -> tuple[dict[str, object], str]:
     metadata, body = read_front_matter_document(path)
     _assert_record_id(metadata, record_id)
-    now = utc_now_iso()
-    metadata = {**metadata, key: value, "updated_at": now}
+    metadata = bump_metadata_version({**metadata, key: value})
     write_front_matter_document(path, metadata, body)
     return metadata, body
 
@@ -65,9 +63,8 @@ def replace_record_body(
     """
     metadata, _body = read_front_matter_document(path)
     _assert_record_id(metadata, record_id)
-    now = utc_now_iso()
     new_body = text.strip() + "\n"
-    metadata = {**metadata, "updated_at": now}
+    metadata = bump_metadata_version(metadata)
     write_front_matter_document(path, metadata, new_body)
     return metadata, new_body
 
@@ -81,9 +78,8 @@ def append_record_body(
 ) -> tuple[dict[str, object], str]:
     metadata, body = read_front_matter_document(path)
     _assert_record_id(metadata, record_id)
-    now = utc_now_iso()
     new_body = body.rstrip() + "\n\n" + text.strip() + "\n"
-    metadata = {**metadata, "updated_at": now}
+    metadata = bump_metadata_version(metadata)
     write_front_matter_document(path, metadata, new_body)
     return metadata, new_body
 
@@ -100,7 +96,6 @@ def add_source_ref(
 ) -> tuple[dict[str, object], str]:
     metadata, body = read_front_matter_document(path)
     _assert_record_id(metadata, record_id)
-    now = utc_now_iso()
     existing = metadata.get("source_refs", [])
     if not isinstance(existing, list):
         existing = []
@@ -114,7 +109,7 @@ def add_source_ref(
     if reason:
         new_ref["reason"] = reason
     existing.append(new_ref)
-    metadata = {**metadata, "source_refs": existing, "updated_at": now}
+    metadata = bump_metadata_version({**metadata, "source_refs": existing})
     write_front_matter_document(path, metadata, body)
     return metadata, body
 
@@ -131,7 +126,6 @@ def add_test_ref(
 ) -> tuple[dict[str, object], str]:
     metadata, body = read_front_matter_document(path)
     _assert_record_id(metadata, record_id)
-    now = utc_now_iso()
     existing = metadata.get("test_refs", [])
     if not isinstance(existing, list):
         existing = []
@@ -150,7 +144,7 @@ def add_test_ref(
     if reason:
         new_ref["reason"] = reason
     existing.append(new_ref)
-    metadata = {**metadata, "test_refs": existing, "updated_at": now}
+    metadata = bump_metadata_version({**metadata, "test_refs": existing})
     write_front_matter_document(path, metadata, body)
     return metadata, body
 
@@ -168,7 +162,6 @@ def add_link(
         raise ValidationError(f"Invalid link rel: {rel!r}")
     metadata, body = read_front_matter_document(path)
     _assert_record_id(metadata, record_id)
-    now = utc_now_iso()
     existing = metadata.get("links", [])
     if not isinstance(existing, list):
         existing = []
@@ -176,7 +169,7 @@ def add_link(
     if reason:
         new_link["reason"] = reason
     existing.append(new_link)
-    metadata = {**metadata, "links": existing, "updated_at": now}
+    metadata = bump_metadata_version({**metadata, "links": existing})
     write_front_matter_document(path, metadata, body)
     return metadata, body
 
@@ -192,7 +185,6 @@ def add_acceptance_criterion(
 ) -> tuple[dict[str, object], str]:
     metadata, body = read_front_matter_document(path)
     _assert_record_id(metadata, record_id)
-    now = utc_now_iso()
     existing = metadata.get("acceptance_criteria", [])
     if not isinstance(existing, list):
         existing = []
@@ -203,7 +195,7 @@ def add_acceptance_criterion(
     if validation_command:
         new_ac["validation"] = {"command": validation_command, "expected": expected}
     existing.append(new_ac)
-    metadata = {**metadata, "acceptance_criteria": existing, "updated_at": now}
+    metadata = bump_metadata_version({**metadata, "acceptance_criteria": existing})
     write_front_matter_document(path, metadata, body)
     return metadata, body
 

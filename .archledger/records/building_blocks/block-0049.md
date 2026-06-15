@@ -2,8 +2,7 @@
 id: block-0049
 type: black_box
 title: Section Rendering Layer
-schema_version: 2
-date: "2026-05-20"
+schema_version: 4
 body_format: markdown
 status: accepted
 section: building_block_view
@@ -23,11 +22,10 @@ location:
 fulfilled_requirements: []
 risks: []
 tags: []
-created_at: "2026-05-20T12:00:00Z"
-updated_at: "2026-05-20T12:00:00Z"
 source_refs:
   - archledger/section_rendering.py
 kind: block
+version: 1
 ---
 
 The section rendering module contains all per-record-type rendering functions. Each function takes a list of `ArchitectureRecord` and a `Dialect`, and returns a format-appropriate string (Markdown or AsciiDoc). Functions include table renderers (quality goals, stakeholders, quality scenarios, risks, glossary), list renderers (constraints, context interfaces), hierarchy renderers (building blocks with white/black boxes and interfaces), and prose renderers (ADRs, runtime scenarios, deployment, concepts, strategy items).

@@ -1,19 +1,16 @@
 ---
-schema_version: 2
+schema_version: 4
 id: content-0138
 type: requirement
 title: BDD metadata imports and exports supported Gherkin scenarios
 status: proposed
 section: introduction_and_goals
 order: 130
-date: "2026-06-07"
 source: BDD metadata import and export implementation
 priority: must
 stakeholders: []
 quality_goals: []
 body_format: markdown
-created_at: "2026-06-07T09:11:15Z"
-updated_at: "2026-06-07T09:11:15Z"
 source_refs:
   - path: archledger/bdd/
     role: implements
@@ -36,6 +33,7 @@ acceptance_criteria:
       command: pytest -q tests/test_bdd_import_cli.py tests/test_bdd_export_cli.py tests/test_bdd_checks.py
       expected: passes
 kind: content
+version: 1
 ---
 
 ## Requirement

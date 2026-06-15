@@ -1,6 +1,6 @@
 ---
 title: "archledger Architecture Documentation"
-date: "2026-06-07"
+version: 1
 generator: "archledger 0.3.1.dev6+g5c58990ed"
 arc42_template_version: "9.0-EN"
 ---
@@ -928,7 +928,7 @@ Key architectural decisions: dual-source support (Markdown and AsciiDoc as first
 ## Use Markdown/AsciiDoc records with YAML front matter
 
 **Status:** accepted
-**Date:** 2026-05-20
+**Date:**
 **Deciders:** Holger
 **Supersedes:**
 **Related:**
@@ -958,7 +958,7 @@ Negative: no referential integrity enforced at write time (only at check time). 
 ## Typer CLI over argparse or Click
 
 **Status:** accepted
-**Date:** 2026-05-20
+**Date:**
 **Deciders:** Holger
 **Supersedes:**
 **Related:**
@@ -986,7 +986,7 @@ Negative: Typer adds a dependency. Some advanced CLI patterns require working ar
 ## Jinja2 for document rendering
 
 **Status:** accepted
-**Date:** 2026-05-20
+**Date:**
 **Deciders:** Holger
 **Supersedes:**
 **Related:**
@@ -1014,7 +1014,7 @@ Negative: complex rendering logic is split between the template and Python helpe
 ## Use SHA-256-only source-state file entries plus directory hashes
 
 **Status:** accepted
-**Date:** 2026-05-21
+**Date:**
 **Deciders:** archledger maintainers
 **Supersedes:**
 **Related:**
@@ -1038,7 +1038,7 @@ Improves determinism and avoids unstable file-size/mtime dependence; requires co
 ## Config v7 and source schema v2 are the release baseline
 
 **Status:** accepted
-**Date:** 2026-05-21
+**Date:**
 **Deciders:** archledger maintainers
 **Supersedes:**
 **Related:**
@@ -1063,7 +1063,7 @@ Strict checks are consistent; migration effort is required for older local recor
 ## Native builds require no external tools
 
 **Status:** accepted
-**Date:** 2026-05-21
+**Date:**
 **Deciders:** archledger maintainers
 **Supersedes:**
 **Related:**
@@ -1087,7 +1087,7 @@ Improves portability; non-native formats remain optional.
 ## Non-native exports delegate to pandoc or asciidoctor
 
 **Status:** accepted
-**Date:** 2026-05-21
+**Date:**
 **Deciders:** archledger maintainers
 **Supersedes:**
 **Related:**
@@ -1111,7 +1111,7 @@ Clear dependency errors are required when tools are missing.
 ## Output path resolution remains bounded to configured roots
 
 **Status:** accepted
-**Date:** 2026-05-21
+**Date:**
 **Deciders:** archledger maintainers
 **Supersedes:**
 **Related:**
@@ -1135,7 +1135,7 @@ Safer defaults; invalid paths fail early with explicit diagnostics.
 ## Source refs use relative POSIX paths without parent traversal
 
 **Status:** accepted
-**Date:** 2026-05-21
+**Date:**
 **Deciders:** archledger maintainers
 **Supersedes:**
 **Related:**
@@ -1159,7 +1159,7 @@ Traceability links stay portable and secure; invalid refs are rejected.
 ## Storage counters are metadata and can be recomputed
 
 **Status:** accepted
-**Date:** 2026-05-21
+**Date:**
 **Deciders:** archledger maintainers
 **Supersedes:**
 **Related:**
@@ -1183,7 +1183,7 @@ Repair/recount operations can restore consistency without data loss.
 ## Multi-type diagram support with text as default
 
 **Status:** accepted
-**Date:** 2026-05-22
+**Date:**
 **Deciders:** archledger maintainers
 **Supersedes:**
 **Related:** adr-0082
@@ -1209,7 +1209,7 @@ Text diagrams are immediately readable in source, Git diffs, terminal output, an
 ## Config v7 adds configurable ID prefix, width, and segment mode
 
 **Status:** proposed
-**Date:** 2026-05-23
+**Date:**
 **Deciders:** archledger maintainers
 **Supersedes:**
 **Related:**
@@ -1247,7 +1247,7 @@ The `init` command accepts `--id-prefix`, `--id-width`, and `--id-segment-mode` 
 ## Renumber command is dry-run by default
 
 **Status:** proposed
-**Date:** 2026-05-23
+**Date:**
 **Deciders:** archledger maintainers
 **Supersedes:**
 **Related:**
@@ -1282,7 +1282,7 @@ When `--apply` is used, the renumber service:
 ## Segmented IDs embed type-derived tokens in the ID string
 
 **Status:** proposed
-**Date:** 2026-05-23
+**Date:**
 **Deciders:** archledger maintainers
 **Supersedes:**
 **Related:**

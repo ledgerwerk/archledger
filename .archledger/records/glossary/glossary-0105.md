@@ -2,8 +2,7 @@
 id: glossary-0105
 type: glossary_term
 title: Architecture Record
-schema_version: 2
-date: "2026-05-21"
+schema_version: 4
 body_format: markdown
 status: accepted
 section: glossary
@@ -18,6 +17,7 @@ source_refs:
   - README.md
   - docs/agent-workflow.rst
 kind: glossary
+version: 1
 ---
 
 A Markdown or AsciiDoc file with YAML front matter that describes one architecture element. Each record has an id, type, title, status, section, order, body_format, and optional source_refs linking it to source code artifacts.

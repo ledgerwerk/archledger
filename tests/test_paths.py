@@ -692,7 +692,9 @@ def test_config_version_bool_is_rejected(tmp_path: Path) -> None:
 
     with pytest.raises(ConfigError) as excinfo:
         resolve_project_paths(workspace_root)
-    assert str(excinfo.value) == "config_version must be 1, 2, 3, 4, 5, 6, 7, 8, or 9."
+    assert (
+        str(excinfo.value) == "config_version must be 1, 2, 3, 4, 5, 6, 7, 8, 9, or 10."
+    )
 
 
 def test_v6_config_supports_ids_table(tmp_path: Path) -> None:

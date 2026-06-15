@@ -1,5 +1,5 @@
 ---
-schema_version: {{ schema_version | default(3, true) }}
+schema_version: {{ schema_version | default(4, true) }}
 id: {{ id }}
 kind: {{ kind }}
 type: acceptance_criterion
@@ -7,7 +7,7 @@ title: {{ title | tojson }}
 status: {{ status }}
 section: {{ section }}
 order: {{ order }}
-date: {{ date | tojson }}
+version: {{ version | default(1, true) }}
 requirement: {{ requirement | tojson }}
 validation:
   command: {{ validation.command | tojson }}
@@ -15,8 +15,6 @@ validation:
 test_refs: {{ test_refs | tojson }}
 links: {{ links | tojson }}
 body_format: markdown
-created_at: {{ created_at | tojson }}
-updated_at: {{ updated_at | tojson }}
 ---
 
 ## Acceptance Criterion

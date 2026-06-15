@@ -2,8 +2,7 @@
 id: glossary-0106
 type: glossary_term
 title: arc42
-schema_version: 2
-date: "2026-05-21"
+schema_version: 4
 body_format: markdown
 status: accepted
 section: glossary
@@ -19,6 +18,7 @@ source_refs:
   - README.md
   - docs/agent-workflow.rst
 kind: glossary
+version: 1
 ---
 
 Describe this glossary term.

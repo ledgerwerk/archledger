@@ -2,8 +2,7 @@
 id: content-0015
 type: stakeholder
 title: Coding Agent
-schema_version: 2
-date: "2026-05-21"
+schema_version: 4
 body_format: markdown
 status: accepted
 section: introduction_and_goals
@@ -18,6 +17,7 @@ source_refs:
   - README.md
   - docs/index.rst
 kind: content
+version: 1
 ---
 
 Automated coding agents that create, validate, and render architecture documentation as part of development workflows. They interact with archledger exclusively through the CLI, preferring `--json` output for structured parsing.

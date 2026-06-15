@@ -43,11 +43,12 @@ def test_snapshot_writes_source_state_json(tmp_path: Path) -> None:
 
     assert result.exit_code == 0
     payload = json.loads(result.stdout)
-    assert payload["result"]["schema"] == "archledger.snapshot.v1"
+    assert payload["result"]["schema"] == "archledger.snapshot.v2"
     paths, _, _ = resolve_project_paths(tmp_path)
     state = read_source_state(paths.source_state_path)
     assert state is not None
-    assert state.schema == "archledger.source-state.v2"
+    assert state.schema == "archledger.source-state.v3"
+    assert state.version == 1
     assert "src/module.py" in state.files
     assert "." in state.directories
 
@@ -87,7 +88,7 @@ def test_changed_json_is_stable_without_baseline(tmp_path: Path) -> None:
 
     assert result.exit_code == 0
     payload = json.loads(result.stdout)
-    assert payload["result"]["schema"] == "archledger.changed.v1"
+    assert payload["result"]["schema"] == "archledger.changed.v2"
     assert payload["result"]["baseline"]["exists"] is False
     assert "src/module.py" in payload["result"]["changes"]["unbaselined_files"]
 
@@ -1040,7 +1041,8 @@ def test_new_legacy_v2_project_keeps_markdown_template(tmp_path: Path) -> None:
         tmp_path / ".archledger" / "records" / "requirements" / "content-0013.md"
     ).read_text(encoding="utf-8")
     assert "body_format: markdown" in created
-    assert "schema_version: 3" in created
+    assert "schema_version: 4" in created
+    assert "version: 1" in created
     assert "## Requirement" in created
 
 

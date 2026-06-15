@@ -1,5 +1,5 @@
 ---
-schema_version: 2
+schema_version: 4
 id: block-0139
 type: black_box
 title: Specification and traceability services
@@ -8,7 +8,6 @@ section: building_block_view
 level: 1
 parent: block-0041
 order: 175
-date: "2026-06-07"
 interfaces: []
 location: []
 fulfilled_requirements:
@@ -18,8 +17,6 @@ fulfilled_requirements:
 risks: []
 tags: []
 body_format: markdown
-created_at: "2026-06-07T09:11:16Z"
-updated_at: "2026-06-07T09:11:16Z"
 source_refs:
   - path: archledger/sdd.py
     role: implements
@@ -37,6 +34,7 @@ source_refs:
     role: implements
     reason: Safe record mutation operations used by specification workflows.
 kind: block
+version: 1
 ---
 
 This logical subsystem turns architecture records into enforceable,

@@ -10,9 +10,9 @@ Snapshots
 
    archledger --json source snapshot --reason after-archledger-update
 
-``source-state.json`` stores SHA-256 content hashes only for files. It does not
-persist mtimes or file sizes. Directory hashes are derived from file hashes
-after scanning.
+``source-state.json`` stores a monotonic snapshot ``version`` and SHA-256
+content hashes only for files. It does not persist timestamps, mtimes, or file
+sizes. Directory hashes are derived from file hashes after scanning.
 
 Changes
 -------
@@ -23,6 +23,8 @@ Changes
 
    archledger --json source changed
    archledger --json source changed --include-drafts
+
+Results report baseline and current versions rather than scan dates.
 
 If ``[tracking].enabled = false``, both commands fail explicitly instead of
 creating or reading misleading tracking state.

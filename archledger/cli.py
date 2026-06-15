@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Annotated
 
@@ -127,6 +127,10 @@ from archledger.errors import ArchledgerError, StorageError
 from archledger.id_format_drift import find_id_format_drift
 from archledger.identity_migration import migrate_identity
 from archledger.ids import DEFAULT_ID_PREFIX, DEFAULT_ID_SEGMENT_MODE, DEFAULT_ID_WIDTH
+from archledger.metadata_migration import (
+    metadata_migration_payload,
+    migrate_metadata,
+)
 from archledger.migration import convert_sources
 from archledger.model import ArchitectureRecord, known_source_extensions
 from archledger.render import build_document
@@ -1122,6 +1126,37 @@ def migrate_ids(
     _run_configured_command(state, "migrate ids", _build_migrate_result, _fmt)
 
 
+@migrate_app.command("metadata")
+def migrate_metadata_command(
+    ctx: typer.Context,
+    to: Annotated[str, typer.Option("--to")] = "versioned",
+    apply: Annotated[bool, typer.Option("--apply")] = False,
+) -> None:
+    state = _state(ctx)
+    if to.strip().lower() != "versioned":
+        raise typer.BadParameter("--to must be versioned.")
+
+    def _build_result(
+        repo: ArchitectureRepository,
+        paths: ProjectPaths,
+        config: ProjectConfig,
+    ) -> dict[str, object]:
+        del repo
+        return metadata_migration_payload(migrate_metadata(paths, config, apply=apply))
+
+    def _format(payload: dict[str, object]) -> str:
+        action = "Applied" if payload["apply"] else "Planned"
+        return (
+            f"{action} metadata migration: "
+            f"{payload['records_changed']} source file(s), "
+            f"storage_changed={payload['storage_changed']}, "
+            f"source_state_changed={payload['source_state_changed']}, "
+            f"config_changed={payload['config_changed']}."
+        )
+
+    _run_configured_command(state, "migrate metadata", _build_result, _format)
+
+
 @source_app.command("snapshot")
 def snapshot(
     ctx: typer.Context,
@@ -1140,9 +1175,13 @@ def snapshot(
                 "Source tracking is disabled by [tracking].enabled = false."
             )
         existing_state = _load_tracking_baseline(paths, config)
-        scanned_state = scan_workspace(paths, config, reason=reason)
-        if existing_state is not None:
-            scanned_state = replace(scanned_state, created_at=existing_state.created_at)
+        next_version = 1 if existing_state is None else existing_state.version + 1
+        scanned_state = scan_workspace(
+            paths,
+            config,
+            reason=reason,
+            version=next_version,
+        )
         write_source_state(paths.source_state_path, scanned_state)
         return _snapshot_payload(paths, scanned_state)
 

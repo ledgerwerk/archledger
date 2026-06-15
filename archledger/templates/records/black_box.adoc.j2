@@ -1,5 +1,5 @@
 ---
-schema_version: {{ schema_version | default(3, true) }}
+schema_version: {{ schema_version | default(4, true) }}
 id: {{ id }}
 kind: {{ kind }}
 type: black_box
@@ -9,15 +9,13 @@ section: {{ section }}
 level: {{ level }}
 parent: {{ parent | default('null') }}
 order: {{ order }}
-date: {{ date | tojson }}
+version: {{ version | default(1, true) }}
 interfaces: []
 location: []
 fulfilled_requirements: []
 risks: []
 tags: []
 body_format: asciidoc
-created_at: {{ created_at | tojson }}
-updated_at: {{ updated_at | tojson }}
 ---
 
 Describe the purpose and responsibility of this black box.

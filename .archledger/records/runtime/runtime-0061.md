@@ -2,8 +2,7 @@
 id: runtime-0061
 type: runtime_scenario
 title: Build multi-format output
-schema_version: 2
-date: "2026-05-21"
+schema_version: 4
 body_format: markdown
 status: accepted
 section: runtime_view
@@ -23,6 +22,7 @@ source_refs:
   - archledger/cli.py
   - tests/test_repository_cli.py
 kind: runtime
+version: 1
 ---
 
 1. CLI resolves the project config and constructs a Repository.

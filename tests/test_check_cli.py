@@ -34,7 +34,7 @@ def _write_tombstone(tmp_path: Path, record_id: str, order: int) -> Path:
 
     path.write_text(
         "---\n"
-        "schema_version: 3\n"
+        "schema_version: 4\n"
         f"id: {record_id}\n"
         "kind: archive\n"
         "type: archive_tombstone\n"
@@ -42,11 +42,8 @@ def _write_tombstone(tmp_path: Path, record_id: str, order: int) -> Path:
         "status: archived\n"
         "section: risks_and_technical_debt\n"
         f"order: {order}\n"
-        'date: "2026-06-07"\n'
+        "version: 1\n"
         "body_format: asciidoc\n"
-        'created_at: "2026-06-07T00:00:00Z"\n'
-        'updated_at: "2026-06-07T00:00:00Z"\n'
-        'archived_at: "2026-06-07T00:00:00Z"\n'
         "archived_reason: Created by test setup.\n"
         "---\n\n"
         "This tombstone preserves a ledger number.\n"

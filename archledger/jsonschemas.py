@@ -8,11 +8,13 @@ from importlib.resources import files
 from archledger.errors import ArchledgerError
 
 SCHEMA_FILES = {
-    "record": "archledger.record.v2.schema.json",
+    "record": "archledger.record.v4.schema.json",
+    "record-v2": "archledger.record.v2.schema.json",
     "context": "archledger.context.v1.schema.json",
     "context-v2": "archledger.context.v2.schema.json",
     "trace": "archledger.trace.v1.schema.json",
-    "changed": "archledger.changed.v1.schema.json",
+    "changed": "archledger.changed.v2.schema.json",
+    "changed-v1": "archledger.changed.v1.schema.json",
 }
 
 

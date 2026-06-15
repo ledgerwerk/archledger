@@ -1,12 +1,11 @@
 ---
-schema_version: 2
+schema_version: 4
 id: quality-0101
 type: quality_scenario
 title: Config v7 and source schema v2 records validate strictly
 status: accepted
 section: quality_requirements
 order: 80
-date: "2026-05-21"
 quality: maintainability
 source: strict check
 stimulus:
@@ -17,12 +16,11 @@ artifact: validation pipeline
 response: Strict check passes without schema/date/body_format findings.
 response_measure: archledger check --strict exits 0.
 body_format: markdown
-created_at: "2026-05-21T18:18:56Z"
-updated_at: "2026-05-21T18:18:56Z"
 source_refs:
   - tests/test_build.py
   - tests/test_source_tracking.py
 kind: quality
+version: 1
 ---
 
 Config v7 plus source schema v2 records validate in strict mode.

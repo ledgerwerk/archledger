@@ -335,12 +335,12 @@ def read_payload(
 
 def snapshot_payload(paths: ProjectPaths, state: SourceState) -> dict[str, object]:
     return {
-        "schema": "archledger.snapshot.v1",
+        "schema": "archledger.snapshot.v2",
         "source_state_path": str(paths.source_state_path),
         "reason": state.reason,
         "scanner_used": state.scanner.get("used", "filesystem"),
         "file_count": len(state.files),
-        "updated_at": state.updated_at,
+        "version": state.version,
     }
 
 
@@ -351,13 +351,13 @@ def changed_payload(
 ) -> dict[str, object]:
     baseline: dict[str, object] = {"exists": changes.baseline_exists}
     if changes.baseline_exists:
-        baseline["updated_at"] = changes.baseline_updated_at
+        baseline["version"] = changes.baseline_version
         baseline["reason"] = changes.baseline_reason
     return {
-        "schema": "archledger.changed.v1",
+        "schema": "archledger.changed.v2",
         "baseline": baseline,
         "scan": {
-            "scanned_at": changes.current_scanned_at,
+            "version": changes.current_version,
             "scanner_used": changes.scanner_used,
             "file_count": changes.file_count,
         },

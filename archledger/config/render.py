@@ -182,7 +182,7 @@ def build_default_project_config(
     )
 
     return ProjectConfig(
-        config_version=9,
+        config_version=10,
         archledger_dir=archledger_dir,
         project_uuid=normalized_uuid,
         project_name=normalized_project_name,

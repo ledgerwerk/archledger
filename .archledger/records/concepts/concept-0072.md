@@ -2,8 +2,7 @@
 id: concept-0072
 type: concept
 title: Config discovery and path resolution
-schema_version: 2
-date: "2026-05-22"
+schema_version: 4
 body_format: markdown
 status: accepted
 section: cross_cutting_concepts
@@ -16,8 +15,8 @@ source_refs:
   - README.md
   - archledger/section_rendering.py
   - .archledger.toml
-updated_at: "2026-05-23T11:30:00Z"
 kind: concept
+version: 1
 ---
 
 archledger discovers its project configuration by walking up from the current directory looking for `archledger.toml` or `.archledger.toml`. The `archledger_dir` setting in the config can be relative (resolved from the config file's directory) or absolute (used as-is). This allows the storage directory to live outside the source tree, for example in a separate state repository.

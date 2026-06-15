@@ -1,19 +1,16 @@
 ---
-schema_version: 2
+schema_version: 4
 id: content-0017
 type: requirement
 title: File-based source model uses editable records
 status: accepted
 section: introduction_and_goals
 order: 20
-date: "2026-05-21"
 source: archledger CLI behavior and repository implementation
 priority: must
 stakeholders: []
 quality_goals: []
 body_format: markdown
-created_at: "2026-05-21T18:18:40Z"
-updated_at: "2026-06-07T09:10:39Z"
 source_refs:
   - archledger/cli.py
   - archledger/repository.py
@@ -33,6 +30,7 @@ test_refs:
   - tests/test_frontmatter.py
   - tests/test_read_cli.py
 kind: content
+version: 1
 ---
 
 ## Requirement

@@ -3,12 +3,12 @@ id: content-0001
 type: section
 section: introduction_and_goals
 title: Introduction and Goals
-schema_version: 2
-date: "2026-05-21"
+schema_version: 4
 body_format: markdown
 order: 10
 status: accepted
 kind: content
+version: 1
 ---
 
 archledger is a dual-source architecture documentation ledger for arc42-style documents. Both Markdown and AsciiDoc are first-class source formats. The tool keeps project-local configuration (`archledger.toml`) in the source workspace and stores human-editable architecture records as individual files with YAML front matter. The primary output is a rendered document assembled from these records, with optional exports to HTML, PDF, DOCX, RST, and Textile via pandoc or asciidoctor.

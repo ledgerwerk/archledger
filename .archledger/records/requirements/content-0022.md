@@ -1,19 +1,16 @@
 ---
-schema_version: 2
+schema_version: 4
 id: content-0022
 type: requirement
 title: Read current architecture model without export
 status: accepted
 section: introduction_and_goals
 order: 40
-date: "2026-05-21"
 source: archledger CLI behavior and repository implementation
 priority: must
 stakeholders: []
 quality_goals: []
 body_format: markdown
-created_at: "2026-05-21T18:18:41Z"
-updated_at: "2026-06-07T09:10:44Z"
 source_refs:
   - archledger/cli.py
   - archledger/repository.py
@@ -32,6 +29,7 @@ acceptance_criteria:
 test_refs:
   - tests/test_read_cli.py
 kind: content
+version: 1
 ---
 
 ## Requirement

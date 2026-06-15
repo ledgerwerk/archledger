@@ -1,26 +1,24 @@
 ---
-schema_version: 2
+schema_version: 4
 id: concept-0075
 type: concept
 title: Multi-type diagram records
 status: accepted
 section: cross_cutting_concepts
 order: 50
-date: "2026-05-22"
 applies_to:
   - Record Type Registry
   - Check Layer
   - Config Layer
   - Assembly Layer
 body_format: markdown
-created_at: "2026-05-22T07:07:32Z"
-updated_at: "2026-05-22T21:45:00Z"
 source_refs:
   - archledger/record_types.py
   - archledger/checks.py
   - archledger/templates/records/diagram.md.j2
   - archledger/templates/records/diagram.adoc.j2
 kind: concept
+version: 1
 ---
 
 Diagram records support five types: `text`, `ascii`, `unicode`, `svgbob`, and `mermaid`. The default type is `text`, configured via `[diagrams].default_type` in `archledger.toml` and overridable per-record with `--diagram-type` on the CLI.

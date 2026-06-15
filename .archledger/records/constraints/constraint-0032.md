@@ -2,8 +2,7 @@
 id: constraint-0032
 type: constraint
 title: Python 3.10+ runtime
-schema_version: 2
-date: "2026-05-21"
+schema_version: 4
 body_format: markdown
 status: accepted
 section: architecture_constraints
@@ -17,6 +16,7 @@ source_refs:
   - archledger/storage/paths.py
   - tests/test_paths.py
 kind: constraint
+version: 1
 ---
 
 archledger requires Python >= 3.10, as declared in `pyproject.toml`. This allows the use of modern type hint syntax (`X | Y` unions, `match` statements) while still supporting current Python distributions on Linux and macOS.

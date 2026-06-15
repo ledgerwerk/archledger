@@ -190,7 +190,7 @@ def format_changed_message(payload: dict[str, object]) -> str:
             lines.append(f"- unbaselined: {path}")
         return "\n".join(lines)
 
-    lines = [f"Changed since baseline {baseline.get('updated_at', 'unknown')}:"]
+    lines = [f"Changed since baseline version {baseline.get('version', 'unknown')}:"]
     for label in ("modified", "added", "deleted"):
         entries = changes.get(label, [])
         if not isinstance(entries, list):

@@ -1,5 +1,5 @@
 ---
-schema_version: 2
+schema_version: 4
 id: block-0113
 type: black_box
 title: Renumber Service
@@ -8,7 +8,6 @@ section: building_block_view
 level: 1
 parent: block-0041
 order: 155
-date: "2026-05-23"
 interfaces:
   - renumber_project()
 location:
@@ -17,12 +16,11 @@ fulfilled_requirements: []
 risks: []
 tags: []
 body_format: markdown
-created_at: "2026-05-23T11:27:28Z"
-updated_at: "2026-05-23T11:27:28Z"
 source_refs:
   - archledger/renumber.py
   - tests/test_renumber_cli.py
 kind: block
+version: 1
 ---
 
 The `renumber` module provides the `renumber_project()` service that replans and optionally applies changes to the ledger ID format across all source files. It supports changing the ID prefix, width, and segment mode.

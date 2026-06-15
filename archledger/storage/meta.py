@@ -10,8 +10,8 @@ from ledgercore.refs import parse_local_ref
 from ledgercore.yamlio import load_yaml_object, write_yaml
 
 from archledger.errors import StorageError
+from archledger.metadata_version import require_version
 from archledger.model import SOURCE_FORMAT_EXTENSIONS
-from archledger.storage.common import utc_now_iso
 
 
 @dataclass(frozen=True, slots=True)
@@ -19,16 +19,16 @@ class StorageMeta:
     storage_version: int
     created_with_archledger: str
     project_uuid: str
-    created_at: str
+    version: int
     next_number: int
 
 
 def default_storage_meta(project_uuid: str, archledger_version: str) -> StorageMeta:
     return StorageMeta(
-        storage_version=2,
+        storage_version=3,
         created_with_archledger=archledger_version,
         project_uuid=project_uuid,
-        created_at=utc_now_iso(),
+        version=1,
         next_number=1,
     )
 
@@ -44,19 +44,25 @@ def read_storage_meta(path: Path) -> StorageMeta:
     storage_version = raw_data.get("storage_version")
     created_with_archledger = raw_data.get("created_with_archledger")
     project_uuid = raw_data.get("project_uuid")
-    created_at = raw_data.get("created_at")
+    version = raw_data.get("version")
     next_number = raw_data.get("next_number")
 
-    if storage_version != 2:
-        raise StorageError("storage_version must be 2.")
+    if storage_version not in {2, 3}:
+        raise StorageError("storage_version must be 2 or 3.")
     if not all(
         isinstance(value, str) and value
-        for value in (created_with_archledger, project_uuid, created_at)
+        for value in (created_with_archledger, project_uuid)
     ):
         raise StorageError(
-            "storage.yaml created_with_archledger, project_uuid, and created_at "
+            "storage.yaml created_with_archledger and project_uuid "
             "must be non-empty strings."
         )
+    if storage_version == 2 and version is None:
+        version = 1
+    try:
+        validated_version = require_version(version)
+    except ValueError as exc:
+        raise StorageError("storage.yaml version must be a positive integer.") from exc
     if (
         isinstance(next_number, bool)
         or not isinstance(next_number, int)
@@ -65,10 +71,10 @@ def read_storage_meta(path: Path) -> StorageMeta:
         raise StorageError("storage.yaml next_number must be a positive integer.")
 
     return StorageMeta(
-        storage_version=2,
+        storage_version=storage_version,
         created_with_archledger=cast(str, created_with_archledger),
         project_uuid=cast(str, project_uuid),
-        created_at=cast(str, created_at),
+        version=validated_version,
         next_number=next_number,
     )
 
@@ -77,10 +83,10 @@ def write_storage_meta(path: Path, meta: StorageMeta) -> None:
     write_yaml(
         path,
         {
-            "storage_version": meta.storage_version,
+            "storage_version": 3,
             "created_with_archledger": meta.created_with_archledger,
             "project_uuid": meta.project_uuid,
-            "created_at": meta.created_at,
+            "version": meta.version,
             "next_number": meta.next_number,
         },
         sort_keys=False,

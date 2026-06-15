@@ -2,8 +2,7 @@
 id: quality-0091
 type: quality_scenario
 title: Agent can create and validate records via CLI
-schema_version: 2
-date: "2026-05-21"
+schema_version: 4
 body_format: markdown
 status: accepted
 section: quality_requirements
@@ -21,6 +20,7 @@ source_refs:
   - tests/test_build.py
   - tests/test_source_tracking.py
 kind: quality
+version: 1
 ---
 
 Coding agents must be able to create, inspect, and validate architecture records without human intervention. The --json flag provides structured output for all commands. Exit codes distinguish success (0) from failure (1).

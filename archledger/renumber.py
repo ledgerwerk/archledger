@@ -167,7 +167,12 @@ def renumber_project(
         )
         write_storage_meta(
             paths.storage_meta_path,
-            dataclass_replace(meta_before, next_number=next_after),
+            dataclass_replace(
+                meta_before,
+                storage_version=3,
+                version=meta_before.version + 1,
+                next_number=next_after,
+            ),
         )
     else:
         next_after = meta_before.next_number

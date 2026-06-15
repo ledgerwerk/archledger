@@ -2,8 +2,7 @@
 id: content-0018
 type: stakeholder
 title: Developer
-schema_version: 2
-date: "2026-05-21"
+schema_version: 4
 body_format: markdown
 status: accepted
 section: introduction_and_goals
@@ -17,6 +16,7 @@ source_refs:
   - README.md
   - docs/index.rst
 kind: content
+version: 1
 ---
 
 Software developers who write and maintain architecture documentation alongside code. They use archledger locally to create records, validate them, and generate a single rendered document for review.

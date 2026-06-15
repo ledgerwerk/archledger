@@ -1,24 +1,22 @@
 ---
-schema_version: 2
+schema_version: 4
 id: quality-0096
 type: quality_requirement
 title: JSON output stability
 status: accepted
 section: quality_requirements
 order: 50
-date: "2026-05-21"
 category: compatibility
 source: release architecture review
 measure: JSON payload keys for stable commands remain backward compatible.
 scenarios:
   - quality-0100
 body_format: markdown
-created_at: "2026-05-21T18:18:46Z"
-updated_at: "2026-05-21T18:18:46Z"
 source_refs:
   - tests/test_build.py
   - tests/test_source_tracking.py
 kind: quality
+version: 1
 ---
 
 ## Requirement

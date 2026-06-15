@@ -1,24 +1,22 @@
 ---
-schema_version: 2
+schema_version: 4
 id: concept-0119
 type: concept
 title: Configurable ledger ID format
 status: proposed
 section: cross_cutting_concepts
 order: 60
-date: "2026-05-23"
 applies_to:
   - building_block_view
   - runtime_view
   - architecture_decisions
 body_format: markdown
-created_at: "2026-05-23T11:28:40Z"
-updated_at: "2026-05-23T11:28:40Z"
 source_refs:
   - archledger/ids.py
   - archledger/id_segments.py
   - archledger/config/model.py
 kind: concept
+version: 1
 ---
 
 ## Concept

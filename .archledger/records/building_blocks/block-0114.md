@@ -1,5 +1,5 @@
 ---
-schema_version: 2
+schema_version: 4
 id: block-0114
 type: black_box
 title: ID Segment Resolution
@@ -8,7 +8,6 @@ section: building_block_view
 level: 1
 parent: block-0041
 order: 165
-date: "2026-05-23"
 interfaces:
   - id_segment_for_metadata()
   - id_segment_for_record()
@@ -19,11 +18,10 @@ fulfilled_requirements: []
 risks: []
 tags: []
 body_format: markdown
-created_at: "2026-05-23T11:27:37Z"
-updated_at: "2026-05-23T11:27:37Z"
 source_refs:
   - archledger/id_segments.py
 kind: block
+version: 1
 ---
 
 The `id_segments` module resolves content-derived ID segments for segmented ledger IDs. When `segment_mode` is `type`, each record ID includes a segment token derived from the record's type metadata.

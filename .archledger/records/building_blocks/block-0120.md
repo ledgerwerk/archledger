@@ -1,5 +1,5 @@
 ---
-schema_version: 2
+schema_version: 4
 id: block-0120
 type: interface
 title: CLI stdout JSON contract
@@ -7,7 +7,6 @@ status: accepted
 section: building_block_view
 parent: null
 order: 10
-date: "2026-05-23"
 providers:
   - CLI Layer
 consumers:
@@ -15,14 +14,13 @@ consumers:
   - JSON-mode CLI users
 protocol: JSON over stdout
 body_format: markdown
-created_at: "2026-05-23T13:53:19Z"
-updated_at: "2026-05-23T13:55:00Z"
 source_refs:
   - archledger/cli_payloads.py
   - archledger/cli_formatting.py
   - archledger/cli.py
   - tests/test_read_cli.py
 kind: block
+version: 1
 ---
 
 This interface defines the stable stdout contract for CLI commands when users opt into `--json` mode.

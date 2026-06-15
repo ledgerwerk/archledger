@@ -1,5 +1,5 @@
 ---
-schema_version: {{ schema_version | default(3, true) }}
+schema_version: {{ schema_version | default(4, true) }}
 id: {{ id }}
 kind: {{ kind }}
 type: architecture_question
@@ -7,7 +7,7 @@ title: {{ title | tojson }}
 status: {{ status }}
 section: {{ section }}
 order: {{ order }}
-date: {{ date | tojson }}
+version: {{ version | default(1, true) }}
 question: {{ question | tojson }}
 resolution_status: {{ resolution_status }}
 owner: {{ owner | tojson }}
@@ -17,8 +17,6 @@ constraints: {{ constraints | tojson }}
 risks: {{ risks | tojson }}
 linked_decision: {{ linked_decision | tojson }}
 body_format: markdown
-created_at: {{ created_at | tojson }}
-updated_at: {{ updated_at | tojson }}
 ---
 
 ## Question

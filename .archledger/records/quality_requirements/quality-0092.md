@@ -1,24 +1,22 @@
 ---
-schema_version: 2
+schema_version: 4
 id: quality-0092
 type: quality_requirement
 title: Safe path validation
 status: accepted
 section: quality_requirements
 order: 30
-date: "2026-05-21"
 category: safety
 source: release architecture review
 measure: Path escape attempts are rejected with explicit errors.
 scenarios:
   - quality-0099
 body_format: markdown
-created_at: "2026-05-21T18:18:45Z"
-updated_at: "2026-05-21T18:18:45Z"
 source_refs:
   - tests/test_build.py
   - tests/test_source_tracking.py
 kind: quality
+version: 1
 ---
 
 ## Requirement

@@ -1,19 +1,16 @@
 ---
-schema_version: 2
+schema_version: 4
 id: content-0136
 type: requirement
 title: SDD profile enforces specification traceability contracts
 status: proposed
 section: introduction_and_goals
 order: 110
-date: "2026-06-07"
 source: SDD profile implementation and CLI tests
 priority: must
 stakeholders: []
 quality_goals: []
 body_format: markdown
-created_at: "2026-06-07T09:11:13Z"
-updated_at: "2026-06-07T09:11:13Z"
 source_refs:
   - path: archledger/sdd.py
     role: implements
@@ -33,6 +30,7 @@ acceptance_criteria:
       command: pytest -q tests/test_sdd_cli.py tests/test_sdd_pr_cli.py
       expected: passes
 kind: content
+version: 1
 ---
 
 ## Requirement

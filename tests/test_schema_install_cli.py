@@ -29,6 +29,30 @@ def test_schema_jsonschema_target_is_returned(tmp_path: Path) -> None:
     schema = json.loads(result.stdout)["result"]
     assert schema["$schema"].endswith("2020-12/schema")
     assert schema["title"] == "Archledger record front matter"
+    assert "version" in schema["required"]
+    assert "date" not in schema["properties"]
+
+
+def test_changed_jsonschema_uses_version_fields(tmp_path: Path) -> None:
+    _init(tmp_path)
+    result = runner.invoke(
+        app,
+        [
+            "--root",
+            str(tmp_path),
+            "--json",
+            "schema",
+            "--format",
+            "jsonschema",
+            "--target",
+            "changed",
+        ],
+    )
+
+    assert result.exit_code == 0
+    schema = json.loads(result.stdout)["result"]
+    assert schema["properties"]["schema"]["const"] == "archledger.changed.v2"
+    assert "version" in schema["properties"]["scan"]["required"]
 
 
 def test_schema_target_sdd_fails(tmp_path: Path) -> None:

@@ -1,18 +1,15 @@
 ---
-schema_version: 2
+schema_version: 4
 id: runtime-0135
 type: runtime_scenario
 title: Agent implements after approval
 status: proposed
 section: runtime_view
 order: 180
-date: "2026-06-07"
 participants: []
 trigger: ""
 result: ""
 body_format: markdown
-created_at: "2026-06-07T07:26:05Z"
-updated_at: "2026-06-07T07:26:05Z"
 bdd:
   feature: Task lifecycle gates
   scenario: Agent implements after approval
@@ -33,6 +30,7 @@ source_refs:
     role: documents
     reason: Imported Gherkin scenario source.
 kind: runtime
+version: 1
 ---
 
 Describe the runtime scenario.

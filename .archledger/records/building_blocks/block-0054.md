@@ -1,5 +1,5 @@
 ---
-schema_version: 2
+schema_version: 4
 id: block-0054
 type: black_box
 title: Record Type Registry
@@ -8,7 +8,6 @@ section: building_block_view
 level: 1
 parent: block-0041
 order: 115
-date: "2026-05-21"
 interfaces:
   - RECORD_TYPES registry
   - CLI_KIND_ALIASES
@@ -19,8 +18,6 @@ fulfilled_requirements: []
 risks: []
 tags: []
 body_format: markdown
-created_at: "2026-05-21T11:31:25Z"
-updated_at: "2026-05-22T07:00:00Z"
 source_refs:
   - archledger/record_types.py
   - path: archledger/templates/records/diagram.md.j2
@@ -28,6 +25,7 @@ source_refs:
   - path: archledger/templates/records/diagram.adoc.j2
     reason: Diagram template scaffolding per diagram type
 kind: block
+version: 1
 ---
 
 The `record_types.py` module is the central registry for all arc42 record types. It defines `RecordTypeSpec`, a frozen dataclass mapping each record kind to its directory name, filename prefix, default section, template basename, CLI aliases, default status/level, and a context factory function. The `RECORD_TYPES` dictionary provides the authoritative lookup. `CLI_KIND_ALIASES` maps alternative names (e.g., `qg` for `quality_goal`) for the CLI.

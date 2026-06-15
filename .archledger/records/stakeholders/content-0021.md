@@ -2,8 +2,7 @@
 id: content-0021
 type: stakeholder
 title: Architect
-schema_version: 2
-date: "2026-05-21"
+schema_version: 4
 body_format: markdown
 status: accepted
 section: introduction_and_goals
@@ -18,6 +17,7 @@ source_refs:
   - README.md
   - docs/index.rst
 kind: content
+version: 1
 ---
 
 Software architects who define and maintain the architectural vision. They author ADRs, quality scenarios, building block decompositions, and ensure that the documentation stays consistent with the implemented system.

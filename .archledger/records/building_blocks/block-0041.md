@@ -2,8 +2,7 @@
 id: block-0041
 type: white_box
 title: Overall System
-schema_version: 2
-date: "2026-05-21"
+schema_version: 4
 body_format: markdown
 status: accepted
 section: building_block_view
@@ -13,12 +12,11 @@ order: 10
 diagram: null
 quality_characteristics: []
 tags: []
-created_at: "2026-05-20T05:52:14Z"
-updated_at: "2026-05-22T07:00:00Z"
 source_refs:
   - path: archledger/
     reason: All source code under the archledger package
 kind: block
+version: 1
 ---
 
 ## Motivation

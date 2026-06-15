@@ -2,8 +2,7 @@
 id: runtime-0057
 type: runtime_scenario
 title: Create and render a new architecture record
-schema_version: 2
-date: "2026-05-21"
+schema_version: 4
 body_format: markdown
 status: accepted
 section: runtime_view
@@ -21,6 +20,7 @@ source_refs:
   - archledger/cli.py
   - tests/test_repository_cli.py
 kind: runtime
+version: 1
 ---
 
 1. CLI parses the `new` command arguments (kind, title, status, parent, section).

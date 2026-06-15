@@ -280,8 +280,9 @@ def load_project_config(path: Path) -> ProjectConfig:
         7,
         8,
         9,
+        10,
     }:
-        raise ConfigError("config_version must be 1, 2, 3, 4, 5, 6, 7, 8, or 9.")
+        raise ConfigError("config_version must be 1, 2, 3, 4, 5, 6, 7, 8, 9, or 10.")
 
     archledger_dir = raw_data.get("archledger_dir")
     if not isinstance(archledger_dir, str) or not archledger_dir.strip():

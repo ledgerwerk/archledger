@@ -1,12 +1,11 @@
 ---
-schema_version: 2
+schema_version: 4
 id: diagram-0063
 type: diagram
 title: Deployment Topology
 status: accepted
 section: deployment_view
 order: 40
-date: "2026-05-22"
 diagram_type: unicode
 caption: archledger deployment nodes and their relationships
 related_records:
@@ -18,9 +17,8 @@ related_records:
 tags:
   - deployment
 body_format: markdown
-created_at: "2026-05-21T19:34:08Z"
-updated_at: "2026-05-22T07:15:00Z"
 kind: diagram
+version: 1
 ---
 
 archledger has no server component. It runs as a local CLI tool on developer

@@ -2,8 +2,7 @@
 id: strategy-0039
 type: strategy_item
 title: File-based record pipeline with dual-source and multi-format export
-schema_version: 2
-date: "2026-05-20"
+schema_version: 4
 body_format: markdown
 status: accepted
 section: solution_strategy
@@ -20,12 +19,11 @@ related_adrs:
   - adr-0077
   - adr-0078
   - adr-0079
-created_at: "2026-05-20T06:11:34Z"
-updated_at: "2026-05-20T12:00:00Z"
 source_refs:
   - archledger/assembly.py
   - archledger/section_rendering.py
 kind: strategy
+version: 1
 ---
 
 ## Strategy

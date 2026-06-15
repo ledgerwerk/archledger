@@ -1,12 +1,11 @@
 ---
-schema_version: 2
+schema_version: 4
 id: diagram-0040
 type: diagram
 title: Building Block Layer Structure
 status: accepted
 section: building_block_view
 order: 20
-date: "2026-05-22"
 diagram_type: unicode
 caption: Layered decomposition of archledger building blocks
 related_records:
@@ -30,9 +29,8 @@ tags:
   - building-block
   - layers
 body_format: markdown
-created_at: "2026-05-21T19:33:57Z"
-updated_at: "2026-05-22T07:15:00Z"
 kind: diagram
+version: 1
 ---
 
 The system is organized as a layered pipeline. User input flows down from the

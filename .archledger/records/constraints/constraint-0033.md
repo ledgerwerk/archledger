@@ -2,8 +2,7 @@
 id: constraint-0033
 type: constraint
 title: No external database dependency
-schema_version: 2
-date: "2026-05-21"
+schema_version: 4
 body_format: markdown
 status: accepted
 section: architecture_constraints
@@ -17,6 +16,7 @@ source_refs:
   - archledger/storage/paths.py
   - tests/test_paths.py
 kind: constraint
+version: 1
 ---
 
 archledger stores all state as flat files on the local filesystem. The configuration is a TOML file at the project root, records are Markdown files in subdirectories, and metadata is a YAML file. This keeps the dependency footprint small (Typer, PyYAML, Jinja2) and avoids operational complexity.

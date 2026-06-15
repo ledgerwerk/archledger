@@ -1,19 +1,16 @@
 ---
-schema_version: 2
+schema_version: 4
 id: content-0137
 type: requirement
 title: Agent context and trace queries return focused architecture evidence
 status: proposed
 section: introduction_and_goals
 order: 120
-date: "2026-06-07"
 source: Agent context and trace implementation
 priority: must
 stakeholders: []
 quality_goals: []
 body_format: markdown
-created_at: "2026-06-07T09:11:14Z"
-updated_at: "2026-06-07T09:11:14Z"
 source_refs:
   - path: archledger/context.py
     role: implements
@@ -33,6 +30,7 @@ acceptance_criteria:
       command: pytest -q tests/test_context_cli.py tests/test_sdd_cli.py
       expected: passes
 kind: content
+version: 1
 ---
 
 ## Requirement

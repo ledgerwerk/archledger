@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://archledger.dev/schemas/archledger.changed.v2.schema.json",
+  "title": "Archledger changed source result",
+  "type": "object",
+  "required": ["schema", "baseline", "scan", "changes"],
+  "properties": {
+    "schema": { "const": "archledger.changed.v2" },
+    "baseline": {
+      "type": "object",
+      "required": ["exists"],
+      "properties": {
+        "exists": { "type": "boolean" },
+        "version": { "type": ["integer", "null"], "minimum": 0 },
+        "reason": { "type": ["string", "null"] }
+      }
+    },
+    "scan": {
+      "type": "object",
+      "required": ["version", "scanner_used", "file_count"],
+      "properties": {
+        "version": { "type": "integer", "minimum": 1 },
+        "scanner_used": { "type": "string" },
+        "file_count": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "changes": { "type": "object" }
+  }
+}

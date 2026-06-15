@@ -1,12 +1,11 @@
 ---
-schema_version: 2
+schema_version: 4
 id: context-0038
 type: context_interface
 title: Project stakeholders
 status: accepted
 section: context_and_scope
 order: 40
-date: "2026-05-21"
 context_kind: business
 partner: Developers, maintainers, and release managers
 inputs:
@@ -22,12 +21,11 @@ channels:
   - pull request review
   - CI artifacts
 body_format: markdown
-created_at: "2026-05-21T18:23:10Z"
-updated_at: "2026-05-21T18:23:10Z"
 source_refs:
   - README.md
   - docs/release-process.rst
 kind: context
+version: 1
 ---
 
 Stakeholders provide architecture requirements, review generated artifacts, and consume release documentation from repository and CI outputs.

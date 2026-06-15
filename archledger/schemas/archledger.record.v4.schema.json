@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://archledger.dev/schemas/archledger.record.v4.schema.json",
+  "title": "Archledger record front matter",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "id",
+    "kind",
+    "type",
+    "title",
+    "status",
+    "section",
+    "order",
+    "version",
+    "body_format"
+  ],
+  "properties": {
+    "schema_version": { "const": 4 },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*-\\d{4,}$"
+    },
+    "kind": { "type": "string", "minLength": 1 },
+    "type": { "type": "string", "minLength": 1 },
+    "title": { "type": "string", "minLength": 1 },
+    "status": { "type": "string" },
+    "section": { "type": "string" },
+    "order": { "type": "integer" },
+    "version": { "type": "integer", "minimum": 1 },
+    "body_format": { "enum": ["markdown", "asciidoc"] },
+    "source_refs": { "type": "array" },
+    "test_refs": { "type": "array" },
+    "links": { "type": "array" }
+  },
+  "not": {
+    "anyOf": [
+      { "required": ["date"] },
+      { "required": ["created_at"] },
+      { "required": ["updated_at"] },
+      { "required": ["archived_at"] }
+    ]
+  },
+  "additionalProperties": true
+}

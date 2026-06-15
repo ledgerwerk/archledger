@@ -1,12 +1,11 @@
 ---
-schema_version: 2
+schema_version: 4
 id: diagram-0059
 type: diagram
 title: Build Pipeline Flow
 status: accepted
 section: runtime_view
 order: 30
-date: "2026-05-22"
 diagram_type: text
 caption: The four-stage pipeline from authoring to export
 related_records:
@@ -17,9 +16,8 @@ tags:
   - pipeline
   - runtime
 body_format: markdown
-created_at: "2026-05-21T19:34:02Z"
-updated_at: "2026-05-22T07:15:00Z"
 kind: diagram
+version: 1
 ---
 
 The build pipeline processes architecture records through four stages. Native

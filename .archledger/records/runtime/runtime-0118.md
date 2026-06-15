@@ -1,12 +1,11 @@
 ---
-schema_version: 2
+schema_version: 4
 id: runtime-0118
 type: runtime_scenario
 title: Renumber ledger IDs
 status: proposed
 section: runtime_view
 order: 60
-date: "2026-05-23"
 participants:
   - CLI Layer
   - Renumber Service
@@ -20,13 +19,12 @@ result:
   All source files renamed and rewritten with new ID format, config and storage
   metadata updated
 body_format: markdown
-created_at: "2026-05-23T11:28:33Z"
-updated_at: "2026-05-23T11:28:33Z"
 source_refs:
   - archledger/cli.py
   - archledger/renumber.py
   - tests/test_renumber_cli.py
 kind: runtime
+version: 1
 ---
 
 1. User invokes `archledger renumber --id-prefix <new>` and/or `--id-width <n>` and/or `--id-segment-mode <mode>`.

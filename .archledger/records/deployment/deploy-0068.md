@@ -1,5 +1,5 @@
 ---
-schema_version: 2
+schema_version: 4
 id: deploy-0068
 type: infrastructure
 title: Optional converter toolchain
@@ -8,16 +8,14 @@ section: deployment_view
 level: 1
 parent: null
 order: 50
-date: "2026-05-21"
 environment: runtime
 maps_building_blocks: []
 body_format: markdown
-created_at: "2026-05-21T18:18:48Z"
-updated_at: "2026-05-21T18:18:48Z"
 source_refs:
   - pyproject.toml
   - docs/index.rst
 kind: deploy
+version: 1
 ---
 
 Optional conversion toolchain: pandoc (html/docx/rst/textile), asciidoctor (html), and asciidoctor-pdf (pdf). Native source-format builds do not require these tools.

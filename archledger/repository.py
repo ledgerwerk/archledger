@@ -27,6 +27,7 @@ from archledger.ledger_sequence import (
     collect_numbered_source_paths as _collect_numbered_source_paths,
 )
 from archledger.links import normalize_links
+from archledger.metadata_version import bump_metadata_version
 from archledger.model import (
     CURRENT_SOURCE_SCHEMA_VERSION,
     MAJOR_SECTION_SPECS,
@@ -48,7 +49,7 @@ from archledger.model import (
 from archledger.record_types import RecordContextInput
 from archledger.scopes import normalize_scope
 from archledger.source_refs import normalize_source_refs
-from archledger.storage.common import ensure_dir, utc_now_iso, write_text_atomic
+from archledger.storage.common import ensure_dir, write_text_atomic
 from archledger.storage.frontmatter import (
     FrontMatterError,
     iter_source_files,
@@ -153,7 +154,6 @@ class ArchitectureRepository:
 
     def init(self, *, overwrite: bool = False) -> InitResult:
         created_paths: list[Path] = []
-        created_at = utc_now_iso()
         dirs_to_create: list[Path] = [
             self.paths.archledger_dir,
             self.paths.records_dir,
@@ -192,7 +192,6 @@ class ArchitectureRepository:
                             self.config.source_format,
                             record_id=section_id,
                             source_schema_version=self.config.source_schema_version,
-                            created_at=created_at,
                         ),
                     )
                     created_paths.append(section_path)
@@ -281,7 +280,6 @@ class ArchitectureRepository:
             filename = f"{record_id}{self.config.record_extension}"
             target_path = target_dir / filename
         order = self._next_order(normalized_kind)
-        created_at = utc_now_iso()
         template_name = record_template_name_for_source_format(
             normalized_kind,
             self.config.source_format,
@@ -290,7 +288,6 @@ class ArchitectureRepository:
             normalized_kind,
             title=title,
             order=order,
-            created_at=created_at,
             target_path=target_path,
             **kwargs,
         )
@@ -600,20 +597,21 @@ class ArchitectureRepository:
             raise ValidationError(f"Record not found: {record_id}")
 
         metadata, body = read_front_matter_document(active_path)
-        now = utc_now_iso()
         relative_active = active_path.relative_to(self.paths.archledger_dir)
         archive_path = self.paths.archive_dir / relative_active
         if archive_path.exists():
             raise ValidationError(f"Archive target already exists: {archive_path}")
 
-        metadata = {
-            **metadata,
-            "status": "archived",
-            "archived_at": now,
-            "archived_reason": reason,
-            "archived_from": str(relative_active),
-            "updated_at": now,
-        }
+        metadata = bump_metadata_version(
+            {
+                **metadata,
+                "status": "archived",
+                "archived_reason": reason,
+                "archived_from": str(relative_active),
+            }
+        )
+        for field in ("date", "created_at", "updated_at", "archived_at"):
+            metadata.pop(field, None)
         ensure_dir(archive_path.parent)
         write_front_matter_document(archive_path, metadata, body)
         active_path.unlink()
@@ -863,7 +861,6 @@ class ArchitectureRepository:
         )
         if path.exists():
             return path, record_id
-        now = utc_now_iso()
         metadata = {
             "schema_version": self.config.source_schema_version,
             "id": record_id,
@@ -873,11 +870,8 @@ class ArchitectureRepository:
             "status": "archived",
             "section": "risks_and_technical_debt",
             "order": number,
-            "date": now[:10],
+            "version": 1,
             "body_format": self.config.source_format,
-            "created_at": now,
-            "updated_at": now,
-            "archived_at": now,
             "archived_reason": (
                 "Created by archledger doctor --repair for a missing ledger number."
             ),
@@ -926,7 +920,6 @@ class ArchitectureRepository:
         *,
         title: str,
         order: int,
-        created_at: str,
         target_path: Path,
         **kwargs: object,
     ) -> dict[str, object]:
@@ -945,9 +938,7 @@ class ArchitectureRepository:
             "status": status,
             "section": section,
             "order": order,
-            "created_at": created_at,
-            "updated_at": created_at,
-            "date": created_at[:10],
+            "version": 1,
             "body_format": self.config.source_format,
             "parent": "null" if parent in (None, "") else parent,
             "level": kwargs.get("level", spec.default_level),
@@ -1010,7 +1001,7 @@ class ArchitectureRepository:
             and not isinstance(schema_version_value, bool)
             else self.config.source_schema_version
         )
-        required_fields = REQUIRED_RECORD_FIELDS
+        required_fields: tuple[str, ...] = REQUIRED_RECORD_FIELDS
         if schema_version < 3:
             required_fields = tuple(
                 field for field in REQUIRED_RECORD_FIELDS if field != "kind"
@@ -1096,6 +1087,8 @@ class ArchitectureRepository:
             self.paths.storage_meta_path,
             dataclass_replace(
                 current_meta,
+                storage_version=3,
+                version=current_meta.version + 1,
                 next_number=max(
                     next_number_floor(
                         self.paths.archledger_dir,
@@ -1120,7 +1113,7 @@ class ArchitectureRepository:
         config_version = self.config.config_version
         schema_version = record.metadata.get("schema_version")
         body_format = record.metadata.get("body_format")
-        date = record.metadata.get("date")
+        version = record.metadata.get("version")
 
         if schema_version is None:
             if config_version >= 4:
@@ -1137,11 +1130,29 @@ class ArchitectureRepository:
             else:
                 warnings.append(message)
 
-        if date is None:
-            if config_version >= 4:
-                errors.append(f"Record {record.id} is missing date.")
-        elif not isinstance(date, str) or not date.strip():
-            errors.append(f"Record {record.id} date must be a non-empty string.")
+        current_schema = (
+            isinstance(schema_version, int)
+            and not isinstance(schema_version, bool)
+            and schema_version >= 4
+        )
+        if version is None:
+            if current_schema or self.config.source_schema_version >= 4:
+                errors.append(f"Record {record.id} is missing version.")
+        elif isinstance(version, bool) or not isinstance(version, int) or version < 1:
+            errors.append(f"Record {record.id} version must be a positive integer.")
+
+        legacy_fields = ("date", "created_at", "updated_at", "archived_at")
+        present_legacy = [field for field in legacy_fields if field in record.metadata]
+        if present_legacy:
+            message = (
+                f"Record {record.id} contains legacy timestamp field(s): "
+                + ", ".join(present_legacy)
+                + ". Run: archledger migrate metadata --to versioned --apply"
+            )
+            if current_schema:
+                errors.append(message)
+            else:
+                warnings.append(message)
 
         if body_format is None:
             if config_version >= 4:
@@ -1186,9 +1197,8 @@ def _section_document(
     *,
     record_id: str,
     source_schema_version: int = CURRENT_SOURCE_SCHEMA_VERSION,
-    created_at: str | None = None,
+    version: int = 1,
 ) -> str:
-    timestamp = utc_now_iso() if created_at is None else created_at
     lines = [
         "---",
         f"schema_version: {source_schema_version}",
@@ -1199,10 +1209,8 @@ def _section_document(
         f"title: {section_spec.title}",
         f"order: {section_spec.order}",
         "status: accepted",
-        f'date: "{timestamp[:10]}"',
+        f"version: {version}",
         f"body_format: {source_format}",
-        f'created_at: "{timestamp}"',
-        f'updated_at: "{timestamp}"',
         "---",
         "",
         section_body_placeholder_for_source_format(source_format),

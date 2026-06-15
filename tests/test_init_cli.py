@@ -37,13 +37,13 @@ def test_init_project_name_defaults_to_workspace_basename(tmp_path: Path) -> Non
 
     assert result.exit_code == 0
     config_text = (tmp_path / "archledger.toml").read_text(encoding="utf-8")
-    assert "config_version = 9" in config_text
+    assert "config_version = 10" in config_text
     assert "[ids]" in config_text
     assert "width = 4" in config_text
     assert "[ids.kind_map]" in config_text
     assert "[source]" in config_text
     assert 'format = "markdown"' in config_text
-    assert "schema_version = 3" in config_text
+    assert "schema_version = 4" in config_text
     assert 'section_extension = ".md"' in config_text
     assert f'project_name = "{normalize_project_name(tmp_path.name)}"' in config_text
     assert 'default_format = "markdown"' in config_text
@@ -70,7 +70,7 @@ def test_init_markdown_source_writes_markdown_config(tmp_path: Path) -> None:
     assert 'record_extension = ".md"' in config_text
     assert 'default_format = "markdown"' in config_text
     assert 'default_output = "architecture.md"' in config_text
-    assert "schema_version = 3" in config_text
+    assert "schema_version = 4" in config_text
     assert (
         tmp_path / ".archledger" / "profiles" / "arc42" / "sections" / "content-0001.md"
     ).is_file()
@@ -89,7 +89,7 @@ def test_init_asciidoc_source_writes_asciidoc_config(tmp_path: Path) -> None:
     assert 'record_extension = ".adoc"' in config_text
     assert 'default_format = "asciidoc"' in config_text
     assert 'default_output = "architecture.adoc"' in config_text
-    assert "schema_version = 3" in config_text
+    assert "schema_version = 4" in config_text
 
 
 def test_init_project_name_option_overrides_basename(tmp_path: Path) -> None:
@@ -292,7 +292,7 @@ def test_repo_init_does_not_rewrite_existing_storage_meta_without_overwrite(
         storage_meta_path,
         replace(
             read_storage_meta(storage_meta_path),
-            created_at="1999-12-31T23:59:59Z",
+            version=99,
         ),
     )
 
@@ -302,7 +302,7 @@ def test_repo_init_does_not_rewrite_existing_storage_meta_without_overwrite(
     result = repo.init(overwrite=False)
 
     assert storage_meta_path not in result.created_paths
-    assert read_storage_meta(storage_meta_path).created_at == "1999-12-31T23:59:59Z"
+    assert read_storage_meta(storage_meta_path).version == 99
 
 
 def test_init_diagram_options_write_expected_config(tmp_path: Path) -> None:

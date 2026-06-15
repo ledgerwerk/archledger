@@ -3,12 +3,12 @@ id: content-0006
 type: section
 section: runtime_view
 title: Runtime View
-schema_version: 2
-date: "2026-05-21"
+schema_version: 4
 body_format: markdown
 order: 60
 status: accepted
 kind: content
+version: 1
 ---
 
 Key runtime scenarios: initializing a new project (scaffolding directories and section files), creating and rendering records (the primary authoring flow), validating records with check (ensuring consistency and completeness), building multi-format output (assembly plus optional conversion), taking source snapshots and detecting changes (source tracking), and converting source dialects (Markdown to AsciiDoc migration).

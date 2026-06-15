@@ -6,6 +6,7 @@ from ledgercore.errors import JsonStoreError
 from ledgercore.jsonio import load_json_object, write_json
 
 from archledger.errors import StorageError
+from archledger.metadata_version import require_version
 from archledger.source_refs import RelativePosixPathError, validate_relative_posix_path
 from archledger.source_tracking import (
     SOURCE_STATE_SCHEMA,
@@ -34,8 +35,7 @@ def source_state_to_json(state: SourceState) -> dict[str, object]:
         "schema": state.schema,
         "project_uuid": state.project_uuid,
         "project_name": state.project_name,
-        "created_at": state.created_at,
-        "updated_at": state.updated_at,
+        "version": state.version,
         "reason": state.reason,
         "scanner": dict(state.scanner),
         "files": {
@@ -58,12 +58,19 @@ def source_state_from_json(data: object) -> SourceState:
     if not isinstance(data, dict):
         raise StorageError("source-state JSON must be an object.")
     schema = _require_string(data.get("schema"), "schema")
-    if schema != SOURCE_STATE_SCHEMA:
+    if schema not in {SOURCE_STATE_SCHEMA, "archledger.source-state.v2"}:
         raise StorageError(f"Unsupported source-state schema: {schema}")
     project_uuid = _require_string(data.get("project_uuid"), "project_uuid")
     project_name = _require_string(data.get("project_name"), "project_name")
-    created_at = _require_string(data.get("created_at"), "created_at")
-    updated_at = _require_string(data.get("updated_at"), "updated_at")
+    version_value = data.get("version")
+    if schema == "archledger.source-state.v2" and version_value is None:
+        version_value = 1
+    try:
+        version = require_version(version_value)
+    except ValueError as exc:
+        raise StorageError(
+            "source-state field version must be a positive integer."
+        ) from exc
     reason = _require_string(data.get("reason"), "reason")
     scanner = _require_mapping(data.get("scanner"), "scanner")
     files_data = _require_mapping(data.get("files"), "files")
@@ -86,11 +93,10 @@ def source_state_from_json(data: object) -> SourceState:
             sha256=_require_string(entry.get("sha256"), f"files.{path}.sha256"),
         )
     return SourceState(
-        schema=schema,
+        schema=SOURCE_STATE_SCHEMA,
         project_uuid=project_uuid,
         project_name=project_name,
-        created_at=created_at,
-        updated_at=updated_at,
+        version=version,
         reason=reason,
         scanner=dict(scanner),
         files=files,

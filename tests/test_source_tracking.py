@@ -53,7 +53,10 @@ def test_source_state_json_uses_sha256_only_and_directory_hashes(
 
     data = json.loads(paths.source_state_path.read_text(encoding="utf-8"))
 
-    assert data["schema"] == "archledger.source-state.v2"
+    assert data["schema"] == "archledger.source-state.v3"
+    assert data["version"] == 1
+    assert "created_at" not in data
+    assert "updated_at" not in data
     assert set(data["files"]["src/module.py"]) == {"sha256"}
     assert "directories" in data
     assert "." in data["directories"]
@@ -280,6 +283,8 @@ def test_source_state_normalizes_backslash_paths(tmp_path: Path) -> None:
     )
 
     state = read_source_state(source_state_path)
+    assert state.schema == "archledger.source-state.v3"
+    assert state.version == 1
     assert "src/module.py" in state.files
 
 

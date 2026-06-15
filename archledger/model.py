@@ -40,7 +40,7 @@ SOURCE_FORMAT_NATIVE_OUTPUTS = {
     "markdown": "markdown",
     "asciidoc": "asciidoc",
 }
-CURRENT_SOURCE_SCHEMA_VERSION = 3
+CURRENT_SOURCE_SCHEMA_VERSION = 4
 VALID_OUTPUT_FORMATS = frozenset(
     {"asciidoc", "html", "pdf", "docx", "markdown", "rst", "textile"}
 )

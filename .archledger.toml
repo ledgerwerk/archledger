@@ -1,6 +1,6 @@
 # Project-local archledger configuration.
 # This file lives in the source project root.
-config_version = 9
+config_version = 10
 archledger_dir = ".archledger"
 
 # Stable project identity. Commit this with your source tree.
@@ -42,7 +42,7 @@ format = "markdown"
 front_matter = "yaml"
 section_extension = ".md"
 record_extension = ".md"
-schema_version = 2
+schema_version = 4
 
 [build]
 default_output = "ARCHITECTURE.md"

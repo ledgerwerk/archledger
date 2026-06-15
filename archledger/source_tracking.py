@@ -14,12 +14,11 @@ from archledger.model import (
     default_document_filename_for_output_format,
     is_visible_status,
 )
-from archledger.storage.common import utc_now_iso
 from archledger.storage.paths import ProjectPaths
 from archledger.storage.paths import is_relative_to as _is_relative_to
 from archledger.storage.project_config import ProjectConfig
 
-SOURCE_STATE_SCHEMA = "archledger.source-state.v2"
+SOURCE_STATE_SCHEMA = "archledger.source-state.v3"
 
 
 @dataclass(frozen=True, slots=True)
@@ -40,8 +39,7 @@ class SourceState:
     schema: str
     project_uuid: str
     project_name: str
-    created_at: str
-    updated_at: str
+    version: int
     reason: str
     scanner: dict[str, object]
     files: dict[str, TrackedFile]
@@ -77,9 +75,9 @@ class ImpactedRecord:
 @dataclass(frozen=True, slots=True)
 class ChangeSet:
     baseline_exists: bool
-    baseline_updated_at: str | None
+    baseline_version: int | None
     baseline_reason: str | None
-    current_scanned_at: str
+    current_version: int
     scanner_used: str
     file_count: int
     changed_files: tuple[ChangedFile, ...]
@@ -95,9 +93,8 @@ def scan_workspace(
     config: ProjectConfig,
     *,
     reason: str = "manual",
-    scanned_at: str | None = None,
+    version: int = 1,
 ) -> SourceState:
-    timestamp = utc_now_iso() if scanned_at is None else scanned_at
     scanner_used, candidates = _scan_candidate_paths(paths, config)
     files: dict[str, TrackedFile] = {}
     for file_path in candidates:
@@ -122,8 +119,7 @@ def scan_workspace(
         schema=SOURCE_STATE_SCHEMA,
         project_uuid=config.project_uuid,
         project_name=config.project_name,
-        created_at=timestamp,
-        updated_at=timestamp,
+        version=version,
         reason=reason,
         scanner={
             "mode": config.tracking_scanner,
@@ -146,9 +142,9 @@ def diff_source_states(
     if baseline is None:
         return ChangeSet(
             baseline_exists=False,
-            baseline_updated_at=None,
+            baseline_version=None,
             baseline_reason=None,
-            current_scanned_at=current.updated_at,
+            current_version=current.version,
             scanner_used=_scanner_used(current),
             file_count=len(current.files),
             changed_files=(),
@@ -221,9 +217,9 @@ def diff_source_states(
 
     return ChangeSet(
         baseline_exists=True,
-        baseline_updated_at=baseline.updated_at,
+        baseline_version=baseline.version,
         baseline_reason=baseline.reason,
-        current_scanned_at=current.updated_at,
+        current_version=current.version,
         scanner_used=_scanner_used(current),
         file_count=len(current.files),
         changed_files=tuple(
@@ -295,9 +291,9 @@ def resolve_impacts(
         impacted_sections.add(record.section)
     return ChangeSet(
         baseline_exists=changes.baseline_exists,
-        baseline_updated_at=changes.baseline_updated_at,
+        baseline_version=changes.baseline_version,
         baseline_reason=changes.baseline_reason,
-        current_scanned_at=changes.current_scanned_at,
+        current_version=changes.current_version,
         scanner_used=changes.scanner_used,
         file_count=changes.file_count,
         changed_files=changes.changed_files,
@@ -394,9 +390,9 @@ def scan_git_revision(
     revision: str,
     *,
     reason: str,
+    version: int = 0,
 ) -> SourceState:
     """Build a SourceState from a git revision using ls-tree and show."""
-    timestamp = utc_now_iso()
     workspace = str(paths.workspace_root)
     # Get file list at revision
     result = subprocess.run(
@@ -435,8 +431,7 @@ def scan_git_revision(
         schema=SOURCE_STATE_SCHEMA,
         project_uuid=config.project_uuid,
         project_name=config.project_name,
-        created_at=timestamp,
-        updated_at=timestamp,
+        version=version,
         reason=reason,
         scanner={"mode": "git", "used": "git", "revision": revision},
         files=sorted_files,

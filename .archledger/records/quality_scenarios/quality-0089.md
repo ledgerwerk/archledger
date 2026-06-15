@@ -2,8 +2,7 @@
 id: quality-0089
 type: quality_scenario
 title: Build produces identical output for identical inputs
-schema_version: 2
-date: "2026-05-21"
+schema_version: 4
 body_format: markdown
 status: accepted
 section: quality_requirements
@@ -19,6 +18,7 @@ source_refs:
   - tests/test_build.py
   - tests/test_source_tracking.py
 kind: quality
+version: 1
 ---
 
 The build process must be deterministic: same records always produce the same document. No timestamps, random values, or external state should influence the output. This ensures reproducible documentation in CI pipelines.
