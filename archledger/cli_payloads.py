@@ -25,6 +25,7 @@ from archledger.model import (
     is_visible_status,
     normalize_kind,
 )
+from archledger.profiles import ProfileMigrationResult
 from archledger.record_types import RECORD_TYPE_SPECS
 from archledger.renumber import RenumberResult
 from archledger.repository import (
@@ -592,7 +593,7 @@ def display_path(workspace_root: Path, path: Path) -> str:
         return str(path)
 
 
-def profile_migration_payload(result: object) -> dict[str, object]:
+def profile_migration_payload(result: ProfileMigrationResult) -> dict[str, object]:
     """Payload for profile migrate/enable/disable commands."""
     return {
         "schema": "archledger.profile-migration.v1",
@@ -608,7 +609,7 @@ def profile_migration_payload(result: object) -> dict[str, object]:
             }
             for step in result.steps
         ],
-        "warnings": list(getattr(result, "warnings", ()) or ()),
+        "warnings": list(result.warnings),
     }
 
 

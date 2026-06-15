@@ -174,7 +174,6 @@ def _architecture_question_context(input_data: RecordContextInput) -> dict[str, 
         "risks": [],
         "linked_decision": "",
     }
-    return {"term": input_data.title, "definition": ""}
 
 
 def _diagram_context(input_data: RecordContextInput) -> dict[str, object]:

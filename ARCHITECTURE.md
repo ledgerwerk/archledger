@@ -927,11 +927,7 @@ Key architectural decisions: dual-source support (Markdown and AsciiDoc as first
 
 ## Use Markdown/AsciiDoc records with YAML front matter
 
-**Status:** accepted
-**Date:**
-**Deciders:** Holger
-**Supersedes:**
-**Related:**
+**Document version:** 1
 
 ## Context
 
@@ -957,11 +953,7 @@ Negative: no referential integrity enforced at write time (only at check time). 
 
 ## Typer CLI over argparse or Click
 
-**Status:** accepted
-**Date:**
-**Deciders:** Holger
-**Supersedes:**
-**Related:**
+**Document version:** 1
 
 ## Context
 
@@ -985,11 +977,7 @@ Negative: Typer adds a dependency. Some advanced CLI patterns require working ar
 
 ## Jinja2 for document rendering
 
-**Status:** accepted
-**Date:**
-**Deciders:** Holger
-**Supersedes:**
-**Related:**
+**Document version:** 1
 
 ## Context
 
@@ -1013,11 +1001,7 @@ Negative: complex rendering logic is split between the template and Python helpe
 
 ## Use SHA-256-only source-state file entries plus directory hashes
 
-**Status:** accepted
-**Date:**
-**Deciders:** archledger maintainers
-**Supersedes:**
-**Related:**
+**Document version:** 1
 
 ## Context
 
@@ -1037,11 +1021,7 @@ Improves determinism and avoids unstable file-size/mtime dependence; requires co
 
 ## Config v7 and source schema v2 are the release baseline
 
-**Status:** accepted
-**Date:**
-**Deciders:** archledger maintainers
-**Supersedes:**
-**Related:**
+**Document version:** 1
 
 ## Context
 
@@ -1062,11 +1042,7 @@ Strict checks are consistent; migration effort is required for older local recor
 
 ## Native builds require no external tools
 
-**Status:** accepted
-**Date:**
-**Deciders:** archledger maintainers
-**Supersedes:**
-**Related:**
+**Document version:** 1
 
 ## Context
 
@@ -1086,11 +1062,7 @@ Improves portability; non-native formats remain optional.
 
 ## Non-native exports delegate to pandoc or asciidoctor
 
-**Status:** accepted
-**Date:**
-**Deciders:** archledger maintainers
-**Supersedes:**
-**Related:**
+**Document version:** 1
 
 ## Context
 
@@ -1110,11 +1082,7 @@ Clear dependency errors are required when tools are missing.
 
 ## Output path resolution remains bounded to configured roots
 
-**Status:** accepted
-**Date:**
-**Deciders:** archledger maintainers
-**Supersedes:**
-**Related:**
+**Document version:** 1
 
 ## Context
 
@@ -1134,11 +1102,7 @@ Safer defaults; invalid paths fail early with explicit diagnostics.
 
 ## Source refs use relative POSIX paths without parent traversal
 
-**Status:** accepted
-**Date:**
-**Deciders:** archledger maintainers
-**Supersedes:**
-**Related:**
+**Document version:** 1
 
 ## Context
 
@@ -1158,11 +1122,7 @@ Traceability links stay portable and secure; invalid refs are rejected.
 
 ## Storage counters are metadata and can be recomputed
 
-**Status:** accepted
-**Date:**
-**Deciders:** archledger maintainers
-**Supersedes:**
-**Related:**
+**Document version:** 1
 
 ## Context
 
@@ -1182,11 +1142,7 @@ Repair/recount operations can restore consistency without data loss.
 
 ## Multi-type diagram support with text as default
 
-**Status:** accepted
-**Date:**
-**Deciders:** archledger maintainers
-**Supersedes:**
-**Related:** adr-0082
+**Document version:** 1
 
 ## Context
 
@@ -1208,11 +1164,7 @@ Text diagrams are immediately readable in source, Git diffs, terminal output, an
 
 ## Config v7 adds configurable ID prefix, width, and segment mode
 
-**Status:** proposed
-**Date:**
-**Deciders:** archledger maintainers
-**Supersedes:**
-**Related:**
+**Document version:** 1
 
 ## Context
 
@@ -1246,11 +1198,7 @@ The `init` command accepts `--id-prefix`, `--id-width`, and `--id-segment-mode` 
 
 ## Renumber command is dry-run by default
 
-**Status:** proposed
-**Date:**
-**Deciders:** archledger maintainers
-**Supersedes:**
-**Related:**
+**Document version:** 1
 
 ## Context
 
@@ -1281,11 +1229,7 @@ When `--apply` is used, the renumber service:
 
 ## Segmented IDs embed type-derived tokens in the ID string
 
-**Status:** proposed
-**Date:**
-**Deciders:** archledger maintainers
-**Supersedes:**
-**Related:**
+**Document version:** 1
 
 ## Context
 

@@ -7,11 +7,12 @@ import json
 import sys
 from dataclasses import dataclass
 from pathlib import Path
+from typing import cast
 
 if sys.version_info >= (3, 11):
     import tomllib
 else:  # pragma: no cover
-    import tomli as tomllib
+    import tomli as tomllib  # type: ignore[import-not-found]
 
 from archledger.config.model import DEFAULT_ARC42_SECTIONS_DIR, VALID_PROFILES
 from archledger.config.parse import load_project_config
@@ -43,7 +44,7 @@ class ProfileMigrationResult:
 
 def _read_toml(path: Path) -> dict[str, object]:
     try:
-        return tomllib.loads(read_text(path))
+        return cast("dict[str, object]", tomllib.loads(read_text(path)))
     except tomllib.TOMLDecodeError as exc:
         raise ConfigError(f"Failed to parse {path.name}: {exc}") from exc
 

@@ -4,7 +4,7 @@ import json
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, TypedDict, cast
 
 import typer
 
@@ -1755,6 +1755,36 @@ def links_add(
     _run_configured_command(state, "links add", _build, _fmt)
 
 
+class _ScopeEntry(TypedDict):
+    name: str
+    kind: str
+    lifecycle: str
+    applies_to: list[str]
+    excludes: list[str]
+    records: list[str]
+
+
+class _ScopeSummary(TypedDict):
+    name: str
+    kind: str
+    lifecycle: str
+    applies_to: list[str]
+    excludes: list[str]
+
+
+class _ScopeRecord(TypedDict):
+    id: str
+    type: str
+    title: str
+    scope_name: str
+
+
+class _ScopeShowRecord(TypedDict):
+    id: str
+    type: str
+    title: str
+
+
 @scope_app.command("list")
 def scope_list(
     ctx: typer.Context,
@@ -1767,7 +1797,7 @@ def scope_list(
         config: ProjectConfig,
     ) -> dict[str, object]:
         del paths, config
-        scopes: dict[str, dict[str, object]] = {}
+        scopes: dict[str, _ScopeEntry] = {}
         for record in repo.load_all_records(include_sections=True):
             if record.scope is None:
                 continue
@@ -1781,20 +1811,21 @@ def scope_list(
                     "excludes": list(s.excludes),
                     "records": [],
                 }
-            scopes[s.name]["records"].append(record.id)  # type: ignore[union-attr]
+            scopes[s.name]["records"].append(record.id)
         return {"scopes": list(scopes.values())}
 
     def _fmt(p: dict[str, object]) -> str:
-        scopes = p.get("scopes", [])
-        if not scopes:
+        raw_scopes = cast("list[object]", p.get("scopes", []))
+        if not raw_scopes:
             return "No scopes defined."
-        lines = []
-        for s in scopes:
-            if isinstance(s, dict):
+        lines: list[str] = []
+        for item in raw_scopes:
+            if isinstance(item, dict):
+                entry = cast("_ScopeEntry", item)
                 lines.append(
-                    f"  {s.get('name')} (kind={s.get('kind')}, "
-                    f"lifecycle={s.get('lifecycle')}, "
-                    f"records={len(s.get('records', []))})"
+                    f"  {entry['name']} (kind={entry['kind']}, "
+                    f"lifecycle={entry['lifecycle']}, "
+                    f"records={len(entry['records'])})"
                 )
         return "Scopes:\n" + "\n".join(lines)
 
@@ -1814,7 +1845,7 @@ def scope_show(
         config: ProjectConfig,
     ) -> dict[str, object]:
         del paths, config
-        matched_records = []
+        matched_records: list[_ScopeShowRecord] = []
         scope_obj = None
         for record in repo.load_all_records(include_sections=True):
             if record.scope is not None and record.scope.name == name:
@@ -1838,16 +1869,20 @@ def scope_show(
     def _fmt(p: dict[str, object]) -> str:
         if "error" in p:
             return str(p["error"])
-        s = p.get("scope", {})
+        raw_scope = p.get("scope", {})
+        if not isinstance(raw_scope, dict):
+            return "Malformed scope payload."
+        scope_data = cast("_ScopeSummary", raw_scope)
         lines = [
-            f"Scope: {s.get('name')}",
-            f"  Kind: {s.get('kind')}",
-            f"  Lifecycle: {s.get('lifecycle')}",
-            f"  Applies to: {', '.join(s.get('applies_to', []))}",
-            f"  Excludes: {', '.join(s.get('excludes', [])) or '(none)'}",
+            f"Scope: {scope_data['name']}",
+            f"  Kind: {scope_data['kind']}",
+            f"  Lifecycle: {scope_data['lifecycle']}",
+            f"  Applies to: {', '.join(scope_data['applies_to'])}",
+            f"  Excludes: {', '.join(scope_data['excludes']) or '(none)'}",
             "  Records:",
         ]
-        for r in p.get("records", []):
+        show_records = cast("list[object]", p.get("records", []))
+        for r in show_records:
             if isinstance(r, dict):
                 lines.append(f"    {r.get('id')}: {r.get('title')} ({r.get('type')})")
         return "\n".join(lines)
@@ -1871,7 +1906,7 @@ def scope_affected(
         from archledger.scopes import scope_matches_path
 
         normalized_path = path.replace("\\", "/").strip()
-        affected = []
+        affected: list[_ScopeRecord] = []
         for record in repo.load_all_records(include_sections=True):
             if record.scope is None:
                 continue
@@ -1887,15 +1922,16 @@ def scope_affected(
         return {"path": normalized_path, "affected_records": affected}
 
     def _fmt(p: dict[str, object]) -> str:
-        records = p.get("affected_records", [])
+        records = cast("list[object]", p.get("affected_records", []))
         if not records:
             return f"No scoped records affected for {p.get('path')}."
         lines = [f"Scoped records affected by {p.get('path')}:"]
-        for r in records:
-            if isinstance(r, dict):
+        for item in records:
+            if isinstance(item, dict):
+                rec = cast("_ScopeRecord", item)
                 lines.append(
-                    f"  {r.get('id')}: {r.get('title')} "
-                    f"(scope={r.get('scope_name')}, {r.get('type')})"
+                    f"  {rec['id']}: {rec['title']} "
+                    f"(scope={rec['scope_name']}, {rec['type']})"
                 )
         return "\n".join(lines)
 

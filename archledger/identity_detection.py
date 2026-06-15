@@ -5,11 +5,16 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from ledgercore.errors import IdFormatError
 from ledgercore.refs import parse_local_ref
 
 from archledger.storage.frontmatter import iter_source_files, read_front_matter_document
+
+if TYPE_CHECKING:
+    from archledger.storage.paths import ProjectPaths
+    from archledger.storage.project_config import ProjectConfig
 
 LEGACY_SEGMENTED_RE = re.compile(r"^[a-z][a-z0-9]*_[a-z][a-z0-9_-]*_\d+$")
 
@@ -21,8 +26,8 @@ class IdentityFormatState:
 
 
 def detect_identity_format_state(
-    paths: ProjectPaths,  # noqa: F821
-    config: ProjectConfig,  # noqa: F821
+    paths: ProjectPaths,
+    config: ProjectConfig,
     source_extensions: tuple[str, ...],
 ) -> IdentityFormatState:
     """Scan project files and classify them as current or legacy identity."""

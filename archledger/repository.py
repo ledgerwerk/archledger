@@ -1031,7 +1031,7 @@ class ArchitectureRepository:
 
         record = ArchitectureRecord(
             id=cast(str, record_id),
-            kind=cast(str, record_kind),
+            kind=record_kind,
             type=cast(str, record_type),
             title=cast(str, title),
             status=cast(str, status),

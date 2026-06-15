@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from importlib.resources import files
+from typing import cast
 
 from archledger.errors import ArchledgerError
 
@@ -24,8 +25,8 @@ def load_json_schema(target: str) -> dict[str, object]:
         raise ArchledgerError(
             "schema target must be one of: " + ", ".join(sorted(SCHEMA_FILES))
         )
-    resource = files("archledger").joinpath("schemas", filename)
-    return json.loads(resource.read_text(encoding="utf-8"))
+    resource = files("archledger").joinpath("schemas").joinpath(filename)
+    return cast("dict[str, object]", json.loads(resource.read_text(encoding="utf-8")))
 
 
 __all__ = ["SCHEMA_FILES", "load_json_schema"]

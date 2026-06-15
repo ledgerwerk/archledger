@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from ledgercore.errors import IdFormatError
 from ledgercore.refs import parse_local_ref
@@ -29,6 +30,9 @@ from archledger.record_types import RECORD_TYPES as _RECORD_TYPES
 from archledger.record_types import (
     VALID_RECORD_TYPES as _VALID_RECORD_TYPES,
 )
+
+if TYPE_CHECKING:
+    from archledger.scopes import RecordScope
 
 VALID_SOURCE_FORMATS = frozenset({"markdown", "asciidoc"})
 VALID_BODY_FORMATS = VALID_SOURCE_FORMATS
@@ -245,7 +249,7 @@ class ArchitectureRecord:
     source_refs: tuple[SourceRef, ...] = ()
     links: tuple = ()  # tuple[RecordLink, ...] — forward ref to links module
     test_refs: tuple = ()  # tuple[TestRef, ...] — forward ref to test_refs module
-    scope: object = None  # RecordScope | None — forward ref to scopes module
+    scope: RecordScope | None = None
 
 
 def normalize_kind(kind: str) -> str:
