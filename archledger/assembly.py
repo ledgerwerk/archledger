@@ -137,7 +137,9 @@ def assemble_document(
         runtime_scenarios=lambda: runtime_scenarios(records, dialect),
         deployment_view=lambda: deployment_view(records, dialect),
         concepts=lambda: concepts(records, dialect),
-        adr_sections=lambda: adr_sections(records, dialect),
+        adr_sections=lambda: adr_sections(
+            records, dialect, document_version=document_version
+        ),
         quality_requirements_overview=lambda: quality_requirements_overview(
             records,
             dialect,

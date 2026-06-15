@@ -247,25 +247,23 @@ def building_block_hierarchy(
     return "\n".join(lines).rstrip()
 
 
-def adr_sections(records: list[ArchitectureRecord], dialect: Dialect) -> str:
+def adr_sections(
+    records: list[ArchitectureRecord],
+    dialect: Dialect,
+    *,
+    document_version: int,
+) -> str:
     adrs = _records_of_type(records, "adr")
     if not adrs:
         return dialect.placeholder()
     lines: list[str] = []
     for record in adrs:
-        deciders = ", ".join(_string_list(record.metadata.get("deciders")))
-        supersedes = ", ".join(_string_list(record.metadata.get("supersedes")))
-        related = ", ".join(_string_list(record.metadata.get("related")))
         lines.append("")
         lines.extend(
             [
                 dialect.heading(dialect.record_heading_level, record.title),
                 "",
-                f"{dialect.strong('Status:')} {record.status}",
-                f"{dialect.strong('Date:')} {record.metadata.get('date', '')}",
-                f"{dialect.strong('Deciders:')} {deciders}",
-                f"{dialect.strong('Supersedes:')} {supersedes}",
-                f"{dialect.strong('Related:')} {related}",
+                f"{dialect.strong('Document version:')} {document_version}",
                 "",
                 record.body.strip() or dialect.placeholder(),
                 "",

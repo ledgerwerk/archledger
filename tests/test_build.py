@@ -180,8 +180,50 @@ def test_build_includes_adr_under_architecture_decisions(tmp_path: Path) -> None
     output = (tmp_path / "build" / "architecture.adoc").read_text(encoding="utf-8")
     assert "== Architecture Decisions" in output
     assert "Use AsciiDoc records" in output
-    assert "*Status:* accepted" in output
-    assert "*Deciders:*" in output
+    assert "*Document version:* 1" in output
+    assert "*Status:*" not in output
+    assert "*Date:*" not in output
+    assert "*Deciders:*" not in output
+    assert "*Supersedes:*" not in output
+    assert "*Related:*" not in output
+
+
+def test_build_includes_adr_document_version_in_markdown(tmp_path: Path) -> None:
+    runner.invoke(
+        app,
+        [
+            "--root",
+            str(tmp_path),
+            "init",
+            "--source-format",
+            "markdown",
+        ],
+    )
+    runner.invoke(
+        app,
+        [
+            "--root",
+            str(tmp_path),
+            "new",
+            "adr",
+            "Use Markdown records",
+            "--status",
+            "accepted",
+        ],
+    )
+
+    result = runner.invoke(app, ["--root", str(tmp_path), "build"])
+
+    assert result.exit_code == 0
+    output = (tmp_path / "build" / "architecture.md").read_text(encoding="utf-8")
+    assert "# Architecture Decisions" in output
+    assert "## Use Markdown records" in output
+    assert "**Document version:** 1" in output
+    assert "**Status:**" not in output
+    assert "**Date:**" not in output
+    assert "**Deciders:**" not in output
+    assert "**Supersedes:**" not in output
+    assert "**Related:**" not in output
 
 
 def test_build_includes_diagram_records_in_runtime_view(tmp_path: Path) -> None:
@@ -300,6 +342,18 @@ def test_build_increments_document_version_when_record_version_changes(
             "accepted",
         ],
     )
+    runner.invoke(
+        app,
+        [
+            "--root",
+            str(tmp_path),
+            "new",
+            "adr",
+            "Version anchor ADR",
+            "--status",
+            "accepted",
+        ],
+    )
     first = runner.invoke(app, ["--root", str(tmp_path), "build"])
     record_path = (
         tmp_path / ".archledger" / "records" / "requirements" / "content-0013.adoc"
@@ -316,6 +370,8 @@ def test_build_increments_document_version_when_record_version_changes(
     output = (tmp_path / "build" / "architecture.adoc").read_text(encoding="utf-8")
     assert ":revnumber: 2" in output
     assert (tmp_path / ".archledger" / "document-state.json").is_file()
+    # The ADR section reflects the incremented global document version.
+    assert "*Document version:* 2" in output
 
 
 def test_build_output_path_can_be_overridden(tmp_path: Path) -> None:
