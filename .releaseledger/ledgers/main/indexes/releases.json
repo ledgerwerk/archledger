@@ -1,0 +1,58 @@
+[
+  {
+    "artifact_count": 0,
+    "boundary_ref": null,
+    "changelog_file": null,
+    "entry_count": 6,
+    "previous_version": "v0.3.0",
+    "record_revision": 8,
+    "released_at": null,
+    "source_count": null,
+    "source_refs": [],
+    "status": "planned",
+    "title": "Release v0.4.0",
+    "version": "v0.4.0"
+  },
+  {
+    "artifact_count": 0,
+    "boundary_ref": null,
+    "changelog_file": null,
+    "entry_count": 0,
+    "previous_version": null,
+    "record_revision": 2,
+    "released_at": "2026-05-22",
+    "source_count": null,
+    "source_refs": [],
+    "status": "released",
+    "title": "Release v0.1.0",
+    "version": "v0.1.0"
+  },
+  {
+    "artifact_count": 0,
+    "boundary_ref": null,
+    "changelog_file": null,
+    "entry_count": 8,
+    "previous_version": "v0.1.0",
+    "record_revision": 4,
+    "released_at": "2026-05-30",
+    "source_count": null,
+    "source_refs": [],
+    "status": "released",
+    "title": "Release v0.2.0",
+    "version": "v0.2.0"
+  },
+  {
+    "artifact_count": 0,
+    "boundary_ref": null,
+    "changelog_file": null,
+    "entry_count": 8,
+    "previous_version": "v0.2.0",
+    "record_revision": 4,
+    "released_at": "2026-06-09",
+    "source_count": null,
+    "source_refs": [],
+    "status": "released",
+    "title": "Release v0.3.0",
+    "version": "v0.3.0"
+  }
+]

@@ -1,0 +1,397 @@
+[
+  {
+    "audience": null,
+    "breaking": true,
+    "entry_id": "entry-0001",
+    "internal": false,
+    "kind": "removed",
+    "order": 1,
+    "record_revision": 1,
+    "release_version": "v0.4.0",
+    "scopes": [],
+    "source_refs": ["git:33a4c6124990678460d4abfbb039b6b4e9b3d4df"],
+    "status": "accepted",
+    "summary": "Removed BDD and SDD modules and all related CLI commands, schemas, tests, and documentation"
+  },
+  {
+    "audience": null,
+    "breaking": false,
+    "entry_id": "entry-0001",
+    "internal": false,
+    "kind": "added",
+    "order": 1,
+    "record_revision": 2,
+    "release_version": "v0.2.0",
+    "scopes": [],
+    "source_refs": ["git:e61196b3e4212f1e72fac67e35f3d7984b6e6dc5"],
+    "sources": ["git:e61196b3e4212f1e72fac67e35f3d7984b6e6dc5"],
+    "status": "accepted",
+    "summary": "Added configurable record ID format with prefix, width, and type/content-based segments"
+  },
+  {
+    "audience": null,
+    "breaking": false,
+    "entry_id": "entry-0001",
+    "internal": false,
+    "kind": "added",
+    "order": 1,
+    "record_revision": 2,
+    "release_version": "v0.3.0",
+    "scopes": [],
+    "source_refs": [
+      "git:af0af85a8233a4ac5baa78fc2db55ddaf1b61b65",
+      "git:dc89d08b6cb677772b0bbc310a60616cd7ae7ca9"
+    ],
+    "sources": [
+      "git:af0af85a8233a4ac5baa78fc2db55ddaf1b61b65",
+      "git:dc89d08b6cb677772b0bbc310a60616cd7ae7ca9"
+    ],
+    "status": "accepted",
+    "summary": "Added the sdd profile and SDD lifecycle commands enforcing traceability and automation policy"
+  },
+  {
+    "audience": null,
+    "breaking": false,
+    "entry_id": "entry-0002",
+    "internal": false,
+    "kind": "added",
+    "order": 2,
+    "record_revision": 1,
+    "release_version": "v0.4.0",
+    "scopes": [],
+    "source_refs": ["git:050ba8a0c3ffcb1962c69f1b0eed9740bc8a453f"],
+    "status": "accepted",
+    "summary": "Added context query command with full-text search across architecture records"
+  },
+  {
+    "audience": null,
+    "breaking": false,
+    "entry_id": "entry-0002",
+    "internal": false,
+    "kind": "added",
+    "order": 2,
+    "record_revision": 2,
+    "release_version": "v0.2.0",
+    "scopes": [],
+    "source_refs": ["git:13a4dcdd48e78de72b04e40e792a84ca32e2dba1"],
+    "sources": ["git:13a4dcdd48e78de72b04e40e792a84ca32e2dba1"],
+    "status": "accepted",
+    "summary": "Added per-part numbering schema and a renumber command that preserves the global numeric sequence"
+  },
+  {
+    "audience": null,
+    "breaking": false,
+    "entry_id": "entry-0002",
+    "internal": false,
+    "kind": "added",
+    "order": 2,
+    "record_revision": 2,
+    "release_version": "v0.3.0",
+    "scopes": [],
+    "source_refs": [
+      "git:6f4717156bd0b120427156ae13929067f445b36e",
+      "git:61a82703e06d870f13d8c483c75b4b006eb1f401",
+      "git:ac24d9dd60842241a40eb73613427f0aa299e71d",
+      "git:9f6a0f0bc96c20d560414d9a31a4e20a71008643",
+      "git:903c10d542aa05bb3fde21a3666749c966fc5e4a",
+      "git:4ba210dad9b7b057483f04f184dc58ee45a04372"
+    ],
+    "sources": [
+      "git:6f4717156bd0b120427156ae13929067f445b36e",
+      "git:61a82703e06d870f13d8c483c75b4b006eb1f401",
+      "git:ac24d9dd60842241a40eb73613427f0aa299e71d",
+      "git:9f6a0f0bc96c20d560414d9a31a4e20a71008643",
+      "git:903c10d542aa05bb3fde21a3666749c966fc5e4a",
+      "git:4ba210dad9b7b057483f04f184dc58ee45a04372"
+    ],
+    "status": "accepted",
+    "summary": "Added BDD support with a Gherkin import/export bridge and bdd metadata commands"
+  },
+  {
+    "audience": null,
+    "breaking": false,
+    "entry_id": "entry-0003",
+    "internal": false,
+    "kind": "changed",
+    "order": 3,
+    "record_revision": 1,
+    "release_version": "v0.4.0",
+    "scopes": [],
+    "source_refs": [
+      "git:a44720688f4b00a4f0f6142f4fb500a426a6e0fe",
+      "git:5c58990ed72753f7ea0f983e00219c167cb1f148",
+      "git:0949f99e43bce5ecfa987e5378c292131ac80e7b",
+      "git:61cf4f3f54febf7d3b97189c45df8ed673005591",
+      "git:f199f87321a98706076e3a0b225279402c9c8705",
+      "git:62b2bf269bdcc1d9721967837629d57ee042194f"
+    ],
+    "status": "accepted",
+    "summary": "Integrated ledgercore as shared foundation for identity, storage, and config resolution"
+  },
+  {
+    "audience": null,
+    "breaking": false,
+    "entry_id": "entry-0003",
+    "internal": false,
+    "kind": "added",
+    "order": 3,
+    "record_revision": 2,
+    "release_version": "v0.2.0",
+    "scopes": [],
+    "source_refs": ["git:a18a0b007b6f303fc48f2d205c10fd10ea5e080d"],
+    "sources": ["git:a18a0b007b6f303fc48f2d205c10fd10ea5e080d"],
+    "status": "accepted",
+    "summary": "Added init options for ID prefix, width, and segment mode that write a config-version-6 project"
+  },
+  {
+    "audience": null,
+    "breaking": false,
+    "entry_id": "entry-0003",
+    "internal": false,
+    "kind": "added",
+    "order": 3,
+    "record_revision": 2,
+    "release_version": "v0.3.0",
+    "scopes": [],
+    "source_refs": ["git:91d5bc71739a51cb353ef063ac6937826a0107a8"],
+    "sources": ["git:91d5bc71739a51cb353ef063ac6937826a0107a8"],
+    "status": "accepted",
+    "summary": "Added record scopes for monorepo applicability matching and reference handling"
+  },
+  {
+    "audience": null,
+    "breaking": false,
+    "entry_id": "entry-0004",
+    "internal": false,
+    "kind": "changed",
+    "order": 4,
+    "record_revision": 1,
+    "release_version": "v0.4.0",
+    "scopes": [],
+    "source_refs": [
+      "git:050c0ec34b61179c047c56bce05b66d4ba7b29b0",
+      "git:47c3d7a0e227be3909e76894a24f43020ee7e625",
+      "git:6bad1174111bf92b0ea7e749c3d1320f1cfa6dd1"
+    ],
+    "status": "accepted",
+    "summary": "Replaced date-based record tracking with document version and metadata versioning"
+  },
+  {
+    "audience": null,
+    "breaking": false,
+    "entry_id": "entry-0004",
+    "internal": false,
+    "kind": "changed",
+    "order": 4,
+    "record_revision": 2,
+    "release_version": "v0.2.0",
+    "scopes": [],
+    "source_refs": ["git:2f8974de066a1ff141dee23266920b590665b7af"],
+    "sources": ["git:2f8974de066a1ff141dee23266920b590665b7af"],
+    "status": "accepted",
+    "summary": "Changed default record ID and filename format to include the type segment and bumped config to v6"
+  },
+  {
+    "audience": null,
+    "breaking": false,
+    "entry_id": "entry-0004",
+    "internal": false,
+    "kind": "added",
+    "order": 4,
+    "record_revision": 2,
+    "release_version": "v0.3.0",
+    "scopes": [],
+    "source_refs": ["git:8ba663bca87ce670d24ff2061c1a86e4bdf0ac8b"],
+    "sources": ["git:8ba663bca87ce670d24ff2061c1a86e4bdf0ac8b"],
+    "status": "accepted",
+    "summary": "Added combined traceability across Archledger, Taskledger, SpecWeave, and pytest"
+  },
+  {
+    "audience": null,
+    "breaking": false,
+    "entry_id": "entry-0005",
+    "internal": true,
+    "kind": "internal",
+    "order": 5,
+    "record_revision": 1,
+    "release_version": "v0.4.0",
+    "scopes": [],
+    "source_refs": ["git:2fc2f49c599076796b39186049ec86b301eeceed"],
+    "status": "accepted",
+    "summary": "Improved behavior spec index, manifest, and source-test-link coverage"
+  },
+  {
+    "audience": null,
+    "breaking": false,
+    "entry_id": "entry-0005",
+    "internal": false,
+    "kind": "changed",
+    "order": 5,
+    "record_revision": 2,
+    "release_version": "v0.2.0",
+    "scopes": [],
+    "source_refs": ["git:bbef02d1255d769d5ae369457ad668f477f30a3b"],
+    "sources": ["git:bbef02d1255d769d5ae369457ad668f477f30a3b"],
+    "status": "accepted",
+    "summary": "Changed default build output location and limited diagram renderers to three supported options"
+  },
+  {
+    "audience": null,
+    "breaking": false,
+    "entry_id": "entry-0005",
+    "internal": false,
+    "kind": "added",
+    "order": 5,
+    "record_revision": 2,
+    "release_version": "v0.3.0",
+    "scopes": [],
+    "source_refs": [
+      "git:f5366758e29b25d389b110f7a88e573e5853b817",
+      "git:7513fdbe2b302e8b5741c8d4092d208048b5bb3c"
+    ],
+    "sources": [
+      "git:f5366758e29b25d389b110f7a88e573e5853b817",
+      "git:7513fdbe2b302e8b5741c8d4092d208048b5bb3c"
+    ],
+    "status": "accepted",
+    "summary": "Added SpecWeave behavior specifications and matching unit tests for core workflows"
+  },
+  {
+    "audience": null,
+    "breaking": false,
+    "entry_id": "entry-0006",
+    "internal": true,
+    "kind": "internal",
+    "order": 6,
+    "record_revision": 1,
+    "release_version": "v0.4.0",
+    "scopes": [],
+    "source_refs": ["git:6a941b3cba824bb0071150e6772c4d6ff161b605"],
+    "status": "accepted",
+    "summary": "Updated CHANGELOG.md with v0.3.0 release notes"
+  },
+  {
+    "audience": null,
+    "breaking": false,
+    "entry_id": "entry-0006",
+    "internal": false,
+    "kind": "fixed",
+    "order": 6,
+    "record_revision": 2,
+    "release_version": "v0.2.0",
+    "scopes": [],
+    "source_refs": ["git:6c8ab7db5bf36f0e8b234f8b4e00f936f91994a7"],
+    "sources": ["git:6c8ab7db5bf36f0e8b234f8b4e00f936f91994a7"],
+    "status": "accepted",
+    "summary": "Fixed init to default to the markdown source format"
+  },
+  {
+    "audience": null,
+    "breaking": false,
+    "entry_id": "entry-0006",
+    "internal": false,
+    "kind": "fixed",
+    "order": 6,
+    "record_revision": 2,
+    "release_version": "v0.3.0",
+    "scopes": [],
+    "source_refs": [
+      "git:f27c9058137b5aec0bdc7f8930067297df8fdf2c",
+      "git:a964a822687d76a49c52d192bc5901935cef074f"
+    ],
+    "sources": [
+      "git:f27c9058137b5aec0bdc7f8930067297df8fdf2c",
+      "git:a964a822687d76a49c52d192bc5901935cef074f"
+    ],
+    "status": "accepted",
+    "summary": "Fixed renumber and doctor to handle numbering-format changes and ID format drift"
+  },
+  {
+    "audience": null,
+    "breaking": false,
+    "entry_id": "entry-0007",
+    "internal": false,
+    "kind": "docs",
+    "order": 7,
+    "record_revision": 2,
+    "release_version": "v0.2.0",
+    "scopes": [],
+    "source_refs": [
+      "git:15fa163cd4d236ceee22b9427388fdb8ab38b88e",
+      "git:c9569282f2ab4d9bccff254f6cb95f02dd659ef7",
+      "git:d859d2276f96cb5735129172cc4a9398969b0f97"
+    ],
+    "sources": [
+      "git:15fa163cd4d236ceee22b9427388fdb8ab38b88e",
+      "git:c9569282f2ab4d9bccff254f6cb95f02dd659ef7",
+      "git:d859d2276f96cb5735129172cc4a9398969b0f97"
+    ],
+    "status": "accepted",
+    "summary": "Documented the CLI, configuration, and README and added PyPI and codecov badges"
+  },
+  {
+    "audience": null,
+    "breaking": false,
+    "entry_id": "entry-0007",
+    "internal": false,
+    "kind": "fixed",
+    "order": 7,
+    "record_revision": 1,
+    "release_version": "v0.3.0",
+    "scopes": [],
+    "source_refs": ["git:028ea8af231bf19ae699871bfb0b9a1bf2789299"],
+    "sources": ["git:028ea8af231bf19ae699871bfb0b9a1bf2789299"],
+    "status": "accepted",
+    "summary": "Fixed archledger build output assembly and added check command coverage tests"
+  },
+  {
+    "audience": null,
+    "breaking": false,
+    "entry_id": "entry-0008",
+    "internal": true,
+    "kind": "internal",
+    "order": 8,
+    "record_revision": 2,
+    "release_version": "v0.2.0",
+    "scopes": [],
+    "source_refs": [
+      "git:6fe52435cb26912ce55b80f21defe7432d7376b1",
+      "git:1085e7b67f3382c53589d438e0a22924db22a494",
+      "git:1402ce6242bc95226b2f8209344f1ed98dab1a67",
+      "git:9edca5498a92deeeeb19bd3236b33566df2e015e",
+      "git:6d2b0fd3d20bf1eb8839eb390cfc38b87ffa1391"
+    ],
+    "sources": [
+      "git:6fe52435cb26912ce55b80f21defe7432d7376b1",
+      "git:1085e7b67f3382c53589d438e0a22924db22a494",
+      "git:1402ce6242bc95226b2f8209344f1ed98dab1a67",
+      "git:9edca5498a92deeeeb19bd3236b33566df2e015e",
+      "git:6d2b0fd3d20bf1eb8839eb390cfc38b87ffa1391"
+    ],
+    "status": "accepted",
+    "summary": "Improved the project's own architecture records, build state, changelog, and unit tests"
+  },
+  {
+    "audience": null,
+    "breaking": false,
+    "entry_id": "entry-0008",
+    "internal": true,
+    "kind": "internal",
+    "order": 8,
+    "record_revision": 2,
+    "release_version": "v0.3.0",
+    "scopes": [],
+    "source_refs": [
+      "git:c8d9eb36a8c9df47c3beb9bc2fe091941b1a00f7",
+      "git:f2604f57a002bdc6e1867b56de577d6a85fca91f",
+      "git:01ee377ef33b6f71a17ab9b55e2de78c31539f30"
+    ],
+    "sources": [
+      "git:c8d9eb36a8c9df47c3beb9bc2fe091941b1a00f7",
+      "git:f2604f57a002bdc6e1867b56de577d6a85fca91f",
+      "git:01ee377ef33b6f71a17ab9b55e2de78c31539f30"
+    ],
+    "status": "accepted",
+    "summary": "Improved internal code formatting and Windows and pytest compatibility"
+  }
+]
