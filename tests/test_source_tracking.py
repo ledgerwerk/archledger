@@ -283,6 +283,7 @@ def test_source_state_normalizes_backslash_paths(tmp_path: Path) -> None:
     )
 
     state = read_source_state(source_state_path)
+    assert state is not None
     assert state.schema == "archledger.source-state.v3"
     assert state.version == 1
     assert "src/module.py" in state.files

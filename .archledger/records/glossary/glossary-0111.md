@@ -14,9 +14,9 @@ definition:
   modified, added, deleted, and possibly renamed files.
 source_refs:
   - README.md
-  - docs/agent-workflow.rst
+  - docs/agent-workflow.md
 kind: glossary
-version: 1
+version: 2
 ---
 
 A source state is the JSON baseline written by `archledger source snapshot`. It is stored at `[tracking].state_file` inside `archledger_dir` (default: `.archledger/source-state.json`). File entries persist normalized SHA-256 content hashes only; mtimes and file sizes are deliberately not stored. Directory hashes are derived from child file hashes.

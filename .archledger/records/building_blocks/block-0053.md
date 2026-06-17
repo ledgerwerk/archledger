@@ -25,10 +25,10 @@ body_format: markdown
 source_refs:
   - path: archledger/config/
     reason: Config subpackage with model, parse, render
-  - docs/configuration.rst
-  - docs/source-model.rst
+  - docs/configuration.md
+  - docs/source-model.md
 kind: block
-version: 1
+version: 2
 ---
 
 The `config` subpackage owns all project configuration concerns. `config/model.py` defines frozen dataclasses for each configuration domain: `SourceConfig`, `BuildConfig` (with nested `BuildOutputConfig`), `Arc42Config`, `SkillConfig`, `TrackingConfig`, and the unified `ProjectConfig` facade that composes them via properties. It also exports public allowed-value constants (`VALID_BUILD_CONVERTERS`, `VALID_DIAGRAM_RENDERERS`, `VALID_DIAGRAM_TYPES`, `VALID_DIAGRAM_IMAGE_FORMATS`, `VALID_TRACKING_SCANNERS`) shared by `parse.py`, `render.py`, and `cli.py`.

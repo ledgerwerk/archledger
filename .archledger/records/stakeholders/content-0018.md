@@ -14,9 +14,9 @@ expectations:
   - Human-readable Markdown records easy to edit in any text editor
 source_refs:
   - README.md
-  - docs/index.rst
+  - docs/index.md
 kind: content
-version: 1
+version: 2
 ---
 
 Software developers who write and maintain architecture documentation alongside code. They use archledger locally to create records, validate them, and generate a single rendered document for review.

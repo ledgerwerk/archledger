@@ -1,8 +1,8 @@
 {
   "directories": {
     ".": {
-      "file_count": 118,
-      "sha256": "d306a4dd2d4319be2dec36985656df9dd93f32114d7cef03fb1e31a1bd8f9130"
+      "file_count": 192,
+      "sha256": "155bc120ad1bd8549d575c6093c82744974e3f373a93f2be38e193ea4ecff9e3"
     },
     ".github": {
       "file_count": 4,
@@ -12,53 +12,109 @@
       "file_count": 4,
       "sha256": "9489f53c863d148a5a1ad16c0c0e2445fc7d6d92dc5a6650fe54e19f40f43158"
     },
+    ".releaseledger": {
+      "file_count": 28,
+      "sha256": "3578e5ab09156f15bcfdecfa55d1409624782b2e0e97e3096cfa1cb9aef197a8"
+    },
+    ".releaseledger/ledgers": {
+      "file_count": 28,
+      "sha256": "14fbc9c0fd77ce0156e46c0da5b41e004398e3daaedc3443a400d3bfa8ad9b25"
+    },
+    ".releaseledger/ledgers/main": {
+      "file_count": 28,
+      "sha256": "4deb40de66f4c881fc039795e54b7f3ebd973e8f5b8ce0ae225c1b9be5b8c8df"
+    },
+    ".releaseledger/ledgers/main/indexes": {
+      "file_count": 2,
+      "sha256": "02164646919f4a0ae1dbcc60dd6b296486941165ee92e260154903ff98ce5328"
+    },
+    ".releaseledger/ledgers/main/releases": {
+      "file_count": 26,
+      "sha256": "329fdf6e99d3cc836643ba39cae67bd4d4f1a5f3e0926df26a60861c54b28e54"
+    },
+    ".releaseledger/ledgers/main/releases/v0.1.0": {
+      "file_count": 1,
+      "sha256": "c5b585c226b22809c72fb92bcb3974e036039bab9d752784e99bb8269733c343"
+    },
+    ".releaseledger/ledgers/main/releases/v0.2.0": {
+      "file_count": 9,
+      "sha256": "b98400e4685982143b24c0c0cdc76c6787d59a0384476fe028e2fa4af8a297f7"
+    },
+    ".releaseledger/ledgers/main/releases/v0.2.0/entries": {
+      "file_count": 8,
+      "sha256": "f660994d2a4f9f9a918f68c3a3dcf476c9ea5d4c41649af3cc7a67de2acfdafb"
+    },
+    ".releaseledger/ledgers/main/releases/v0.3.0": {
+      "file_count": 9,
+      "sha256": "e932564e12ad2252b6bbb990d8b60018746bcdcb7f566f31b8f7d3cb5c47f4a1"
+    },
+    ".releaseledger/ledgers/main/releases/v0.3.0/entries": {
+      "file_count": 8,
+      "sha256": "7181b7786172faef8dac2a0a4a9941310db73e4c0bc384be4712289688ea780b"
+    },
+    ".releaseledger/ledgers/main/releases/v0.4.0": {
+      "file_count": 7,
+      "sha256": "7fc8d2da609e38d1ad1f28dc932b1eca6d5d7d02f342a9bad780a299e113874e"
+    },
+    ".releaseledger/ledgers/main/releases/v0.4.0/entries": {
+      "file_count": 6,
+      "sha256": "10b2f0adcea4ec6d412919603cf2389c299ed2fc234048f9e63c59c4a6710a71"
+    },
     "archledger": {
-      "file_count": 74,
-      "sha256": "a88cf0b7b3301ca56f2639bacdbdf99a168f38a62e5bb92ae34807e4b109c1c2"
+      "file_count": 105,
+      "sha256": "679db10b955113d76d26ae87003bcd09e7f5d6ad08d3d4950ab3dbd473a6bebe"
     },
     "archledger/config": {
-      "file_count": 4,
-      "sha256": "d137b51d3975f4f08107bb0f64047e4fd2d35ee1f0e43407fefc2c75bc468b10"
+      "file_count": 5,
+      "sha256": "8a96fe81103c32c8663c97ff2fb8e450748ad9745f7102d23935fe16bae3d6ab"
+    },
+    "archledger/schemas": {
+      "file_count": 7,
+      "sha256": "818c42275d9c02694057ce3f500e3a2c5d6535733d09550af2820c9cf248b823"
     },
     "archledger/storage": {
       "file_count": 7,
-      "sha256": "ba99199cc8685dbde6071f1691294c855f113bc0dc7aae5ed2b0406b0711bd7f"
+      "sha256": "dcce775908047ee58fd40c6b0593b7baaedc41c1667602bd08052a3cd7363fa1"
     },
     "archledger/templates": {
-      "file_count": 39,
-      "sha256": "40a1b58bb7e0f344a8834a6135edeaea92e007ccd5d6cb7a3ff86a971c435709"
+      "file_count": 44,
+      "sha256": "b6f40ee2add4edfe1325048f8c522af5b9896def4a8194155c320c6f44bc0d54"
     },
     "archledger/templates/records": {
-      "file_count": 36,
-      "sha256": "5cde32c9b26228083187d9ce3abd960e320a268314f75d0d1d96f1ae297b8637"
+      "file_count": 41,
+      "sha256": "fb75f9947a0982dd13b749db06dbc456b049b6231f376e72f129cbad8943780e"
     },
     "docs": {
       "file_count": 10,
-      "sha256": "e1290bdaf6a8dd206514e89da0b10c624fa35086968e41095c47f58ffd3accf9"
+      "sha256": "574c13fdffeb36fc018fa3ab59b0d12df6e61fbe9bb393e6559394b0cb475469"
     },
     "skills": {
       "file_count": 1,
-      "sha256": "e703ef8e8c2b6d3c59a6667a5e8569544a2d5f02b40bc5f78bd5731d6e9a66fe"
+      "sha256": "b957e70dc5ddc30e4a2057a6a708ece94b72880e503acb4a6feea252300e3488"
     },
     "skills/archledger": {
       "file_count": 1,
-      "sha256": "4e669ce78ff238b640b49e49991c52fb6884383ea858b0519462bc2d8c7101de"
+      "sha256": "b3b5ceb40ec26d35d6e737349cf6bd9a86af3d8df63f8d23cb6cad5089f46c18"
+    },
+    "specs": {
+      "file_count": 1,
+      "sha256": "d720b340cdc57d0ae282144583a7c1030400d3eea6d8ddfe8054dd560b2e907a"
+    },
+    "specs/behavior": {
+      "file_count": 1,
+      "sha256": "edf1722f8329658fb4b2ec9f47cc003640e24bd7efc631829475147f6bef29e2"
     },
     "tests": {
-      "file_count": 19,
-      "sha256": "fc04229b4256a949493ae2a5098511c38ffcd05f7d5f8dcbaab1841e44284de4"
-    },
-    "tools": {
-      "file_count": 1,
-      "sha256": "aa93d587c9ade7086942b67eae63cba70240ef2c98b3a31c4f9005cfe9d93144"
+      "file_count": 31,
+      "sha256": "fa9ecac9752131c0be68854aae2b465414868719a0885640bb848c8270e302cb"
     }
   },
   "files": {
     ".archledger.toml": {
-      "sha256": "407f0e6dfbb6b41b6a8be5199d68eb1cb09756fa66230f7b0205efb528fa0c3c"
+      "sha256": "9c9a93796c8941454f5c919431a1ea430266fa4c2909434a7c5872b63466ad1f"
     },
     ".codecrate.toml": {
-      "sha256": "98a874b313ad3920b213cd56540c625a480c46b7a3d99b5cfd948f4bea35b2e1"
+      "sha256": "ab8257d709852a4d1dd91afadffe4a04240974d02d31f4b1a3ccc5fe34c14570"
     },
     ".github/workflows/codecov.yml": {
       "sha256": "38f978fafd266e8c0ede289c983c4ed9dd443846f5c7c73b3e4007bec90c4915"
@@ -73,52 +129,154 @@
       "sha256": "a51d0b9ff78a14528d1c53c1537d55219045931bb26cd044aaf27720542d97e7"
     },
     ".pre-commit-config.yaml": {
-      "sha256": "f62c5fe9146a9e7f992c5af12f5f02010bc1896d9a5426c02d6829547b016dc9"
+      "sha256": "bd1de10b1a44db8d8434027b8f534785d2723025f02de5fad4db014add92f3f7"
     },
     ".readthedocs.yaml": {
       "sha256": "da28d5b8d562fdb135b048a945b344a2a99ad9132754dc0aa5e3125f04c09e71"
     },
+    ".releaseledger.toml": {
+      "sha256": "56fb5291a4e75ee787876a382613fd09325e94f9fff9da9a9cfeed6bbbf1bfcb"
+    },
+    ".releaseledger/ledgers/main/indexes/entries.json": {
+      "sha256": "e7932b99b5320c57898d925c26403001402acb0acd204df8cb136a4a2541e2c7"
+    },
+    ".releaseledger/ledgers/main/indexes/releases.json": {
+      "sha256": "1222d499623da78fa314153d166a847d4ce78e5411d32657010b6c8606352f22"
+    },
+    ".releaseledger/ledgers/main/releases/v0.1.0/release.md": {
+      "sha256": "41e5622d6425a47eb21e85b2693aa0b7566b461779a8ec28ec069413f4d6abc0"
+    },
+    ".releaseledger/ledgers/main/releases/v0.2.0/entries/entry-0001.md": {
+      "sha256": "fb95d377a9e9e64668836a4abd4aa66990c337136bcd8e044ea4386fb5767564"
+    },
+    ".releaseledger/ledgers/main/releases/v0.2.0/entries/entry-0002.md": {
+      "sha256": "72b0036b5f710412a38a7899ffe3ff6390da14b0e8e878e78451f23fe99af207"
+    },
+    ".releaseledger/ledgers/main/releases/v0.2.0/entries/entry-0003.md": {
+      "sha256": "12c97dcfecec853dc3d33c2bd73c18df8ad6bb44dce1c2688a250fe7e61c2212"
+    },
+    ".releaseledger/ledgers/main/releases/v0.2.0/entries/entry-0004.md": {
+      "sha256": "330cceee7a8d53a202a121207611339ccd18513baca88db8e7470a768d57708a"
+    },
+    ".releaseledger/ledgers/main/releases/v0.2.0/entries/entry-0005.md": {
+      "sha256": "49723f4e432fab08e68bdc2e15936eead780d29d931e35961d59a64aba76c48c"
+    },
+    ".releaseledger/ledgers/main/releases/v0.2.0/entries/entry-0006.md": {
+      "sha256": "6a3fec15cb54472a3f679b29429e82ba0610b700f28ace2f1ea9a7e84183ff8b"
+    },
+    ".releaseledger/ledgers/main/releases/v0.2.0/entries/entry-0007.md": {
+      "sha256": "c60fdf4236bbce094edc857ef113705be0025bafa1869be7e637c2a9d8103e57"
+    },
+    ".releaseledger/ledgers/main/releases/v0.2.0/entries/entry-0008.md": {
+      "sha256": "993a005b59a97489a999cc875472b62518324707d5c715b1233e291a9683e455"
+    },
+    ".releaseledger/ledgers/main/releases/v0.2.0/release.md": {
+      "sha256": "fc9c56172bc3b494a5242c76bb2f4cb587d8dbfc7f6b575155f424c2072544d1"
+    },
+    ".releaseledger/ledgers/main/releases/v0.3.0/entries/entry-0001.md": {
+      "sha256": "fc965fc186b590b1e9e0d0eb9b4e78f7af6836d769f84b9d3e282386baa89ccf"
+    },
+    ".releaseledger/ledgers/main/releases/v0.3.0/entries/entry-0002.md": {
+      "sha256": "ae3715a56e546e7c6ee1321e455eeddcf48d5b3d693468caf6a389b1b979f26e"
+    },
+    ".releaseledger/ledgers/main/releases/v0.3.0/entries/entry-0003.md": {
+      "sha256": "345c56e018dd7a95da2d4bbc3b1a06771c4a795d1e8e18c0d134d8c201a3299e"
+    },
+    ".releaseledger/ledgers/main/releases/v0.3.0/entries/entry-0004.md": {
+      "sha256": "650c3085e329c8d3ae9cf5d7695b5189dd653c22de317ef57ba3b290aae76fee"
+    },
+    ".releaseledger/ledgers/main/releases/v0.3.0/entries/entry-0005.md": {
+      "sha256": "30946feb67714a72bef8123c9413a8be3bf886e1647bab4820098c8530e86337"
+    },
+    ".releaseledger/ledgers/main/releases/v0.3.0/entries/entry-0006.md": {
+      "sha256": "0fa900653521fc8b8af0d7cd35b06546aab97a7a80951633cf801967c1467b40"
+    },
+    ".releaseledger/ledgers/main/releases/v0.3.0/entries/entry-0007.md": {
+      "sha256": "f387debec49fee48e26490ae8108d65e91f83ce4cb0ab5e90b25a5e1572c0e3f"
+    },
+    ".releaseledger/ledgers/main/releases/v0.3.0/entries/entry-0008.md": {
+      "sha256": "76b64180eedc6d6c5214fe62bd71fec1102a5988250da64d935d9f81b0de51fe"
+    },
+    ".releaseledger/ledgers/main/releases/v0.3.0/release.md": {
+      "sha256": "22b7db3a1370858264fef3d91ca12cfa1052f8b8362dc775e20a3f6a14ae3707"
+    },
+    ".releaseledger/ledgers/main/releases/v0.4.0/entries/entry-0001.md": {
+      "sha256": "82d46bddb72102f51b79431d4e90be1f4c34f821b40c4dc9d30fb507cf39e902"
+    },
+    ".releaseledger/ledgers/main/releases/v0.4.0/entries/entry-0002.md": {
+      "sha256": "6d6221813a783302dd0ff548303e2fc7a8c2b284b68e6a35efa6acc994928eb5"
+    },
+    ".releaseledger/ledgers/main/releases/v0.4.0/entries/entry-0003.md": {
+      "sha256": "8100b2c26303ba12331355e4a7f59a1e2c9de2ddc9692157af619415882c83aa"
+    },
+    ".releaseledger/ledgers/main/releases/v0.4.0/entries/entry-0004.md": {
+      "sha256": "584e65a02a3320e305aafa713702ebdb3556a2156e7ba541d4639e854a212795"
+    },
+    ".releaseledger/ledgers/main/releases/v0.4.0/entries/entry-0005.md": {
+      "sha256": "4375828dd9ea85f147b0b6c5878cacb5a08883f56e7b24ade5917124ff3b07bf"
+    },
+    ".releaseledger/ledgers/main/releases/v0.4.0/entries/entry-0006.md": {
+      "sha256": "487fbea34e2b9b76f28dcfc19ca2d67d41fb2c85eb0ca8a2f69602ba1356bfa8"
+    },
+    ".releaseledger/ledgers/main/releases/v0.4.0/release.md": {
+      "sha256": "3318a2167b1216483501a6842b8cd16d18b1373ada3ca1d26502a9d13c34e6ef"
+    },
     ".ruff.toml": {
       "sha256": "a2772615e41d74ec62417cea55b13a2b371822b0ce7f02552198f33822f184b1"
     },
+    ".specweave.toml": {
+      "sha256": "21c9faa1beebb5ca709c29dc5af1ded8cc045143653a28734852cd6ace41cec4"
+    },
     ".taskledger.toml": {
-      "sha256": "a3a3577e51d96351d03c1f462f44040ec0a02550dc0a23875ed5727e04de659c"
+      "sha256": "7e8f9094b19f8222bb9aa35bd1edea39c4e17aed269e70b78ec62f6d533d8c10"
     },
     "CHANGELOG.md": {
-      "sha256": "7f3ad301345fa4ec8b88113811276077f65ee5f071b6482bc66cc6e3e1b45177"
+      "sha256": "e9805af76e61a5db35962f25eaafb3dd5295a08f075d4e48351c1ad113eb2d3d"
     },
     "README.md": {
-      "sha256": "b23dad879a1116786645e04b44bdbfab0de0173913611c3a7243d7e1259cbb71"
+      "sha256": "ba72019aad1a6a8c46efbae62e8e191f9a1ffae5ab57e944c10c306f26b788d9"
     },
     "archledger/__init__.py": {
       "sha256": "c442496577c6ee3d7260f799fa229c81f0b3fa94eb372fbd88797cc37f8de242"
     },
     "archledger/assembly.py": {
-      "sha256": "ca087d390c927ee82fa7084329c9a412e8b12e67749da91f309effe7a5a16387"
+      "sha256": "9ded5dc5286f7868e2e1494f522e115dc36ab8e97eac2b2eb0a212ab1b198ffc"
     },
     "archledger/checks.py": {
-      "sha256": "17eb297bceb1b7aa95dbf25f64e5f8d68e7f66435b667201495c8fa3df135824"
+      "sha256": "80b77f44f4f4fe03655332b61cecd692cb0e41422214bcbcde60fecd28c01055"
     },
     "archledger/cli.py": {
-      "sha256": "b08c47f03dc4596977b013b9fc57625dce3b9084eec2592a03af6ecdb05a594d"
+      "sha256": "68469e60f805183ce99f5eb00fd43a878dc5200ee5002e26165e1129e62d83a8"
     },
     "archledger/cli_formatting.py": {
-      "sha256": "68635778d8474045cc0649f6e52f5241bf6c10694b0036bae14abefbc5aa929e"
+      "sha256": "0fd07d2acfd102cd3f8d33a2a149e757af8e07f5614660ee5699cb16f22d524b"
+    },
+    "archledger/cli_options.py": {
+      "sha256": "900eb16781050fb6e6a8e1bbfb1c29fe582f547fe8a430774cd4f2b1b68af13f"
     },
     "archledger/cli_payloads.py": {
-      "sha256": "6dcf38ef3fc4decc302d9895770534225b80fc8322a1db05b7fd84eb44aa3626"
+      "sha256": "c095fed0552f2d22d74e05bbf63afa633de5b62d443bad018f8da056881617a8"
+    },
+    "archledger/combo_trace.py": {
+      "sha256": "8588915ba90567abbbb967635f445505b45f9b6614989e7bc8ccab06aba7bcb6"
     },
     "archledger/config/__init__.py": {
-      "sha256": "04bb20709f5b91a0e08beb512b87a9ca04e9ef4688abb71bcab0f4cef3fdf0c7"
+      "sha256": "7d72ac8082084a8b38f047553eb6e7e161fe5651c90b41df3cb7343b474f3792"
     },
     "archledger/config/model.py": {
-      "sha256": "ff4328d7fe1707d56e950506dd6bbf4d26d1ffd2cc03b2c6a2b6f13977de696a"
+      "sha256": "848d12dc66e478a4c3e5a2f77095faaca1d2a6247e2050057daf3e067b3b479e"
     },
     "archledger/config/parse.py": {
-      "sha256": "6cc135d49afbd5cdd5bd44a958686ddb4c79f6dde0f489b3a787ca629b1f4513"
+      "sha256": "9f0b13f3e01ab279555ddc4a0114deffd3e14449503ac1b69a7d68dfe4a8e729"
     },
     "archledger/config/render.py": {
-      "sha256": "d562f73a8ce8630d3959e2e8511c986a598fd729077c9adaaeefd353cc5e205d"
+      "sha256": "20b2080bde3f44680f6a8b8cf485f8c293daeea417a1b50a54222b6f35ba6d03"
+    },
+    "archledger/config/schema.py": {
+      "sha256": "de54205104f955f937801b12d66c2cfabc2f06223f59c194bbc4232be9348206"
+    },
+    "archledger/context.py": {
+      "sha256": "343f0ef933acb51c08db8054952ff76b5ae4c827c06e0636eb1b100fcf4e5f9d"
     },
     "archledger/conversion_plan.py": {
       "sha256": "c7e7394aaaf7fcb48538daab5578ae38e3a23a2ea6f5ead82f6aa0e376a5d459"
@@ -127,10 +285,13 @@
       "sha256": "dcf30c001c7cfa94250042d17af7949a19f8e2df5f410831f09b99e9bfca5701"
     },
     "archledger/diagrams.py": {
-      "sha256": "012156fc6afc4d8f42c28fc0a82e3d0a51342a56109f9fee8113e0581ff68965"
+      "sha256": "4004be95c5303354a23054b3e9a83d5079233261f3d605577d26d4519a9f4b59"
     },
     "archledger/dialects.py": {
       "sha256": "4c0e530de7ac5bc0333cd9cb3239a5f377e66db4185e5c80ead8877ca00d0a77"
+    },
+    "archledger/document_state.py": {
+      "sha256": "fbd3c4e959a77bb46acc57e141ae0a13f036c000a49d3a82c57f7e4b01a9f716"
     },
     "archledger/errors.py": {
       "sha256": "4a5cadc0da8048805ad947edb2ec14c4043ede0edca8dce684d6bd5f0e0bb01a"
@@ -138,280 +299,397 @@
     "archledger/formats.py": {
       "sha256": "dd5819d1624ac07155fc740403a277eddbe60559e7f5fa9cfcbd24cbeed429b1"
     },
+    "archledger/id_format_drift.py": {
+      "sha256": "b6819f434be22f4bbc3210f4b853519fb49946ae01f6fb93a4a978a188e1f684"
+    },
     "archledger/id_segments.py": {
-      "sha256": "b11164662516d35c261a412023bd0ad1d93db0cc76d21a49ea0a5452a28a79ea"
+      "sha256": "d98ab3fbf486bca966ff061a4919a3987679a4754984b33237a42535e8f6dc5d"
+    },
+    "archledger/identity_detection.py": {
+      "sha256": "92bdcb42dc153fc445501fdd153344df1eaca45175c912746a2b9bdff49d741f"
+    },
+    "archledger/identity_migration.py": {
+      "sha256": "36fa00c5c6b55e33317a43daa7b92b5d67a81a1b107efbcac7b12c87d5b3236f"
     },
     "archledger/ids.py": {
-      "sha256": "7af6a11475046bea27c3553ddd68adcf1eeb284232a97a52546ef1c44ec73f6e"
+      "sha256": "9e82fe00a023cf6c4bcfc8fb0dedfff81c6477f1c3532ac7c7a442da8e94a4dc"
+    },
+    "archledger/installers.py": {
+      "sha256": "edfb4d07ffa67667dfd8a2023c41c3e6eaa8e59eb3ab26ec39a6f3ed3f734379"
+    },
+    "archledger/jsonschemas.py": {
+      "sha256": "baaff03de9bda43a1f61791f79eea121bde163612bc0c14c5bdf70c7fca26fba"
     },
     "archledger/launcher.py": {
       "sha256": "78a12e829c4c4bca4d174d5158cfe36b3c9afd0bf3d4565e54f8c6d578fe51b8"
+    },
+    "archledger/ledger_sequence.py": {
+      "sha256": "3f3c74fb062f4d8e867cfdee38cd2e36eef06ef3e8b5ec47e7244b24c4616f69"
+    },
+    "archledger/links.py": {
+      "sha256": "e2b59c02f58aba3b25241a2f5ad7eab041c6c94049c2aa99de1e9307eeb9e8b3"
+    },
+    "archledger/metadata_migration.py": {
+      "sha256": "d570d719d30d02a37e3b632655ff447e3defeb13012096d82742ac9706c17862"
+    },
+    "archledger/metadata_version.py": {
+      "sha256": "bc58fcdab0c93dd42e379a44b804a0816055cb21301e36381d11a4f2475b761b"
     },
     "archledger/migration.py": {
       "sha256": "a0aeb864b42f9831bd84c4744fd2ad95eb9b26b89aee978fe0787eb27670c518"
     },
     "archledger/model.py": {
-      "sha256": "b1305a76f68e0b6a32a9c86bfc1939be546a622668c0c1a3f4d3e478fd59f2ee"
+      "sha256": "2a90873287872241dba87580b57c6e19953aad234fa62aeca9d153ac048b2cb8"
+    },
+    "archledger/mutations.py": {
+      "sha256": "fd2078e9b271cc7015cbeca7cd78f65e0b00ec2e0150278fa1f99967418c9a35"
+    },
+    "archledger/profiles.py": {
+      "sha256": "7f6fd1c1354660335af59f5679883d3dc648d0c6c92c23acec35c310537b53ed"
     },
     "archledger/record_types.py": {
-      "sha256": "cde9f8cb74fe25ae3e0bf94bc0b1df4c651e9199c0ba9f86fe2264c47cd84e9f"
+      "sha256": "7e8dcf521b0792bcf1cb9f7298482a0121ecfd7782af6c0d44cfdfdee2c2bc00"
     },
     "archledger/render.py": {
       "sha256": "da556c55b0a540f57ff1c809f8e96f36e0c38bc1b48d426d736f96b9d485e74e"
     },
     "archledger/renumber.py": {
-      "sha256": "874ca78cd358a1d127dde0c2ee5e82ac31b818868b67e279055a316f44e360a9"
+      "sha256": "170d4cbe7971c7fafd0f17cb937f15b2d1da24acd18c969a2faa43a7af571ed7"
     },
     "archledger/repository.py": {
-      "sha256": "02ab27763405408cabeb04f967c72c09834c86e94b9ba39519b56ac18c3f17c3"
+      "sha256": "5924bc5e9dc87dfbb94078e7a84c530423951b4787488fdfb954bf552058c5c7"
+    },
+    "archledger/schemas/archledger.changed.v1.schema.json": {
+      "sha256": "e32e37314288614d6aee33f787f5714f50d4ba1aa53baaaa2ec021ee2d7a2cb7"
+    },
+    "archledger/schemas/archledger.changed.v2.schema.json": {
+      "sha256": "c9b211af3ffef0289631f634dec41dc84be1458dcb3bb87dcbef16e1b7a4f4a1"
+    },
+    "archledger/schemas/archledger.context.v1.schema.json": {
+      "sha256": "5c2c5e10425db3f8ad1b16805708261d547b8772e524658ebc87a7b74835c20c"
+    },
+    "archledger/schemas/archledger.context.v2.schema.json": {
+      "sha256": "5418bc6873cc8f0187621c5aa5be9ec5ecf5dbc0e1ee2d9b0b3fccdb9c19228c"
+    },
+    "archledger/schemas/archledger.record.v2.schema.json": {
+      "sha256": "8fcdee6d8ae93d088c1416a169b442ff6fc49e7ceb543448867c4e5375829b6a"
+    },
+    "archledger/schemas/archledger.record.v4.schema.json": {
+      "sha256": "50bddc36d0847277a0f5dc41ee74276c3dca60a4ba593054a00f3801d33cfeda"
+    },
+    "archledger/schemas/archledger.trace.v1.schema.json": {
+      "sha256": "b17f4686b399fe1f9b14bafefa4e84f6de7f2cfecda81cbfc940afca72e76ea2"
+    },
+    "archledger/scopes.py": {
+      "sha256": "db458876b2b06ff5cd3f1f971b9b5b80a1a76fe4d35b5a554e8672d96cc5524a"
     },
     "archledger/section_rendering.py": {
-      "sha256": "bd38dfc5b07dbcb61decba6db72eaa8182d16bfebb59d9a33f8f82f5d80309b2"
+      "sha256": "12498c06b3b9e32ac8726e169e2b592b63659a51468acbf00b0f5c610586880a"
     },
     "archledger/source_refs.py": {
-      "sha256": "8eb314aa2ba7bd11b7c5f30fa019e283c771b23ffb950244c1a10a8fb9e1e10d"
+      "sha256": "5b437f5969bd13f1fae5a4b41215f7f66913998d2f8d20423369e41794bd1bfa"
     },
     "archledger/source_tracking.py": {
-      "sha256": "8c0b9802790ac01740c2ec56190120b260024197932b7bc03ef02c48e97599b4"
+      "sha256": "9b3875392a76d4fada56b2652a4021953e9bf40e08dde9381aec6a35ce11f79e"
     },
     "archledger/storage/__init__.py": {
       "sha256": "6088532e1e4b680f373ee64f80be035ff2e7d21a8375b94a99db5fe7208b61e9"
     },
     "archledger/storage/common.py": {
-      "sha256": "cd73af4a2067ce0114de06bf3f9df8ad5d41f8ed3e212c7527c1bc53fbddcefd"
+      "sha256": "4999e5ed0abb729dcf114e4cccf76315a1245521a95905ea84ac2a8420a92b1c"
     },
     "archledger/storage/frontmatter.py": {
-      "sha256": "a89a08a2d57dfdf2e1fa9711edb1205f388f8d2d71774758930acb24c163a8c8"
+      "sha256": "98c68e691592be3b8f211462bf8aa51b03a8d0609d6293d8829dc5883df41b1d"
     },
     "archledger/storage/meta.py": {
-      "sha256": "9b88ab9530ef4a6e211dfa212bbf3682dfc1dbadc7bbb0587c95b916a3d0bc8b"
+      "sha256": "4f175a849bbc400c50174b0f76a8e463b6283e4ad65417f7baeab66211ae657a"
     },
     "archledger/storage/paths.py": {
-      "sha256": "3117c49c7a378921b0655755367819a2bdf0a5ecb928768719ce428f842c6ff4"
+      "sha256": "9c1bf6fabb72a81985b2f48b43bcf18988e65125b6696048f02c22bcb2964d87"
     },
     "archledger/storage/project_config.py": {
-      "sha256": "ce44e0198b6ce655510641c6f3cee89c0931076b1dac79027bbe6c40e0dc097f"
+      "sha256": "cb4ff132003add0d79973c8bea2f4fbded70d2b3493004fe8156399749d9062e"
     },
     "archledger/storage/source_state.py": {
-      "sha256": "dbb85930ad3db486a0d7ee7af5c3ab1361790f23dac008ce05af6833d979ee81"
+      "sha256": "871a9fc2e7fde3260e9845d18f04cd865784ce6ffa016d17c0d346622d1fd7fe"
     },
     "archledger/templates/__init__.py": {
       "sha256": "490c376c2f3e8acde50ae80326748d8fa974f34ab3774269bc24088838fbb917"
     },
     "archledger/templates/arc42_document.adoc.j2": {
-      "sha256": "e4bcaa39b36fa302eb412d7b621f6cabf49fc43a78671c3d62bf5396049072fc"
+      "sha256": "c482cd3fdec790004f2e11c12374628ad37c82da20646a4afc71f90c73eb4425"
     },
     "archledger/templates/arc42_document.md.j2": {
-      "sha256": "de3dec2125c7574610fb9dac1e6349a82bdb0e3fa2a746942963cb85907a0473"
+      "sha256": "e3ca9bdf7dd87034c74488c28a22159592a88047e936736e41065d21334883d2"
+    },
+    "archledger/templates/records/_frontmatter.j2": {
+      "sha256": "729cd4f3c4103f5de2263a3ca0a4fd383a45c1d8f464bfc0ec57254b4e18a37a"
+    },
+    "archledger/templates/records/acceptance_criterion.adoc.j2": {
+      "sha256": "eb6185786e0e33780f9a7d0dbec40de4404125d96e7c2fe7c360de8cff1642ec"
+    },
+    "archledger/templates/records/acceptance_criterion.md.j2": {
+      "sha256": "c0ad717ab06debca50556a6f8c60e1a160c74a22b351ee170b2e7c9323f8c743"
     },
     "archledger/templates/records/adr.adoc.j2": {
-      "sha256": "3e97be4b38d55b1630b8d0048795db8652473e4941a51d34a19a3feb1e6a04c0"
+      "sha256": "abc1e74539fb1d28223aaba4ab49da46e9b160b8810493f6e64ff2e4c79c3504"
     },
     "archledger/templates/records/adr.md.j2": {
-      "sha256": "531897ea3fbb24ece10df9a2b847712e9ab4e5a05caa0bc4ade4a01f5d03b778"
+      "sha256": "6d9075bd1cd7fe84b38eeb88d412992afbab36b3ff47f009df0a6cf193eaf5b2"
+    },
+    "archledger/templates/records/architecture_question.adoc.j2": {
+      "sha256": "ef9278f2b7f45e9ea6f91f6a767b81094973a11fe532556b32896ba8510da652"
+    },
+    "archledger/templates/records/architecture_question.md.j2": {
+      "sha256": "958386fe95d9ae877fdbba5ff952288ec2422c14f6aac5512d7939b6807143fe"
     },
     "archledger/templates/records/black_box.adoc.j2": {
-      "sha256": "190ba63d1da55351166d4aa04dc5dfa3650170b6f6594eb353544141a5752762"
+      "sha256": "4d4ce36d4706823aab1e210f73d87a1bf8d383b1ef76148ade78857cd04fcc82"
     },
     "archledger/templates/records/black_box.md.j2": {
-      "sha256": "affa191ba7b4c7a8c3d139c5c8b2c37d02e6b3622b7629560c4b2f804a9a8416"
+      "sha256": "2a5cef6f501ead4b3d16645586fab71e7daed943c0efbc400257000d72ef802b"
     },
     "archledger/templates/records/concept.adoc.j2": {
-      "sha256": "b3d1657170e68b58b4a91a715d5919e5f983461501fc9d8242b237f12f49cb30"
+      "sha256": "b23601a750ba74bac13433fc13e82adcbc5817a679634b6ae9b17b6a2b374b36"
     },
     "archledger/templates/records/concept.md.j2": {
-      "sha256": "8d36ed85653fbcd9da6f200712fb372a3cfde1df7d9a4cc88c2d874d7b2c42a6"
+      "sha256": "b23601a750ba74bac13433fc13e82adcbc5817a679634b6ae9b17b6a2b374b36"
     },
     "archledger/templates/records/constraint.adoc.j2": {
-      "sha256": "62d0be334d1d55c6258b09364085324aad165880a9218b998ba917c2252c48d4"
+      "sha256": "f07f4bd7cf60dfdd565e7ac1e529e54398dd70992aa91e382f4317cf2c724fb4"
     },
     "archledger/templates/records/constraint.md.j2": {
-      "sha256": "73ab6de7786d9edd1cc9c2483ec8b4b1362b2f6d440ffb806dd784c769b580ff"
+      "sha256": "173f99618af22738403ccfb1b3753749a42fc9be484d478988a53b1677352f4a"
     },
     "archledger/templates/records/context_interface.adoc.j2": {
-      "sha256": "4ef1437d3ed3ba517077add356990060453bb873c3efec1f07b40e96213ca7c1"
+      "sha256": "e382dc2cb69efe7b575ecf9266f0b98624228d7cd78f7dfdd420b5d789c75490"
     },
     "archledger/templates/records/context_interface.md.j2": {
-      "sha256": "e5291535617a19bc8394f2d010eb2045684941dc314e29d1fbc4682a8ddc4305"
+      "sha256": "7228a41b4aa18e0a647c6392b210d305171724a524de8216e81454abc749ad72"
     },
     "archledger/templates/records/diagram.adoc.j2": {
-      "sha256": "626a6200e6946bda9f77c85e0068225fce4d354ea5661a759dddf6e93d8ca4e7"
+      "sha256": "9588cad4b8f7227d2bc8ec2a5456cbf232daacce267dcee44aa16cfbf378b9fd"
     },
     "archledger/templates/records/diagram.md.j2": {
-      "sha256": "e5ba8049073f5752ee81a7668a88c46a857ff4b3c753795383162eaefe19dcfa"
+      "sha256": "006f38a74a49eb8fcf42a6423c3f7b2725a1d36748a25f13eceb4d5227869615"
     },
     "archledger/templates/records/glossary_term.adoc.j2": {
-      "sha256": "f9da78e6c3f63ef053be43710ea50333aca1b32109a11c9da40c1892227b13e3"
+      "sha256": "85d59a660a57ee9a09159d1ee295cc0707c6c62d896499569c0f3cc7d5b8bfb1"
     },
     "archledger/templates/records/glossary_term.md.j2": {
-      "sha256": "622c58b41908c43e506011d0a21b3b1cc2653ee467fdf6de62af5d43e7e28caa"
+      "sha256": "566a4369481f4ab77634180c320b1a9670fafcf80a38f595daa33c8528fef377"
     },
     "archledger/templates/records/infrastructure.adoc.j2": {
-      "sha256": "38743ffef402cb79f71c5bedb83f0b23ffe1ae76a26e0fad97ad7a94347ded6b"
+      "sha256": "3bba64ffd7b338748cc00f8229e114d9883b85a1c808b0cdb53cd710b3d8f8f9"
     },
     "archledger/templates/records/infrastructure.md.j2": {
-      "sha256": "9b1845506c1c8d53e902d8c58d377a5498a805e5ccf5d7c6f26d50af0fa28f8f"
+      "sha256": "8a18f122d27ec324ecebff7534f7ef364ffe5f43b1b5c910017b172a786c951f"
     },
     "archledger/templates/records/interface.adoc.j2": {
-      "sha256": "cf4792e332877d2ec8ca2c1abf7df48dae8a977ef980f94eebb03dfb24f9b8f6"
+      "sha256": "c2eb2b28e582392ed37625efb5eefbbdb186c20320973c6070c46e7be848413f"
     },
     "archledger/templates/records/interface.md.j2": {
-      "sha256": "8eaf10f1c06888079d65c6d7680145f38a1c3ae2873bd4cab78ea6399ec0c277"
+      "sha256": "09c12669561b79ec7fc9aa2ebcd290000e300ba32b23bfaf2b8433957e7c9622"
     },
     "archledger/templates/records/quality_goal.adoc.j2": {
-      "sha256": "85815105cf7af99b649d1c40a502a91b706fe3feacff3291f0bf96dc6bf13558"
+      "sha256": "8b26a4372924299befa8d3a4104d6fe92405180398db087bd4d033d41a852672"
     },
     "archledger/templates/records/quality_goal.md.j2": {
-      "sha256": "0967b63cd69e38f1925c32c2606ebde24405ac2d00e71fc7ed6f2b2985d6e56a"
+      "sha256": "d75666709b3603947f148900000fdfa6e14015be1fd244f1e7b68b1c59c06e35"
     },
     "archledger/templates/records/quality_requirement.adoc.j2": {
-      "sha256": "15224d7df6ae82907f43bf73a722e75d91e54354ae304e620c84232b2fd952eb"
+      "sha256": "cd87416a3b30fffefbf41dca058937df67eb28815fbed155bdd5c132165512e4"
     },
     "archledger/templates/records/quality_requirement.md.j2": {
-      "sha256": "ee3c53c2fd31e22ff3821c1eb779def58ad27df3d1d37bd32c7111da641eff65"
+      "sha256": "4684c289fa353fd1e38850b85d1f7f89ebd74ece683d65e160350b368b29b6fe"
     },
     "archledger/templates/records/quality_scenario.adoc.j2": {
-      "sha256": "2cdf5b590fddeb71c64106919c84c92855b346a86022c06397bf5a158cf051cc"
+      "sha256": "93ee74cc72e0a77c707e330b65aa24deebde400780b31c24d926916c9c5b1a95"
     },
     "archledger/templates/records/quality_scenario.md.j2": {
-      "sha256": "c79b25f60cb5761c2de02665bd92f156b04b7b66f601bf60bc55ff4ca7b15674"
+      "sha256": "1c1c18a6a1883428d5468db11c1a1620c5d426b1decf819db8c7e8fbc8de4fba"
     },
     "archledger/templates/records/requirement.adoc.j2": {
-      "sha256": "3ce70abb7a98abbf1829918c186d7063f2e0e6af68815f2f3ea0cf9b164252aa"
+      "sha256": "99fedc18a7e7367dd23c7b95512ed957e31dc4b0051cabb902cd35507edbba1f"
     },
     "archledger/templates/records/requirement.md.j2": {
-      "sha256": "4754414ccc05a873ac5eef2dd94dd058bb96cdaca5158adb14a0a698a032eb6b"
+      "sha256": "c8812f1744ac98f3d324b3d03d042c77c787235fdabe705b8ed43e9980202665"
     },
     "archledger/templates/records/risk.adoc.j2": {
-      "sha256": "e92455975b5d1a761875ddc16139e6e94d112931c3ce48a983dadbf34cde4e82"
+      "sha256": "17f567b8bf484e7fbe35ef0f31263b204c3f551c64cecb4632a848c8537b71c2"
     },
     "archledger/templates/records/risk.md.j2": {
-      "sha256": "0a5bbc9bc289a46c6b14d784f3331f8f87d00c4c62178a4d2ee45e2592345317"
+      "sha256": "d3f6ff5cd50a76237ae2192348cdb1f94c2f8a39b34415700bb5357cd68d3f28"
     },
     "archledger/templates/records/runtime_scenario.adoc.j2": {
-      "sha256": "766fd16ea93718d719715188526d31e443ac2924306d10b0f862fd17240530ef"
+      "sha256": "f9ebda0ab8612c6ecb7b4f00edda9fb09d22a70e29a0c09d77012eef44dc1fdb"
     },
     "archledger/templates/records/runtime_scenario.md.j2": {
-      "sha256": "60dbc11002a78f7ac306595691466eab77f9503e7e5f57e85877157f02a32a98"
+      "sha256": "5f569a74b6874a8c04d67ef74a46e01203a07c7c979092268c02ac1cde67e680"
     },
     "archledger/templates/records/stakeholder.adoc.j2": {
-      "sha256": "4d4e6f91724b4a03806d23d63def33f0c936a14c1073f4124b600b9eec19d46f"
+      "sha256": "44637096d8fa5a070cb9a29e0cb8c1350ac4d3c52f751a7110cd8404ddb68f28"
     },
     "archledger/templates/records/stakeholder.md.j2": {
-      "sha256": "94f071f527103243e4374f3f6b8344885535991727da088dabb4830b4be29d50"
+      "sha256": "43dab569b23e493e81983bbdf6558a17c10c2c966e2c6f0aa14912774ebc6ab9"
     },
     "archledger/templates/records/strategy_item.adoc.j2": {
-      "sha256": "b7bebdd5b1d37186026218408eea3c6dfb3bdbc3740d6553cd91cc92b0e49059"
+      "sha256": "bcb6ec0fad95f9fe8ff59b6bd621a6c41fc39dfd1a51e6aa2c17fa79733d8b7d"
     },
     "archledger/templates/records/strategy_item.md.j2": {
-      "sha256": "ddcb8b2085556620d9f7af3513441ded405195869d8d497ebf29ab2860c9d5b7"
+      "sha256": "003bf89d984c7acbf567577395df8359aaf0bff09d627c73f047de7fd5bd421e"
     },
     "archledger/templates/records/white_box.adoc.j2": {
-      "sha256": "2e96dc3546b6eccffcae0ece466013bcc2516556dd36931d3b1f2f17e8f3d41f"
+      "sha256": "f03add76f3953c9bc297ad3b8e211a3b3dc0c93b45c17cf645ba1d09946dda18"
     },
     "archledger/templates/records/white_box.md.j2": {
-      "sha256": "e553426a8427b1ece256792fdd9cabd767528615fbe1b71577c16409320c1274"
+      "sha256": "a2e8a8c460eb2b4257d7f2b7dfdbd246c0a595f20acc7e3857c55687b189caae"
     },
-    "docs/agent-workflow.rst": {
-      "sha256": "0ff78393d7997822ea5784d5f433ea8b8b83d845b790a90da5c92e209764d082"
+    "archledger/test_refs.py": {
+      "sha256": "af046de54dc7c031d6b45bd11d7a968bb820f32fe8b24bfe94e5ab6c78b07963"
     },
-    "docs/api.rst": {
-      "sha256": "01ab36282bb4d887526f2d583cd607c6465cf69adfcbb4b56f932a33f99c30cc"
+    "archledger/trace.py": {
+      "sha256": "062254058218686d06de5943edc4bda060ad71756b097b9bb88bd78ea48b9e5c"
     },
-    "docs/build-and-export.rst": {
-      "sha256": "102f73579740696145fcdea9a4575e151372c550dade37ae4bd0a2d5975ca7a6"
+    "archledger_sphinx_markdown_conversion_brief.md": {
+      "sha256": "9d645c93d7fe5729c375e561667cda5fa2619d0fa3076fe2fc284f0159273be5"
     },
-    "docs/cli.rst": {
-      "sha256": "6d0769213bca56e467ab1d2da80d55f56d4b0d395aadd5a0443033f20e80c5b8"
+    "docs/agent-workflow.md": {
+      "sha256": "fe96e760f6ac543f1472b11b10c7903feb65fd2b7296fa46518ae5ac9c186ad6"
+    },
+    "docs/api.md": {
+      "sha256": "fdb91482dc4e26598e353a648df2d877b2fdff8dd79ea6d48b0fdb35f1624c6e"
+    },
+    "docs/build-and-export.md": {
+      "sha256": "dac9b207b5f834791aeeed6fb744d9ff65e8937f539be5da7f0441b0e9e517e1"
+    },
+    "docs/cli.md": {
+      "sha256": "2e0133b1241b3d2401e6b5bc4a0df4fa480d95dcbd720179945e5875adfef9be"
     },
     "docs/conf.py": {
-      "sha256": "321928ab9da5a0d993741a081d09595be7c0bdfd3dd50259a33db17965e4ae05"
+      "sha256": "ff642fbb274180688344be720920555acb4a7fda62bb2ac2da11bddf6632b429"
     },
-    "docs/configuration.rst": {
-      "sha256": "2ec90418fa26e8e565ca01778cfd891b5059e1715e30ce439d06115957bf0581"
+    "docs/configuration.md": {
+      "sha256": "bd45208efbdf8f45fb267c60f993df37667f88bfa59d47ad3ad5206baf10d9b2"
     },
-    "docs/index.rst": {
-      "sha256": "6b1b360da723b6be04c31b25710c4a9728a7e3762048b018470cda7bcbd51dc7"
+    "docs/index.md": {
+      "sha256": "c8aafea40f5ebed85edfe2d68128fe4dbd13baf8eabd52509449e31d43c394c9"
     },
-    "docs/release-process.rst": {
-      "sha256": "18253c5166704b2fb98e7d26050e48a9417d0af2372cb321bc95530341a7be06"
+    "docs/release-process.md": {
+      "sha256": "1ecd73459b7e75af40470fc207d23c5e6a0d4fde237a9b4a6ea6d84106a3aa75"
     },
-    "docs/source-model.rst": {
-      "sha256": "859fbcb7145a7ced912f3f051e9e28c3d734739b4b6ff4b2448e6ee943922bf4"
+    "docs/source-model.md": {
+      "sha256": "8863d1f4761e8128ab13e6efaa0c756cfd998e58d1ab100b79cc45317699435d"
     },
-    "docs/source-tracking.rst": {
-      "sha256": "947a12a99c93654d06c22e2c5487e760b0acd987c3fabdf6e31d292987a4d673"
+    "docs/source-tracking.md": {
+      "sha256": "7a72b0d4bb775bcd9e1e518a43966c973e9bcd67861860817e63efe35e1dda7b"
     },
     "pyproject.toml": {
-      "sha256": "e8c5e2eb9f5fd6b166656200ff14a1d845779e01342a0001c78e1862b5dce170"
+      "sha256": "59daa317c0a025c83f08a7d3365ae8da43d31967d25d3510d431574847ec8818"
     },
     "skills/archledger/SKILL.md": {
-      "sha256": "fc15a9df6700ac919393034c037ca82917585e2610459760b9825e6eaa72e4a4"
+      "sha256": "952bee92143bde2ca4a09c2a22983f46193603d779f9e0f9315eed3945b3ecd3"
+    },
+    "specs/behavior/README.md": {
+      "sha256": "4ca3373f2daf3d19fc69af086cc4c35c3117fdfa7888a344f1ba60cefa68e870"
     },
     "tests/__init__.py": {
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     "tests/test_build.py": {
-      "sha256": "74d0372c6ad766addd7326c66a8f91b509455faab2c75c1410cf3247593b8ecd"
+      "sha256": "81d719618f3078f18d863017291da3515e6270e64dd2f96c7bfc7b7076a34ca2"
     },
     "tests/test_build_formats.py": {
       "sha256": "7a0954aeb2e20891f134b059eb06c825920246f07eb70c0daaa605de3dfb3175"
+    },
+    "tests/test_check_cli.py": {
+      "sha256": "7c70fe837de2a62b75cc6de60d14925f5bd57baa889f6d9efb7c1f068e3613dd"
+    },
+    "tests/test_combo_trace.py": {
+      "sha256": "657539fadb46213e1d12f30343e744c134cde806647c18202a50f5c9d5d3758d"
+    },
+    "tests/test_context_cli.py": {
+      "sha256": "4d13ff32d8b78d1587c1a912295f7fe29f95b6a1d99e032997e270816fbdd652"
     },
     "tests/test_converter_integration.py": {
       "sha256": "af5ae95ecd2bad22c2d26a30e488297e82ae742e7ce78fee50142c0e3469ec7b"
     },
     "tests/test_diagrams.py": {
-      "sha256": "026b4df7c34a113051f3b121f06d69f43fb061a5280cdbfdcec4d4ebd9b84c77"
+      "sha256": "a0b7008f343730678b93d873f833ee07ea1bb4042fd381494ec9f152040f3bf8"
     },
     "tests/test_frontmatter.py": {
       "sha256": "2e9ddd419560ab614ca011c3ec565881cd1012b0c36282586ff4839e90f961ff"
     },
+    "tests/test_identity_migration_cli.py": {
+      "sha256": "e63f6177899491d10d574b9a98a2637120e17a87b7fe4bf72b51b2eb4531152a"
+    },
     "tests/test_ids.py": {
-      "sha256": "9fb1cd2fc3d507c3d54effc172e0b1fda3f88ab62b511d6a9a3da0072c14c3cf"
+      "sha256": "aa4ae367fa0cfc171ed0d3e80d377fbf652350bea14487dc66fdd4ad835d205e"
     },
     "tests/test_init_cli.py": {
-      "sha256": "5cc109b42abbd52003b10e436416ebb57a1c1bef1e67a8cea9204d53a28ffc3b"
+      "sha256": "1ab46ffd9a528fa533d487e029e78b3c972af63ed6437844c1c2696aa96448fa"
+    },
+    "tests/test_links.py": {
+      "sha256": "913f2e4b20dee504f78a17f814eb753fbf4fb358acd7369b9e06562bff5da9a5"
+    },
+    "tests/test_metadata_migration_cli.py": {
+      "sha256": "64a743522e8984551bf57256a7b7f2ebfd15698bffab74af36383cb37b0d0637"
+    },
+    "tests/test_metadata_version.py": {
+      "sha256": "cd66a8b0e0c557d3e8034795b69bca02508140a547b5f48cf9c8b65a3b6743ce"
     },
     "tests/test_migration.py": {
-      "sha256": "76e2448d82d68d2a77b7c254fba3f89721e244e4dd6b900cb94fbc0b74c8630b"
+      "sha256": "66f4154f545956d2f8308dc43c74ac4841526fd521bf95e0ba15e561ee0ba62a"
+    },
+    "tests/test_mutation_cli.py": {
+      "sha256": "87c320efcc56449304f4af48ed3f602a5c41bf984705cb0fb9285122535343ca"
     },
     "tests/test_paths.py": {
-      "sha256": "d196936389c5bd3c27a3977d733122510e55f3e79a919edb69e15af0348cd0d7"
+      "sha256": "22b4be058b2a859fa8495fd36f43d552ca18a5c64c37d08bf70690bc60377bea"
+    },
+    "tests/test_profile_cli.py": {
+      "sha256": "1ae833543fcdfedd119a9a84f777b313335930076a77141d7f24bc8b150bc288"
     },
     "tests/test_read_cli.py": {
       "sha256": "0311dffce8428665fd59da559e3fbd80324ca8da96da41dbc7ac9a2b7c225dab"
     },
+    "tests/test_refactoring_regression.py": {
+      "sha256": "5b4eab0f2d3176cbb8e3c0e32e9ee0ce6d64a54218e0ba73f987d9e3c88b345f"
+    },
     "tests/test_renumber_cli.py": {
-      "sha256": "0e5fa414d993d1980237109f346d329fa982096afd6445bae09b3afe4f91ea26"
+      "sha256": "c4982e9a3b1ad783775fcfff282998c239eeee1f4ba427a5c2c54588f40015fc"
     },
     "tests/test_repository_cli.py": {
-      "sha256": "175fdd929cee858285a835f5b6a446c9110048c80fbb2ac8959d10b86069bca9"
+      "sha256": "bc6b92e5c1d0962706687c9dee2a6cb04d915fd1f0bf473067d44aefb9bbf4a8"
+    },
+    "tests/test_schema_install_cli.py": {
+      "sha256": "4ab30984d2b22d0f8504284f27d438048dc4d2929aa5b4aa9ea2d1802718f96e"
+    },
+    "tests/test_scopes.py": {
+      "sha256": "95472f98e5096be39e7d80042225b2fe942fb17172833f0a63713af119321725"
     },
     "tests/test_section_rendering.py": {
-      "sha256": "deb883576f64203bc4bed9d3b93f53855586970c1bb1cf8feb0ee55356459c1f"
+      "sha256": "d32f5c3a2be1cd7ee752c9c66843d69d9c3eb871e89ef542b8073bb4ec5b2978"
     },
     "tests/test_skill_file.py": {
-      "sha256": "cbba11f6cc97159a1ccb061cc4d45c5aa7d6b6be0b1fb26c031d52b4b0e2f2d2"
+      "sha256": "4675f0c026e61e7b644843482b52e458425f831558f50064aa811318acea10a5"
     },
     "tests/test_source_tracking.py": {
-      "sha256": "454565d715cdb1974f1e61309163ce689124520cbd07160a5133bd633b8d99bb"
+      "sha256": "7a555800ffb6c76e03528d4bdb2acd3bf588d04cc26f72f8e4669ebabfc22b9a"
     },
     "tests/test_storage_common.py": {
-      "sha256": "389e05bc5a738072b77597ed3a0a1c13a30f3d5f0cfc1a81745a354ea7ada087"
+      "sha256": "50b18db5837d64b4b43024db7597288cf2f76596851606fe6a092bc21796cf52"
     },
     "tests/test_storage_meta.py": {
-      "sha256": "676fe0a80bce2e744e6e3c4061ace6e8f930cb35db48449bc2f3eb4bea70c4c4"
+      "sha256": "e4b0beab5b5a1b5754c80fe1aef41295c63d06de3e9ce8fc173e73677f285139"
     },
     "tests/test_templates.py": {
-      "sha256": "95561bdfb62de6955a9fab48957e828ea40434ae427e886eefca10a9a0539ce1"
-    },
-    "tools/migrate_archledger_fixture_ids.py": {
-      "sha256": "f86f0db6564d9e6b02eb18612f423e86bde02304f672146df79a65a585217d25"
+      "sha256": "7cad913715bf200781c2c35ed0cf032caa9aab451a25757387d13df556037c64"
     }
   },
   "project_name": "archledger",
   "project_uuid": "6bddbb56-b273-4aae-9860-bfa4de93f115",
-  "reason": "after-archledger-repair",
+  "reason": "sphinx-docs-markdown-conversion",
   "scanner": {
     "exclude": [
       ".git/**",
@@ -441,5 +719,5 @@
     "used": "git"
   },
   "schema": "archledger.source-state.v3",
-  "version": 1
+  "version": 2
 }

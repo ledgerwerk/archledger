@@ -24,11 +24,11 @@ source_refs:
   - archledger/cli_formatting.py
   - archledger/cli_payloads.py
   - archledger/launcher.py
-  - docs/cli.rst
+  - docs/cli.md
   - path: skills/archledger/SKILL.md
     reason: External skill documentation updated for renumber and ID format commands
 kind: block
-version: 1
+version: 2
 ---
 
 The Typer-based CLI exposes top-level commands: `init`, `status`, `paths`, `schema`, `new`, `seed`, `list`, `show`, `read`, `check`, `archive`, `doctor`, `renumber`, `build`, and the `source` subgroup. The `source` subgroup contains `snapshot`, `changed`, and `convert` for source tracking and dialect migration. `archive` preserves obsolete records without reusing ledger numbers, and `doctor` validates or repairs ledger numbering invariants. Each command resolves the project config, constructs a Repository, and delegates to it. Two output modes are supported: human-readable text (default) and structured JSON (`--json` flag). Error handling maps domain exceptions (`ArchledgerError` subclasses) to appropriate exit codes and error output.

@@ -14,9 +14,9 @@ definition:
   module to populate the ArchitectureRecord dataclass.
 source_refs:
   - README.md
-  - docs/agent-workflow.rst
+  - docs/agent-workflow.md
 kind: glossary
-version: 1
+version: 2
 ---
 
 The YAML block delimited by `---` at the top of a Markdown record file. Contains machine-readable metadata fields such as id, type, title, status, section, order, and type-specific fields. Parsed by archledger's frontmatter module to populate the ArchitectureRecord dataclass.

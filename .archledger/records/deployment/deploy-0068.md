@@ -13,9 +13,9 @@ maps_building_blocks: []
 body_format: markdown
 source_refs:
   - pyproject.toml
-  - docs/index.rst
+  - docs/index.md
 kind: deploy
-version: 1
+version: 2
 ---
 
 Optional conversion toolchain: pandoc (html/docx/rst/textile), asciidoctor (html), and asciidoctor-pdf (pdf). Native source-format builds do not require these tools.

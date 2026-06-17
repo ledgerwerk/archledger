@@ -64,10 +64,10 @@ dynamic=["version"]
 archledger = "archledger.launcher:main"
 
 [project.urls]
-Homepage = "https://github.com/holgern/archledger"
-Repository = "https://github.com/holgern/archledger"
-Issues = "https://github.com/holgern/archledger/issues"
-Changelog = "https://github.com/holgern/archledger/releases"
+Homepage = "https://github.com/ledgerwerk/archledger"
+Repository = "https://github.com/ledgerwerk/archledger"
+Issues = "https://github.com/ledgerwerk/archledger/issues"
+Changelog = "https://github.com/ledgerwerk/archledger/releases"
 
 [project.optional-dependencies]
 dev = [
@@ -82,6 +82,7 @@ dev = [
 docs = [
     "sphinx",
     "sphinx-rtd-theme",
+    "myst-parser>=2.0.0",
 ]
 rich = [
     "rich",

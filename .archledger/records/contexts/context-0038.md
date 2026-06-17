@@ -23,9 +23,9 @@ channels:
 body_format: markdown
 source_refs:
   - README.md
-  - docs/release-process.rst
+  - docs/release-process.md
 kind: context
-version: 1
+version: 2
 ---
 
 Stakeholders provide architecture requirements, review generated artifacts, and consume release documentation from repository and CI outputs.

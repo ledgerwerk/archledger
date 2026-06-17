@@ -15,9 +15,9 @@ definition:
   ADR, quality requirement, quality scenario, risk, or glossary term."
 source_refs:
   - README.md
-  - docs/agent-workflow.rst
+  - docs/agent-workflow.md
 kind: glossary
-version: 1
+version: 2
 ---
 
 A Markdown or AsciiDoc file with YAML front matter that describes one architecture element. Each record has an id, type, title, status, section, order, body_format, and optional source_refs linking it to source code artifacts.

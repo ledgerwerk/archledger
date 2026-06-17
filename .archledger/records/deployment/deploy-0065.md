@@ -15,9 +15,9 @@ maps_building_blocks:
   - Repository Layer
 source_refs:
   - pyproject.toml
-  - docs/index.rst
+  - docs/index.md
 kind: deploy
-version: 1
+version: 2
 ---
 
 CI runners execute `archledger check` to validate record integrity and `archledger build --output docs/architecture.md` to produce the rendered document. The built Markdown file is published as a CI artifact. Non-zero exit codes from `check` fail the pipeline.

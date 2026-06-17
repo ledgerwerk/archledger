@@ -13,9 +13,9 @@ maps_building_blocks: []
 body_format: markdown
 source_refs:
   - pyproject.toml
-  - docs/index.rst
+  - docs/index.md
 kind: deploy
-version: 1
+version: 2
 ---
 
 Distribution targets are PyPI source/wheel artifacts built from this repository. Release pipelines build wheel/sdist and publish versioned packages for installation with `pip install archledger`.

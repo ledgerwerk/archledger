@@ -17,9 +17,9 @@ maps_building_blocks:
   - Render Layer
 source_refs:
   - pyproject.toml
-  - docs/index.rst
+  - docs/index.md
 kind: deploy
-version: 1
+version: 2
 ---
 
 Developer machine with Python >= 3.10. archledger is installed via `pip install -e .` in a virtual environment. The project directory contains `archledger.toml` at the root. The storage directory (default `.archledger/`) holds sections, records, and build output. No network access, database, or server process is required.

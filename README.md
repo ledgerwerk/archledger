@@ -16,7 +16,7 @@ arc42-style architecture documents on demand.
 
 - Native Markdown and AsciiDoc source workflows are the most stable path.
 - Converter-backed exports are supported when the required external tools are installed and validated by CI.
-- See `CHANGELOG.md` for recent release-oriented changes and `docs/release-process.rst` for the maintainer release checklist.
+- See `CHANGELOG.md` for recent release-oriented changes and `docs/release-process.md` for the maintainer release checklist.
 
 ## What archledger is
 
@@ -482,7 +482,7 @@ python -m venv /tmp/archledger-wheel-test
 /tmp/archledger-wheel-test/bin/archledger --version
 ```
 
-For the full maintainer checklist, see `docs/release-process.rst`.
+For the full maintainer checklist, see `docs/release-process.md`.
 
 ## Troubleshooting
 

@@ -13,9 +13,9 @@ maps_building_blocks: []
 body_format: markdown
 source_refs:
   - pyproject.toml
-  - docs/index.rst
+  - docs/index.md
 kind: deploy
-version: 1
+version: 2
 ---
 
 Documentation publishing includes README guidance, Sphinx docs in `docs/`, and generated `ARCHITECTURE.md` produced from `.archledger` sources.

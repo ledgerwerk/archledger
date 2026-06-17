@@ -12,7 +12,7 @@ from typing import cast
 if sys.version_info >= (3, 11):
     import tomllib
 else:  # pragma: no cover
-    import tomli as tomllib  # type: ignore[import-not-found]
+    import tomli as tomllib  # type: ignore[import-not-found, unused-ignore]
 
 from archledger.config.model import DEFAULT_ARC42_SECTIONS_DIR, VALID_PROFILES
 from archledger.config.parse import load_project_config

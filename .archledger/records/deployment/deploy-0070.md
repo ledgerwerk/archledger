@@ -13,9 +13,9 @@ maps_building_blocks: []
 body_format: markdown
 source_refs:
   - pyproject.toml
-  - docs/index.rst
+  - docs/index.md
 kind: deploy
-version: 1
+version: 2
 ---
 
 CI release validation runs unit tests, package build checks, version consistency checks, and release workflow documentation checks before publishing.

@@ -15,9 +15,9 @@ expectations:
   - Skill file (SKILL.md) for agent protocol
 source_refs:
   - README.md
-  - docs/index.rst
+  - docs/index.md
 kind: content
-version: 1
+version: 2
 ---
 
 Automated coding agents that create, validate, and render architecture documentation as part of development workflows. They interact with archledger exclusively through the CLI, preferring `--json` output for structured parsing.

@@ -9,6 +9,7 @@ import yaml
 from typer.testing import CliRunner
 
 from archledger.cli import app
+from archledger.repository import ArchitectureRepository
 from archledger.scopes import (
     RecordScope,
     normalize_scope,
@@ -92,7 +93,7 @@ def _create_record(
     return record_path
 
 
-def _get_repo(workspace: Path):
+def _get_repo(workspace: Path) -> ArchitectureRepository:
     from archledger.repository import ArchitectureRepository
 
     paths, config, _ = resolve_project_paths(workspace)

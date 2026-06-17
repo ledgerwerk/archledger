@@ -14,9 +14,9 @@ definition:
   AsciiDocDialect.
 source_refs:
   - README.md
-  - docs/agent-workflow.rst
+  - docs/agent-workflow.md
 kind: glossary
-version: 1
+version: 2
 ---
 
 A source format abstraction that defines how to render markup elements (headings, tables, bullets, strong text). archledger provides `MarkdownDialect` and `AsciiDocDialect`. All section rendering uses dialects to produce format-correct output.

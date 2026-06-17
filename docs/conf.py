@@ -25,7 +25,12 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.todo",
     "sphinx.ext.coverage",
+    "myst_parser",
 ]
+
+source_suffix = {
+    ".md": "markdown",
+}
 
 templates_path = ["_templates"] if os.path.isdir("_templates") else []
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]

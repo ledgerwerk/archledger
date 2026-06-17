@@ -16,9 +16,9 @@ definition:
   and glossary. archledger follows this structure."
 source_refs:
   - README.md
-  - docs/agent-workflow.rst
+  - docs/agent-workflow.md
 kind: glossary
-version: 1
+version: 2
 ---
 
 Describe this glossary term.
