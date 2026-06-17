@@ -12,11 +12,11 @@ status: accepted
 audience: null
 scopes: []
 source_refs:
-- git:4d23cc9089841e648519294f5fb5967e352972f3
+  - git:4d23cc9089841e648519294f5fb5967e352972f3
 paths:
-- docs/cli.md
-- docs/configuration.md
-- README.md
+  - docs/cli.md
+  - docs/configuration.md
+  - README.md
 issues: []
 prs: []
 sources: []
