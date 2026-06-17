@@ -7,6 +7,7 @@
 ```{code-block} bash
 archledger --json source snapshot --reason after-archledger-update
 ```
+
 `source-state.json` stores a monotonic snapshot `version` and SHA-256
 content hashes only for files. It does not persist timestamps, mtimes, or file
 sizes. Directory hashes are derived from file hashes after scanning.
@@ -19,6 +20,7 @@ sizes. Directory hashes are derived from file hashes after scanning.
 archledger --json source changed
 archledger --json source changed --include-drafts
 ```
+
 Results report baseline and current versions rather than scan dates.
 
 If `[tracking].enabled = false`, both commands fail explicitly instead of
@@ -40,6 +42,7 @@ source_refs:
   - path: archledger/templates/
     reason: "Bundled templates"
 ```
+
 Use POSIX separators, keep the paths relative to the workspace root, and end
 directory references with `/`.
 
@@ -53,6 +56,7 @@ archledger --json read --body --include-drafts
 archledger --json check
 archledger --json source snapshot --reason after-archledger-update
 ```
+
 In practice:
 
 1. Add `source_refs` when a fragment describes real code, configuration, or directories.

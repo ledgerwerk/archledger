@@ -5,7 +5,7 @@ dedupe = true
 respect_gitignore = true
 # exclude = ["*/.venv/*", "integration_tests", "examples", "docs"]
 gitignore_allow = ["archledger/_version.py"]
-exclude = ["*/.venv/*", "integration_tests", "todo.md"]
+exclude = ["*/.venv/*", "integration_tests", "todo.md", ".releaseledger"]
 include = [
   "**/*.py",
   "**/*.toml",

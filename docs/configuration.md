@@ -45,6 +45,7 @@ enabled = true
 state_file = "source-state.json"
 scanner = "auto"
 ```
+
 `[build].default_output_dir` is relative to the directory containing
 `archledger.toml` or `.archledger.toml`.
 
@@ -58,10 +59,10 @@ ledger-number history without renumbering.
 ## ID segment modes
 
 `segment_mode = "none"`
-   IDs use `<prefix>_<number>` (for example `al_0013`).
+IDs use `<prefix>_<number>` (for example `al_0013`).
 
 `segment_mode = "type"`
-   IDs use `<prefix>_<segment>_<number>` (for example `al_risk_0014`).
+IDs use `<prefix>_<segment>_<number>` (for example `al_risk_0014`).
 
 Segment resolution order is deterministic:
 
