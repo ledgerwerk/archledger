@@ -7,36 +7,48 @@ Feature: Record visibility filtering
   Rule: Visibility depends on status and filter flags
 
     @bdd-records-visible-proposed
+    @req-REQ-0012
+    @ac-AC-0124
     Example: Proposed records are visible by default
       Given a record with status "proposed"
       When is_visible_status is called with default flags
       Then the result is True
 
     @bdd-records-visible-accepted
+    @req-REQ-0012
+    @ac-AC-0125
     Example: Accepted records are visible by default
       Given a record with status "accepted"
       When is_visible_status is called with default flags
       Then the result is True
 
     @bdd-records-visible-draft-hidden
+    @req-REQ-0012
+    @ac-AC-0126
     Example: Draft records are hidden unless include_draft is set
       Given a record with status "draft"
       When is_visible_status is called with include_draft False
       Then the result is False
 
     @bdd-records-visible-draft-shown
+    @req-REQ-0012
+    @ac-AC-0127
     Example: Draft records are shown when include_draft is set
       Given a record with status "draft"
       When is_visible_status is called with include_draft True
       Then the result is True
 
     @bdd-records-visible-superseded-hidden
+    @req-REQ-0012
+    @ac-AC-0128
     Example: Superseded records are hidden by default
       Given a record with status "superseded"
       When is_visible_status is called with include_superseded False
       Then the result is False
 
     @bdd-records-visible-superseded-shown
+    @req-REQ-0012
+    @ac-AC-0129
     Example: Superseded records are shown when include_superseded is set
       Given a record with status "superseded"
       When is_visible_status is called with include_superseded True

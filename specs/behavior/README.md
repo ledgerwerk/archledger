@@ -1,6 +1,9 @@
 # Behavior specifications
 
-This directory is managed by SpecWeave.
+This directory is managed by SpecMason.
+
+> SpecWeave was removed; the workspace now uses SpecMason for behavior-spec
+> validation, coverage, and review.
 
 Feature files live under:
 
@@ -8,25 +11,23 @@ Feature files live under:
 features/<area>/<feature>.feature
 ```
 
-Generated indexes:
+Identity rules:
 
-- `index.md` is the complete Gherkin feature and scenario list.
-- `manifest.json` is the machine-readable feature manifest.
-- `source-test-links.md` links scanned `archledger/` source files, feature files, and `tests/` files.
+- scenarios are identified by their `@req-REQ-NNNN` and `@ac-AC-NNNN` tag pair;
+- scenario titles are not identity; the tag pair is;
+- do not infer identity from `@bdd-*` tags, file names, or test names.
 
 Use:
 
 ```bash
-specweave doctor
-specweave behavior check
-specweave behavior index --features specs/behavior/features --out specs/behavior/index.md --manifest specs/behavior/manifest.json --tests-dir tests
-specweave create gherkin --from-tests tests
+specmason check
+specmason review
+specmason coverage --view both --show gaps
+specmason create-gherkin --from requirements/manifest.json
 ```
 
 Rules:
 
 - keep one feature per file;
 - group feature files by area;
-- use stable `@bdd-*` tags for scenarios/examples;
-- use `@ac-*` tags only when validating a task acceptance criterion;
-- do not rely on scenario titles as validation keys.
+- every `Example:` block must carry both `@req-REQ-NNNN` and `@ac-AC-NNNN` tags.

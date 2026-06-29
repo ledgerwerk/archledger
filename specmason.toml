@@ -1,0 +1,26 @@
+schema_version = 1
+
+[paths]
+behavior_root = "specs/behavior"
+features_dir = "specs/behavior/features"
+mappings_dir = "specs/behavior/mappings"
+evidence_dir = "specs/behavior/evidence"
+reports_dir = "specs/behavior/reports"
+reports_state_dir = "specs/behavior/reports/specmason"
+tests_dir = "tests"
+
+[requirements]
+manifest = "requirements/manifest.json"
+required = false
+
+[gherkin]
+default_keyword = "Scenario"
+require_req_tag = true
+require_ac_tag = true
+allow_markdown_gherkin = false
+official_parser = false
+
+[pytest]
+mapping_comment_prefix = "specmason"
+short_mapping_comment_prefix = "sm"
+intentional_unmapped_policy = "specs/behavior/mappings/intentional-unmapped.json"

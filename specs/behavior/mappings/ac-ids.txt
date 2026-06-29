@@ -1,0 +1,291 @@
+AC-0001	REQ-0001	specs/behavior/features/assembly/build-format-conversion.feature	Markdown source builds markdown without external tools
+AC-0002	REQ-0001	specs/behavior/features/assembly/build-format-conversion.feature	AsciiDoc source builds AsciiDoc without external tools
+AC-0003	REQ-0001	specs/behavior/features/assembly/build-format-conversion.feature	Native build uses configured default output
+AC-0004	REQ-0001	specs/behavior/features/assembly/build-format-conversion.feature	HTML output requires asciidoctor
+AC-0005	REQ-0001	specs/behavior/features/assembly/build-format-conversion.feature	PDF output requires asciidoctor-pdf
+AC-0006	REQ-0001	specs/behavior/features/assembly/build-format-conversion.feature	DOCX output requires pandoc
+AC-0007	REQ-0001	specs/behavior/features/assembly/build-format-conversion.feature	Pandoc-backed output still requires asciidoctor for AsciiDoc source
+AC-0008	REQ-0001	specs/behavior/features/assembly/build-format-conversion.feature	Pandoc-backed formats use DocBook as intermediate
+AC-0009	REQ-0001	specs/behavior/features/assembly/build-format-conversion.feature	Explicit output extension infers requested format
+AC-0010	REQ-0001	specs/behavior/features/assembly/build-format-conversion.feature	Mermaid rendering is invoked only when diagram rendering is enabled
+AC-0011	REQ-0001	specs/behavior/features/assembly/build-format-conversion.feature	JSON build reports every generated output
+AC-0012	REQ-0001	specs/behavior/features/assembly/build-format-conversion.feature	Default build includes enabled configured outputs
+AC-0013	REQ-0001	specs/behavior/features/assembly/build-format-conversion.feature	Build all honors disabled configured outputs
+AC-0014	REQ-0001	specs/behavior/features/assembly/build-format-conversion.feature	Explicit format can override a disabled configured output
+AC-0015	REQ-0001	specs/behavior/features/assembly/build-format-conversion.feature	Multiple formats cannot share a single output file
+AC-0016	REQ-0001	specs/behavior/features/assembly/document-assembly.feature	Assembly writes an output file
+AC-0017	REQ-0001	specs/behavior/features/assembly/document-assembly.feature	Assembly includes all 12 arc42 major sections
+AC-0018	REQ-0001	specs/behavior/features/assembly/document-assembly.feature	Assembly includes draft records when flag is set
+AC-0019	REQ-0001	specs/behavior/features/assembly/document-assembly.feature	Assembly excludes draft records by default
+AC-0020	REQ-0001	specs/behavior/features/assembly/document-assembly.feature	Assembly includes superseded records when flag is set
+AC-0021	REQ-0001	specs/behavior/features/assembly/document-assembly.feature	Assembly result includes source format
+AC-0022	REQ-0001	specs/behavior/features/assembly/document-assembly.feature	Output format is inferred from file extension
+AC-0023	REQ-0001	specs/behavior/features/assembly/document-assembly.feature	Markdown source produces markdown output
+AC-0024	REQ-0001	specs/behavior/features/assembly/section-rendering.feature	Building block hierarchy omits empty fields
+AC-0025	REQ-0001	specs/behavior/features/assembly/section-rendering.feature	Building block hierarchy includes fulfilled requirements when present
+AC-0026	REQ-0001	specs/behavior/features/assembly/section-rendering.feature	Building block hierarchy includes risks when present
+AC-0027	REQ-0001	specs/behavior/features/assembly/section-rendering.feature	Diagram section renders diagram body
+AC-0028	REQ-0001	specs/behavior/features/assembly/section-rendering.feature	Diagram section renders caption
+AC-0029	REQ-0001	specs/behavior/features/assembly/section-rendering.feature	Requirements overview renders as a table
+AC-0030	REQ-0001	specs/behavior/features/assembly/section-rendering.feature	Stakeholders table renders contact info
+AC-0031	REQ-0001	specs/behavior/features/assembly/section-rendering.feature	Quality goals table renders priorities
+AC-0032	REQ-0001	specs/behavior/features/assembly/section-rendering.feature	Glossary table renders terms and definitions
+AC-0033	REQ-0004	specs/behavior/features/context/context-cli.feature	Context changed uses source baseline without crashing
+AC-0034	REQ-0004	specs/behavior/features/context/context-cli.feature	Context changed handles missing baseline gracefully
+AC-0035	REQ-0004	specs/behavior/features/context/context-cli.feature	Context file returns JSON payload
+AC-0036	REQ-0004	specs/behavior/features/context/context-cli.feature	Context record returns JSON payload
+AC-0037	REQ-0004	specs/behavior/features/context/context-pack.feature	Records with matching source_refs are included
+AC-0038	REQ-0004	specs/behavior/features/context/context-pack.feature	Linked records are included transitively
+AC-0039	REQ-0004	specs/behavior/features/context/context-pack.feature	Context pack respects max_records limit
+AC-0040	REQ-0004	specs/behavior/features/context/context-pack.feature	Context pack uses archledger.context.v1 schema
+AC-0041	REQ-0004	specs/behavior/features/context/context-pack.feature	Record context includes outgoing and incoming links
+AC-0042	REQ-0004	specs/behavior/features/context/context-pack.feature	Missing record returns empty context
+AC-0043	REQ-0004	specs/behavior/features/context/context-pack.feature	Changed files surface impacted records
+AC-0044	REQ-0005	specs/behavior/features/diagrams/diagram-validation-and-materialization.feature	Markdown Mermaid diagram requires a fenced mermaid block
+AC-0045	REQ-0005	specs/behavior/features/diagrams/diagram-validation-and-materialization.feature	AsciiDoc Mermaid diagram requires a mermaid literal block
+AC-0046	REQ-0005	specs/behavior/features/diagrams/diagram-validation-and-materialization.feature	Empty Mermaid block is rejected as incomplete
+AC-0047	REQ-0005	specs/behavior/features/diagrams/diagram-validation-and-materialization.feature	New diagram defaults to text type
+AC-0048	REQ-0005	specs/behavior/features/diagrams/diagram-validation-and-materialization.feature	Configured diagram default type is honored
+AC-0049	REQ-0005	specs/behavior/features/diagrams/diagram-validation-and-materialization.feature	Markdown textdiagram block is accepted
+AC-0050	REQ-0005	specs/behavior/features/diagrams/diagram-validation-and-materialization.feature	AsciiDoc source block is accepted for text diagrams
+AC-0051	REQ-0005	specs/behavior/features/diagrams/diagram-validation-and-materialization.feature	Empty textdiagram block warns
+AC-0052	REQ-0005	specs/behavior/features/diagrams/diagram-validation-and-materialization.feature	Overwide textdiagram line warns
+AC-0053	REQ-0005	specs/behavior/features/diagrams/diagram-validation-and-materialization.feature	Markdown Mermaid block is rewritten to an image reference
+AC-0054	REQ-0005	specs/behavior/features/diagrams/diagram-validation-and-materialization.feature	AsciiDoc Mermaid block is rewritten to an image reference
+AC-0055	REQ-0005	specs/behavior/features/diagrams/diagram-validation-and-materialization.feature	Diagram asset names are content-hash deterministic
+AC-0056	REQ-0005	specs/behavior/features/diagrams/diagram-validation-and-materialization.feature	Missing mermaid-cli produces actionable renderer error
+AC-0057	REQ-0005	specs/behavior/features/diagrams/diagram-validation-and-materialization.feature	Mermaid remains supported when requested
+AC-0058	REQ-0007	specs/behavior/features/ids/ledger-id-detection.feature	Valid ID string is recognized
+AC-0059	REQ-0007	specs/behavior/features/ids/ledger-id-detection.feature	Non-ID string is rejected
+AC-0060	REQ-0007	specs/behavior/features/ids/ledger-id-detection.feature	Non-string values are rejected
+AC-0061	REQ-0007	specs/behavior/features/ids/ledger-id-detection.feature	Filename includes ID and extension
+AC-0062	REQ-0007	specs/behavior/features/ids/ledger-id-detection.feature	ID is extracted from filename stem
+AC-0063	REQ-0007	specs/behavior/features/ids/ledger-id-format.feature	Format pads numbers with leading zeros
+AC-0064	REQ-0007	specs/behavior/features/ids/ledger-id-format.feature	Format accepts custom prefix and width
+AC-0065	REQ-0007	specs/behavior/features/ids/ledger-id-format.feature	Format rejects non-positive integers
+AC-0066	REQ-0007	specs/behavior/features/ids/ledger-id-format.feature	Parse reverses format for any valid ID
+AC-0067	REQ-0007	specs/behavior/features/ids/ledger-id-format.feature	Parse respects configured prefix and width
+AC-0068	REQ-0007	specs/behavior/features/ids/ledger-id-format.feature	Parse rejects IDs that do not match configured format
+AC-0069	REQ-0007	specs/behavior/features/ids/ledger-id-format.feature	Parse rejects malformed ID strings
+AC-0070	REQ-0007	specs/behavior/features/ids/ledger-id-format.feature	Format produces segmented IDs when segment mode is type
+AC-0071	REQ-0007	specs/behavior/features/ids/ledger-id-format.feature	Parse extracts segment from segmented IDs
+AC-0072	REQ-0007	specs/behavior/features/ids/ledger-id-format.feature	Format requires a segment when segment mode is type
+AC-0073	REQ-0007	specs/behavior/features/ids/ledger-id-format.feature	Prefix must match lowercase alphanumeric pattern
+AC-0074	REQ-0007	specs/behavior/features/ids/ledger-id-format.feature	Width must be between 2 and 12
+AC-0075	REQ-0007	specs/behavior/features/ids/ledger-id-format.feature	Segment mode must be none or type
+AC-0076	REQ-0007	specs/behavior/features/ids/ledger-id-segments.feature	Format produces flat ID when segment mode is none
+AC-0077	REQ-0007	specs/behavior/features/ids/ledger-id-segments.feature	Format ignores segment parameter when mode is none
+AC-0078	REQ-0007	specs/behavior/features/ids/ledger-id-segments.feature	Format includes type segment when mode is type
+AC-0079	REQ-0007	specs/behavior/features/ids/ledger-id-segments.feature	Format raises when segment is missing in type mode
+AC-0080	REQ-0007	specs/behavior/features/ids/ledger-id-segments.feature	Valid segment passes validation
+AC-0081	REQ-0007	specs/behavior/features/ids/ledger-id-segments.feature	Invalid segment fails validation
+AC-0082	REQ-0007	specs/behavior/features/ids/ledger-id-segments.feature	Empty segment fails validation
+AC-0083	REQ-0008	specs/behavior/features/links/record-links.feature	Valid link is normalized correctly
+AC-0084	REQ-0008	specs/behavior/features/links/record-links.feature	Invalid relationship type is rejected
+AC-0085	REQ-0008	specs/behavior/features/links/record-links.feature	Empty target is rejected
+AC-0086	REQ-0008	specs/behavior/features/links/record-links.feature	None links returns empty tuple
+AC-0087	REQ-0008	specs/behavior/features/links/record-links.feature	Non-list links value is rejected
+AC-0088	REQ-0008	specs/behavior/features/links/record-links.feature	Link reason is preserved
+AC-0089	REQ-0009	specs/behavior/features/migration/source-format-conversion.feature	Conversion without write only plans changes
+AC-0090	REQ-0009	specs/behavior/features/migration/source-format-conversion.feature	Write conversion fails when Pandoc is missing
+AC-0091	REQ-0009	specs/behavior/features/migration/source-format-conversion.feature	Mixed body format can bypass Pandoc
+AC-0092	REQ-0009	specs/behavior/features/migration/source-format-conversion.feature	Pandoc is used for body conversion when available
+AC-0093	REQ-0009	specs/behavior/features/migration/source-format-conversion.feature	Conversion preserves tracking and build config
+AC-0094	REQ-0009	specs/behavior/features/migration/source-format-conversion.feature	Replace mode removes old source files
+AC-0095	REQ-0010	specs/behavior/features/mutations/record-mutations.feature	Set status updates the record
+AC-0096	REQ-0010	specs/behavior/features/mutations/record-mutations.feature	Set meta updates a single key
+AC-0097	REQ-0010	specs/behavior/features/mutations/record-mutations.feature	Replace body replaces entire content
+AC-0098	REQ-0010	specs/behavior/features/mutations/record-mutations.feature	Append body adds to existing content
+AC-0099	REQ-0010	specs/behavior/features/mutations/record-mutations.feature	Add source ref appends a new reference
+AC-0100	REQ-0010	specs/behavior/features/mutations/record-mutations.feature	Mutation rejects mismatched record ID
+AC-0101	REQ-0012	specs/behavior/features/records/model-constants.feature	Valid source formats include markdown and asciidoc
+AC-0102	REQ-0012	specs/behavior/features/records/model-constants.feature	Source format extensions map correctly
+AC-0103	REQ-0012	specs/behavior/features/records/model-constants.feature	Valid output formats include html, pdf, docx, markdown
+AC-0104	REQ-0012	specs/behavior/features/records/model-constants.feature	Valid statuses include draft, proposed, accepted, deprecated
+AC-0105	REQ-0012	specs/behavior/features/records/model-constants.feature	Visible by default statuses are proposed, accepted, deprecated
+AC-0106	REQ-0012	specs/behavior/features/records/model-constants.feature	Section order maps all 12 arc42 sections
+AC-0107	REQ-0012	specs/behavior/features/records/model-constants.feature	Major section specs define all 12 sections
+AC-0108	REQ-0012	specs/behavior/features/records/record-templates.feature	All record type templates are bundled
+AC-0109	REQ-0012	specs/behavior/features/records/record-templates.feature	Registry maps cover all record types
+AC-0110	REQ-0012	specs/behavior/features/records/record-templates.feature	Legacy maps are preserved for backward compatibility
+AC-0111	REQ-0012	specs/behavior/features/records/record-types.feature	Registry covers all expected record kinds
+AC-0112	REQ-0012	specs/behavior/features/records/record-types.feature	CLI aliases map to canonical kinds
+AC-0113	REQ-0012	specs/behavior/features/records/record-types.feature	Each type has a default section
+AC-0114	REQ-0012	specs/behavior/features/records/record-types.feature	Normalize resolves hyphenated alias
+AC-0115	REQ-0012	specs/behavior/features/records/record-types.feature	Normalize rejects unknown kind
+AC-0116	REQ-0012	specs/behavior/features/records/record-validation.feature	Empty title is rejected
+AC-0117	REQ-0012	specs/behavior/features/records/record-validation.feature	Unknown record type is rejected
+AC-0118	REQ-0012	specs/behavior/features/records/record-validation.feature	Unknown status is rejected
+AC-0119	REQ-0012	specs/behavior/features/records/record-validation.feature	Unknown section is rejected
+AC-0120	REQ-0012	specs/behavior/features/records/record-validation.feature	ID-filename mismatch is reported
+AC-0121	REQ-0012	specs/behavior/features/records/record-validation.feature	ID must match configured format pattern
+AC-0122	REQ-0012	specs/behavior/features/records/record-validation.feature	Boolean order is rejected
+AC-0123	REQ-0012	specs/behavior/features/records/record-validation.feature	String order is rejected
+AC-0124	REQ-0012	specs/behavior/features/records/record-visibility.feature	Proposed records are visible by default
+AC-0125	REQ-0012	specs/behavior/features/records/record-visibility.feature	Accepted records are visible by default
+AC-0126	REQ-0012	specs/behavior/features/records/record-visibility.feature	Draft records are hidden unless include_draft is set
+AC-0127	REQ-0012	specs/behavior/features/records/record-visibility.feature	Draft records are shown when include_draft is set
+AC-0128	REQ-0012	specs/behavior/features/records/record-visibility.feature	Superseded records are hidden by default
+AC-0129	REQ-0012	specs/behavior/features/records/record-visibility.feature	Superseded records are shown when include_superseded is set
+AC-0130	REQ-0013	specs/behavior/features/renumber/renumber-ids.feature	Dry run does not rename files
+AC-0131	REQ-0013	specs/behavior/features/renumber/renumber-ids.feature	Apply renames record files to new ID format
+AC-0132	REQ-0013	specs/behavior/features/renumber/renumber-ids.feature	Apply updates the id field in frontmatter
+AC-0133	REQ-0013	specs/behavior/features/renumber/renumber-ids.feature	Apply rewrites references to old IDs in other records
+AC-0134	REQ-0013	specs/behavior/features/renumber/renumber-ids.feature	Apply updates the config with new ID settings
+AC-0135	REQ-0013	specs/behavior/features/renumber/renumber-ids.feature	Records with invalid IDs are quarantined
+AC-0136	REQ-0014	specs/behavior/features/repository/archive-and-doctor.feature	Archive moves a record and removes it from normal list output
+AC-0137	REQ-0014	specs/behavior/features/repository/archive-and-doctor.feature	Archive tombstones are accepted by check and build
+AC-0138	REQ-0014	specs/behavior/features/repository/archive-and-doctor.feature	Missing ledger number fails check
+AC-0139	REQ-0014	specs/behavior/features/repository/archive-and-doctor.feature	Duplicate ledger IDs fail check
+AC-0140	REQ-0014	specs/behavior/features/repository/archive-and-doctor.feature	Filename and front matter ID must match
+AC-0141	REQ-0014	specs/behavior/features/repository/archive-and-doctor.feature	Repair creates tombstone for a missing ledger number
+AC-0142	REQ-0014	specs/behavior/features/repository/archive-and-doctor.feature	Repair recreates missing required section files
+AC-0143	REQ-0014	specs/behavior/features/repository/archive-and-doctor.feature	Repair refuses duplicate IDs
+AC-0144	REQ-0014	specs/behavior/features/repository/archive-and-doctor.feature	Repair refuses after manual segment mode change
+AC-0145	REQ-0014	specs/behavior/features/repository/archive-and-doctor.feature	Stale generated tombstone collision is not silently overwritten
+AC-0146	REQ-0014	specs/behavior/features/repository/config-path-validation.feature	V3 config supports source format extensions
+AC-0147	REQ-0014	specs/behavior/features/repository/config-path-validation.feature	V4 config supports source schema version
+AC-0148	REQ-0014	specs/behavior/features/repository/config-path-validation.feature	V5 config supports tracking settings
+AC-0149	REQ-0014	specs/behavior/features/repository/config-path-validation.feature	V6 config supports ID prefix and width
+AC-0150	REQ-0014	specs/behavior/features/repository/config-path-validation.feature	V7 config supports ID segment mode and segment map
+AC-0151	REQ-0014	specs/behavior/features/repository/config-path-validation.feature	Tracking state file must stay inside the archledger directory
+AC-0152	REQ-0014	specs/behavior/features/repository/config-path-validation.feature	Build output dir must stay inside workspace root
+AC-0153	REQ-0014	specs/behavior/features/repository/config-path-validation.feature	Build default output must stay inside output dir
+AC-0154	REQ-0014	specs/behavior/features/repository/config-path-validation.feature	Build output dir is relative to workspace root
+AC-0155	REQ-0014	specs/behavior/features/repository/config-path-validation.feature	Default output extension must match default format
+AC-0156	REQ-0014	specs/behavior/features/repository/config-path-validation.feature	Build outputs reject unknown formats
+AC-0157	REQ-0014	specs/behavior/features/repository/config-path-validation.feature	Per-output build settings are validated
+AC-0158	REQ-0014	specs/behavior/features/repository/config-path-validation.feature	Boolean config version is rejected
+AC-0159	REQ-0014	specs/behavior/features/repository/config-path-validation.feature	Boolean integer-like fields are rejected
+AC-0160	REQ-0014	specs/behavior/features/repository/config-path-validation.feature	Unsupported Kroki renderer is rejected
+AC-0161	REQ-0014	specs/behavior/features/repository/config-path-validation.feature	Invalid ID segment values are rejected
+AC-0162	REQ-0014	specs/behavior/features/repository/profile-management.feature	Legacy sections are moved into arc42 profile directory
+AC-0163	REQ-0014	specs/behavior/features/repository/profile-management.feature	Enabling BDD as a profile explains the model
+AC-0164	REQ-0014	specs/behavior/features/repository/profile-management.feature	Disabling BDD as a profile explains the model
+AC-0165	REQ-0014	specs/behavior/features/repository/profile-management.feature	Enabling SDD preserves existing SDD policy
+AC-0166	REQ-0014	specs/behavior/features/repository/record-creation.feature	Requirement record is created with requirement template
+AC-0167	REQ-0014	specs/behavior/features/repository/record-creation.feature	Black box record is created in building blocks
+AC-0168	REQ-0014	specs/behavior/features/repository/record-creation.feature	White box record is created in building blocks
+AC-0169	REQ-0014	specs/behavior/features/repository/record-creation.feature	ADR alias creates an architecture decision record
+AC-0170	REQ-0014	specs/behavior/features/repository/record-creation.feature	Strategy item record is created
+AC-0171	REQ-0014	specs/behavior/features/repository/record-creation.feature	Context interface accepts context kind and partner
+AC-0172	REQ-0014	specs/behavior/features/repository/record-creation.feature	Infrastructure accepts environment
+AC-0173	REQ-0014	specs/behavior/features/repository/record-creation.feature	Quality scenario accepts quality and environment
+AC-0174	REQ-0014	specs/behavior/features/repository/record-creation.feature	Diagram creation accepts diagram options
+AC-0175	REQ-0014	specs/behavior/features/repository/record-creation.feature	Configured ID prefix and width are applied
+AC-0176	REQ-0014	specs/behavior/features/repository/record-creation.feature	Type segment mode adds record type segment
+AC-0177	REQ-0014	specs/behavior/features/repository/record-creation.feature	Custom record extension increments correctly
+AC-0178	REQ-0014	specs/behavior/features/repository/record-creation.feature	Archived numbers are not reused
+AC-0179	REQ-0014	specs/behavior/features/repository/record-creation.feature	New refuses allocation when storage counter proves a gap
+AC-0180	REQ-0014	specs/behavior/features/repository/record-creation.feature	New command returns JSON payload
+AC-0181	REQ-0014	specs/behavior/features/repository/record-creation.feature	New diagram JSON includes diagram metadata
+AC-0182	REQ-0014	specs/behavior/features/repository/record-creation.feature	Arc42 minimal seed creates starter records
+AC-0183	REQ-0014	specs/behavior/features/repository/record-creation.feature	Every registered record type can be created
+AC-0184	REQ-0014	specs/behavior/features/repository/repository-check.feature	Valid workspace passes check
+AC-0185	REQ-0014	specs/behavior/features/repository/repository-check.feature	Archive tombstones are accepted without errors
+AC-0186	REQ-0014	specs/behavior/features/repository/repository-check.feature	Canonical config wins when both exist
+AC-0187	REQ-0014	specs/behavior/features/repository/repository-check.feature	Snapshot writes source-state JSON
+AC-0188	REQ-0014	specs/behavior/features/repository/repository-check.feature	Snapshot is skipped when tracking is disabled
+AC-0189	REQ-0014	specs/behavior/features/repository/repository-config.feature	Default markdown config round-trips correctly
+AC-0190	REQ-0014	specs/behavior/features/repository/repository-config.feature	Default asciidoc config round-trips correctly
+AC-0191	REQ-0014	specs/behavior/features/repository/repository-config.feature	V2 config supports build_arc42 settings
+AC-0192	REQ-0014	specs/behavior/features/repository/repository-config.feature	V2 config supports skill file settings
+AC-0193	REQ-0014	specs/behavior/features/repository/repository-config.feature	Relative archledger dir is resolved to config path
+AC-0194	REQ-0014	specs/behavior/features/repository/repository-init.feature	Init writes archledger.toml config file
+AC-0195	REQ-0014	specs/behavior/features/repository/repository-init.feature	Init creates storage metadata
+AC-0196	REQ-0014	specs/behavior/features/repository/repository-init.feature	Init creates all arc42 section directories
+AC-0197	REQ-0014	specs/behavior/features/repository/repository-init.feature	Init creates directories for all record types
+AC-0198	REQ-0014	specs/behavior/features/repository/repository-init.feature	Project name defaults to workspace basename
+AC-0199	REQ-0014	specs/behavior/features/repository/repository-init.feature	Status counts sections and record directories
+AC-0200	REQ-0014	specs/behavior/features/repository/repository-mutation.feature	Status command updates record status
+AC-0201	REQ-0014	specs/behavior/features/repository/repository-mutation.feature	Meta command sets arbitrary metadata
+AC-0202	REQ-0014	specs/behavior/features/repository/repository-mutation.feature	Body set command replaces record body
+AC-0203	REQ-0014	specs/behavior/features/repository/repository-mutation.feature	Body append command adds to record body
+AC-0204	REQ-0014	specs/behavior/features/repository/repository-read.feature	Read JSON includes record bodies when requested
+AC-0205	REQ-0014	specs/behavior/features/repository/repository-read.feature	Read JSON includes draft records when flag is set
+AC-0206	REQ-0014	specs/behavior/features/repository/repository-read.feature	Read JSON excludes draft records by default
+AC-0207	REQ-0014	specs/behavior/features/repository/repository-schemas.feature	Install returns the target path for jsonschema
+AC-0208	REQ-0014	specs/behavior/features/repository/repository-schemas.feature	Install refuses to overwrite without force flag
+AC-0209	REQ-0014	specs/behavior/features/repository/repository-schemas.feature	Install overwrites with force flag
+AC-0210	REQ-0014	specs/behavior/features/repository/schema-json-contracts.feature	Schema JSON lists record types, statuses, sections, and formats
+AC-0211	REQ-0014	specs/behavior/features/repository/schema-json-contracts.feature	JSON schema install reports target path
+AC-0212	REQ-0014	specs/behavior/features/repository/schema-json-contracts.feature	Schema install refuses overwrite without force
+AC-0213	REQ-0014	specs/behavior/features/repository/schema-json-contracts.feature	Status JSON shape is stable
+AC-0214	REQ-0014	specs/behavior/features/repository/schema-json-contracts.feature	Check JSON shape is stable
+AC-0215	REQ-0014	specs/behavior/features/repository/schema-json-contracts.feature	Paths JSON shape includes archive and source state paths
+AC-0216	REQ-0014	specs/behavior/features/repository/schema-json-contracts.feature	Missing record returns structured JSON error
+AC-0217	REQ-0014	specs/behavior/features/repository/schema-json-contracts.feature	SDD check payload matches bundled schema
+AC-0218	REQ-0014	specs/behavior/features/repository/schema-json-contracts.feature	BDD export payload matches bundled schema
+AC-0219	REQ-0014	specs/behavior/features/repository/schema-json-contracts.feature	BDD sync payload matches bundled schema
+AC-0220	REQ-0014	specs/behavior/features/repository/schema-json-contracts.feature	SDD init payload matches bundled schema
+AC-0221	REQ-0014	specs/behavior/features/repository/schema-json-contracts.feature	SDD explain payload matches bundled schema
+AC-0222	REQ-0014	specs/behavior/features/repository/skill-file.feature	Skill file is present in the project
+AC-0223	REQ-0014	specs/behavior/features/repository/skill-file.feature	Skill file mentions supported formats
+AC-0224	REQ-0014	specs/behavior/features/repository/skill-file.feature	Skill file instructs reading without export
+AC-0225	REQ-0014	specs/behavior/features/repository/skill-file.feature	Skill file does not reference legacy markdown export
+AC-0226	REQ-0015	specs/behavior/features/scopes/record-scope.feature	Valid scope is normalized without errors
+AC-0227	REQ-0015	specs/behavior/features/scopes/record-scope.feature	Invalid scope kind is rejected
+AC-0228	REQ-0015	specs/behavior/features/scopes/record-scope.feature	Missing scope name is rejected
+AC-0229	REQ-0015	specs/behavior/features/scopes/record-scope.feature	Empty applies_to is rejected
+AC-0230	REQ-0015	specs/behavior/features/scopes/record-scope.feature	Valid lifecycle values are accepted
+AC-0231	REQ-0015	specs/behavior/features/scopes/record-scope.feature	Invalid lifecycle is rejected
+AC-0232	REQ-0015	specs/behavior/features/scopes/record-scope.feature	None scope returns None without errors
+AC-0233	REQ-0015	specs/behavior/features/scopes/record-scope.feature	Path under applies_to directory matches
+AC-0234	REQ-0015	specs/behavior/features/scopes/record-scope.feature	Exact file path matches
+AC-0235	REQ-0015	specs/behavior/features/scopes/record-scope.feature	Excluded path does not match
+AC-0236	REQ-0015	specs/behavior/features/scopes/record-scope.feature	Path outside scope does not match
+AC-0237	REQ-0016	specs/behavior/features/source-refs/source-references.feature	Valid source ref is normalized
+AC-0238	REQ-0016	specs/behavior/features/source-refs/source-references.feature	Non-POSIX path is rejected
+AC-0239	REQ-0016	specs/behavior/features/source-refs/source-references.feature	Absolute path is rejected
+AC-0240	REQ-0016	specs/behavior/features/source-refs/source-references.feature	Path with .. is rejected
+AC-0241	REQ-0016	specs/behavior/features/source-refs/source-references.feature	Invalid role is rejected
+AC-0242	REQ-0016	specs/behavior/features/source-refs/source-references.feature	None source refs returns empty tuple
+AC-0243	REQ-0016	specs/behavior/features/source-refs/source-references.feature	Missing file produces a warning
+AC-0244	REQ-0016	specs/behavior/features/source-refs/source-references.feature	Backslash separators are rejected
+AC-0245	REQ-0016	specs/behavior/features/source-refs/source-references.feature	Absolute paths are rejected
+AC-0246	REQ-0016	specs/behavior/features/source-refs/source-references.feature	Parent traversal is rejected
+AC-0247	REQ-0016	specs/behavior/features/source-refs/source-references.feature	Empty path is rejected
+AC-0248	REQ-0017	specs/behavior/features/source-tracking/source-scan-and-impact.feature	Workspace scan excludes archledger state and build output
+AC-0249	REQ-0017	specs/behavior/features/source-tracking/source-scan-and-impact.feature	Root build directory does not hide the whole workspace
+AC-0250	REQ-0017	specs/behavior/features/source-tracking/source-scan-and-impact.feature	Source hash normalizes line endings
+AC-0251	REQ-0017	specs/behavior/features/source-tracking/source-scan-and-impact.feature	Source state JSON stores hashes without size or timestamps
+AC-0252	REQ-0017	specs/behavior/features/source-tracking/source-scan-and-impact.feature	Source state v1 is rejected
+AC-0253	REQ-0017	specs/behavior/features/source-tracking/source-scan-and-impact.feature	Backslash paths are rejected in source state
+AC-0254	REQ-0017	specs/behavior/features/source-tracking/source-scan-and-impact.feature	Changed source ref resolves impacted records
+AC-0255	REQ-0017	specs/behavior/features/source-tracking/source-scan-and-impact.feature	Changed unlinked files are reported separately
+AC-0256	REQ-0017	specs/behavior/features/source-tracking/source-scan-and-impact.feature	Changed JSON reports modified file and impacted record
+AC-0257	REQ-0017	specs/behavior/features/source-tracking/source-state.feature	Source state serializes and deserializes correctly
+AC-0258	REQ-0017	specs/behavior/features/source-tracking/source-state.feature	Source state uses relative paths
+AC-0259	REQ-0017	specs/behavior/features/source-tracking/source-state.feature	Source state JSON uses correct schema
+AC-0260	REQ-0017	specs/behavior/features/source-tracking/source-state.feature	New files are detected as added
+AC-0261	REQ-0017	specs/behavior/features/source-tracking/source-state.feature	Changed files are detected as modified
+AC-0262	REQ-0017	specs/behavior/features/source-tracking/source-state.feature	Removed files are detected as deleted
+AC-0263	REQ-0017	specs/behavior/features/source-tracking/source-state.feature	Changeset identifies impacted records
+AC-0264	REQ-0018	specs/behavior/features/storage/frontmatter-and-storage.feature	Markdown front matter document is read correctly
+AC-0265	REQ-0018	specs/behavior/features/storage/frontmatter-and-storage.feature	Markdown front matter document writes and reads back
+AC-0266	REQ-0018	specs/behavior/features/storage/frontmatter-and-storage.feature	AsciiDoc front matter document is accepted
+AC-0267	REQ-0018	specs/behavior/features/storage/frontmatter-and-storage.feature	AsciiDoc front matter document writes and reads back
+AC-0268	REQ-0018	specs/behavior/features/storage/frontmatter-and-storage.feature	Missing front matter is rejected
+AC-0269	REQ-0018	specs/behavior/features/storage/frontmatter-and-storage.feature	Non-mapping YAML front matter is rejected
+AC-0270	REQ-0018	specs/behavior/features/storage/frontmatter-and-storage.feature	Source file iteration filters by extension
+AC-0271	REQ-0018	specs/behavior/features/storage/frontmatter-and-storage.feature	Storage metadata must use schema version 2
+AC-0272	REQ-0018	specs/behavior/features/storage/frontmatter-and-storage.feature	Boolean next number is rejected
+AC-0273	REQ-0018	specs/behavior/features/storage/frontmatter-and-storage.feature	Counter recomputation preserves the existing floor
+AC-0274	REQ-0018	specs/behavior/features/storage/frontmatter-and-storage.feature	Atomic write leaves no temporary files behind
+AC-0275	REQ-0019	specs/behavior/features/test-refs/test-references.feature	Compact string form is parsed correctly
+AC-0276	REQ-0019	specs/behavior/features/test-refs/test-references.feature	Dict form is normalized correctly
+AC-0277	REQ-0019	specs/behavior/features/test-refs/test-references.feature	Non-POSIX path is rejected
+AC-0278	REQ-0019	specs/behavior/features/test-refs/test-references.feature	Missing test file produces a warning
+AC-0279	REQ-0019	specs/behavior/features/test-refs/test-references.feature	None test refs returns empty tuple
+AC-0280	REQ-0019	specs/behavior/features/test-refs/test-references.feature	Empty string entry is rejected
+AC-0281	REQ-0019	specs/behavior/features/test-refs/test-references.feature	Test ref role is preserved
+AC-0282	REQ-0020	specs/behavior/features/trace/record-trace.feature	Trace includes outgoing linked records
+AC-0283	REQ-0020	specs/behavior/features/trace/record-trace.feature	Trace includes incoming linked records
+AC-0284	REQ-0020	specs/behavior/features/trace/record-trace.feature	Trace categorizes records by type
+AC-0285	REQ-0020	specs/behavior/features/trace/record-trace.feature	Trace includes source references
+AC-0286	REQ-0020	specs/behavior/features/trace/record-trace.feature	Trace includes test references
+AC-0287	REQ-0020	specs/behavior/features/trace/record-trace.feature	Trace reports error for missing record
+AC-0288	REQ-0020	specs/behavior/features/trace/record-trace.feature	Trace output uses archledger.trace.v1 schema
+AC-0289	REQ-0020	specs/behavior/features/trace/record-trace.feature	Combo trace finds task, AC, and BDD IDs
+AC-0290	REQ-0020	specs/behavior/features/trace/record-trace.feature	Combo trace returns empty arrays for missing fields
+AC-0291	REQ-0020	specs/behavior/features/trace/record-trace.feature	Combo trace uses combi.trace.v1 schema

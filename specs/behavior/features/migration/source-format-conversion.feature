@@ -9,6 +9,8 @@ Feature: Source format conversion
   Rule: Conversion requires explicit write for mutation
 
     @bdd-convert-requires-write
+    @req-REQ-0009
+    @ac-AC-0089
     Example: Conversion without write only plans changes
       Given a workspace with markdown records
       When source conversion is requested without write
@@ -19,6 +21,8 @@ Feature: Source format conversion
   Rule: Conversion requires Pandoc unless mixed body format is allowed
 
     @bdd-convert-write-requires-pandoc
+    @req-REQ-0009
+    @ac-AC-0090
     Example: Write conversion fails when Pandoc is missing
       Given a workspace with records requiring body conversion
       And pandoc is not available on PATH
@@ -26,6 +30,8 @@ Feature: Source format conversion
       Then the command fails with a missing Pandoc error
 
     @bdd-convert-allow-mixed-without-pandoc
+    @req-REQ-0009
+    @ac-AC-0091
     Example: Mixed body format can bypass Pandoc
       Given a workspace with records in another body format
       And mixed body format is allowed
@@ -33,6 +39,8 @@ Feature: Source format conversion
       Then record metadata is updated without requiring Pandoc
 
     @bdd-convert-uses-pandoc-when-available
+    @req-REQ-0009
+    @ac-AC-0092
     Example: Pandoc is used for body conversion when available
       Given pandoc is available on PATH
       When source conversion is requested with write
@@ -42,12 +50,16 @@ Feature: Source format conversion
   Rule: Conversion preserves current config and optional replacement behavior
 
     @bdd-convert-preserves-v5-config
+    @req-REQ-0009
+    @ac-AC-0093
     Example: Conversion preserves tracking and build config
       Given a v5 config with tracking and build settings
       When source conversion is performed
       Then the converted config retains those settings
 
     @bdd-convert-replace-removes-old-files
+    @req-REQ-0009
+    @ac-AC-0094
     Example: Replace mode removes old source files
       Given a workspace with markdown source files
       When conversion to asciidoc is run with replace mode

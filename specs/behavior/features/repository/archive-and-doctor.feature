@@ -9,6 +9,8 @@ Feature: Archive and doctor repair
   Rule: Archive moves records out of the live set while preserving numbers
 
     @bdd-archive-moves-record
+    @req-REQ-0014
+    @ac-AC-0136
     Example: Archive moves a record and removes it from normal list output
       Given an initialized workspace with a live accepted record
       When archledger archive is run for that record with a reason
@@ -16,6 +18,8 @@ Feature: Archive and doctor repair
       And archledger list excludes it by default
 
     @bdd-archive-tombstone-validates
+    @req-REQ-0014
+    @ac-AC-0137
     Example: Archive tombstones are accepted by check and build
       Given a workspace with archive tombstone records
       When archledger check and build are run
@@ -25,18 +29,24 @@ Feature: Archive and doctor repair
   Rule: Check detects ledger sequence gaps and duplicates
 
     @bdd-doctor-check-missing-number
+    @req-REQ-0014
+    @ac-AC-0138
     Example: Missing ledger number fails check
       Given a workspace whose live and archive records skip a ledger number
       When archledger check is run
       Then an error reports the missing ledger ID
 
     @bdd-doctor-check-duplicate-id
+    @req-REQ-0014
+    @ac-AC-0139
     Example: Duplicate ledger IDs fail check
       Given two record files with the same ledger ID
       When archledger check is run
       Then an error reports duplicate ledger IDs
 
     @bdd-doctor-check-filename-id-mismatch
+    @req-REQ-0014
+    @ac-AC-0140
     Example: Filename and front matter ID must match
       Given a record whose filename stem differs from its front matter ID
       When archledger check is run
@@ -46,6 +56,8 @@ Feature: Archive and doctor repair
   Rule: Doctor repair performs only safe deterministic repairs
 
     @bdd-doctor-repair-missing-number-tombstone
+    @req-REQ-0014
+    @ac-AC-0141
     Example: Repair creates tombstone for a missing ledger number
       Given a workspace with a missing ledger number
       When archledger doctor --repair is run
@@ -53,12 +65,16 @@ Feature: Archive and doctor repair
       And a subsequent check succeeds
 
     @bdd-doctor-repair-required-section
+    @req-REQ-0014
+    @ac-AC-0142
     Example: Repair recreates missing required section files
       Given an initialized arc42 workspace with a missing required section file
       When archledger doctor --repair is run
       Then the missing section file is recreated
 
     @bdd-doctor-repair-refuses-duplicates
+    @req-REQ-0014
+    @ac-AC-0143
     Example: Repair refuses duplicate IDs
       Given a workspace with duplicate ledger IDs
       When archledger doctor --repair is run
@@ -66,6 +82,8 @@ Feature: Archive and doctor repair
       And the command reports that duplicate IDs must be fixed manually
 
     @bdd-doctor-repair-refuses-manual-segment-change
+    @req-REQ-0014
+    @ac-AC-0144
     Example: Repair refuses after manual segment mode change
       Given a workspace initialized with flat IDs
       And the config was manually changed to type segment mode
@@ -74,6 +92,8 @@ Feature: Archive and doctor repair
       And the command reports that renumbering is required
 
     @bdd-doctor-repair-stale-tombstone-collision
+    @req-REQ-0014
+    @ac-AC-0145
     Example: Stale generated tombstone collision is not silently overwritten
       Given a generated archive tombstone conflicts with a newly segmented living record
       When archledger doctor --repair is run

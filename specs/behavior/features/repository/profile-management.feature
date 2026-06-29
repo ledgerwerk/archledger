@@ -9,6 +9,8 @@ Feature: Profile management
   Rule: Profile migration moves legacy sections and updates config
 
     @bdd-profile-migrate-legacy-sections
+    @req-REQ-0014
+    @ac-AC-0162
     Example: Legacy sections are moved into arc42 profile directory
       Given a legacy workspace with sections under the old sections directory
       When archledger profile migrate is run
@@ -19,6 +21,8 @@ Feature: Profile management
   Rule: BDD is not a standalone profile
 
     @bdd-profile-enable-bdd-explains-metadata-layer
+    @req-REQ-0014
+    @ac-AC-0163
     Example: Enabling BDD as a profile explains the model
       Given an initialized workspace
       When archledger profile enable bdd is run
@@ -26,6 +30,8 @@ Feature: Profile management
       And no bdd profile is enabled
 
     @bdd-profile-disable-bdd-explains-metadata-layer
+    @req-REQ-0014
+    @ac-AC-0164
     Example: Disabling BDD as a profile explains the model
       Given an initialized workspace
       When archledger profile disable bdd is run
@@ -35,6 +41,8 @@ Feature: Profile management
   Rule: SDD profile changes preserve policy
 
     @bdd-profile-enable-sdd-preserves-policy
+    @req-REQ-0014
+    @ac-AC-0165
     Example: Enabling SDD preserves existing SDD policy
       Given a workspace with an existing profiles.sdd policy block
       When archledger profile enable sdd is run

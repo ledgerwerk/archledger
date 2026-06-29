@@ -10,6 +10,8 @@ Feature: Build format conversion and output selection
   Rule: Native outputs avoid external conversion tools
 
     @bdd-build-markdown-native-without-tools
+    @req-REQ-0001
+    @ac-AC-0001
     Example: Markdown source builds markdown without external tools
       Given an initialized workspace using markdown source format
       When archledger build is run with format markdown
@@ -17,6 +19,8 @@ Feature: Build format conversion and output selection
       And no external converter is required
 
     @bdd-build-asciidoc-native-without-tools
+    @req-REQ-0001
+    @ac-AC-0002
     Example: AsciiDoc source builds AsciiDoc without external tools
       Given an initialized workspace using asciidoc source format
       When archledger build is run with format asciidoc
@@ -24,6 +28,8 @@ Feature: Build format conversion and output selection
       And no external converter is required
 
     @bdd-build-native-uses-configured-output
+    @req-REQ-0001
+    @ac-AC-0003
     Example: Native build uses configured default output
       Given a workspace with build output configured for the native source format
       When assemble_document is run without an explicit output path
@@ -33,6 +39,8 @@ Feature: Build format conversion and output selection
   Rule: Tool-backed formats fail with actionable install hints
 
     @bdd-build-html-requires-asciidoctor
+    @req-REQ-0001
+    @ac-AC-0004
     Example: HTML output requires asciidoctor
       Given asciidoctor is not available on PATH
       When archledger build is run with format html
@@ -40,6 +48,8 @@ Feature: Build format conversion and output selection
       And the error explains that asciidoctor was not found
 
     @bdd-build-pdf-requires-asciidoctor-pdf
+    @req-REQ-0001
+    @ac-AC-0005
     Example: PDF output requires asciidoctor-pdf
       Given asciidoctor-pdf is not available on PATH
       When archledger build is run with format pdf
@@ -47,6 +57,8 @@ Feature: Build format conversion and output selection
       And the error explains that asciidoctor-pdf was not found
 
     @bdd-build-docx-requires-pandoc
+    @req-REQ-0001
+    @ac-AC-0006
     Example: DOCX output requires pandoc
       Given asciidoctor is available
       And pandoc is not available on PATH
@@ -55,6 +67,8 @@ Feature: Build format conversion and output selection
       And the error explains that pandoc was not found
 
     @bdd-build-pandoc-format-requires-asciidoctor
+    @req-REQ-0001
+    @ac-AC-0007
     Example: Pandoc-backed output still requires asciidoctor for AsciiDoc source
       Given pandoc is available
       And asciidoctor is not available on PATH
@@ -66,6 +80,8 @@ Feature: Build format conversion and output selection
   Rule: Conversion commands are generated deterministically
 
     @bdd-build-docbook-intermediate-before-pandoc
+    @req-REQ-0001
+    @ac-AC-0008
     Example: Pandoc-backed formats use DocBook as intermediate
       Given asciidoctor and pandoc are available
       When archledger build is run with format markdown
@@ -73,6 +89,8 @@ Feature: Build format conversion and output selection
       And pandoc is invoked with input format docbook and target format gfm
 
     @bdd-build-output-extension-infers-format
+    @req-REQ-0001
+    @ac-AC-0009
     Example: Explicit output extension infers requested format
       Given asciidoctor and pandoc are available
       When archledger build is run with output docs/architecture.md
@@ -80,6 +98,8 @@ Feature: Build format conversion and output selection
       And the output file is written under docs
 
     @bdd-build-mermaid-renderer-only-when-enabled
+    @req-REQ-0001
+    @ac-AC-0010
     Example: Mermaid rendering is invoked only when diagram rendering is enabled
       Given a workspace with a mermaid diagram record
       When archledger build is run with diagram rendering disabled
@@ -89,12 +109,16 @@ Feature: Build format conversion and output selection
   Rule: Multiple output selection obeys config and CLI precedence
 
     @bdd-build-json-reports-multiple-outputs
+    @req-REQ-0001
+    @ac-AC-0011
     Example: JSON build reports every generated output
       Given html and markdown outputs are requested
       When archledger build is run with JSON output
       Then the result lists both generated output paths
 
     @bdd-build-default-includes-enabled-outputs
+    @req-REQ-0001
+    @ac-AC-0012
     Example: Default build includes enabled configured outputs
       Given the config has multiple build outputs
       And one output is enabled
@@ -102,18 +126,24 @@ Feature: Build format conversion and output selection
       Then the enabled output is generated
 
     @bdd-build-all-skips-disabled-outputs
+    @req-REQ-0001
+    @ac-AC-0013
     Example: Build all honors disabled configured outputs
       Given the config has one disabled build output
       When archledger build --all is run
       Then the disabled output is not generated
 
     @bdd-build-explicit-format-overrides-disabled-output
+    @req-REQ-0001
+    @ac-AC-0014
     Example: Explicit format can override a disabled configured output
       Given the config disables markdown output
       When archledger build is run with format markdown
       Then markdown output is still generated
 
     @bdd-build-rejects-multiple-formats-with-one-file
+    @req-REQ-0001
+    @ac-AC-0015
     Example: Multiple formats cannot share a single output file
       Given two formats are requested
       When archledger build is run with one explicit output file

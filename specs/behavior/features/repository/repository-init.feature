@@ -8,30 +8,40 @@ Feature: Repository initialization
   Rule: Init creates the canonical workspace structure
 
     @bdd-repo-init-creates-config
+    @req-REQ-0014
+    @ac-AC-0194
     Example: Init writes archledger.toml config file
       Given an empty workspace directory
       When archledger init is run
       Then .archledger.toml is created with default settings
 
     @bdd-repo-init-creates-storage-meta
+    @req-REQ-0014
+    @ac-AC-0195
     Example: Init creates storage metadata
       Given an empty workspace directory
       When archledger init is run
       Then storage-meta.json is created with schema version 2
 
     @bdd-repo-init-creates-sections
+    @req-REQ-0014
+    @ac-AC-0196
     Example: Init creates all arc42 section directories
       Given an empty workspace directory
       When archledger init is run
       Then directories for all 12 arc42 sections exist
 
     @bdd-repo-init-creates-record-dirs
+    @req-REQ-0014
+    @ac-AC-0197
     Example: Init creates directories for all record types
       Given an empty workspace directory
       When archledger init is run
       Then directories for requirements, stakeholders, decisions exist
 
     @bdd-repo-init-project-name-default
+    @req-REQ-0014
+    @ac-AC-0198
     Example: Project name defaults to workspace basename
       Given a workspace directory named "my-project"
       When archledger init is run
@@ -41,6 +51,8 @@ Feature: Repository initialization
   Rule: Status reports workspace health
 
     @bdd-repo-status-counts
+    @req-REQ-0014
+    @ac-AC-0199
     Example: Status counts sections and record directories
       Given an initialized workspace with 3 section files
       When archledger status is run

@@ -8,6 +8,8 @@ Feature: Record mutation commands
   Rule: Status can be changed on a record
 
     @bdd-mutation-set-status
+    @req-REQ-0010
+    @ac-AC-0095
     Example: Set status updates the record
       Given a record with status "draft"
       When set_record_status is called with "proposed"
@@ -18,6 +20,8 @@ Feature: Record mutation commands
   Rule: Arbitrary metadata keys can be set
 
     @bdd-mutation-set-meta
+    @req-REQ-0010
+    @ac-AC-0096
     Example: Set meta updates a single key
       Given a record with no "priority" key
       When set_record_meta is called with key "priority" and value "high"
@@ -27,12 +31,16 @@ Feature: Record mutation commands
   Rule: Record body can be replaced or appended
 
     @bdd-mutation-replace-body
+    @req-REQ-0010
+    @ac-AC-0097
     Example: Replace body replaces entire content
       Given a record with body "old content"
       When replace_record_body is called with "new content"
       Then the record body is "new content"
 
     @bdd-mutation-append-body
+    @req-REQ-0010
+    @ac-AC-0098
     Example: Append body adds to existing content
       Given a record with body "existing"
       When append_record_body is called with " added text"
@@ -42,6 +50,8 @@ Feature: Record mutation commands
   Rule: Source references can be added to a record
 
     @bdd-mutation-add-source-ref
+    @req-REQ-0010
+    @ac-AC-0099
     Example: Add source ref appends a new reference
       Given a record with no source_refs
       When add_source_ref is called with path "src/main.py"
@@ -51,6 +61,8 @@ Feature: Record mutation commands
   Rule: Mutations verify the record ID matches
 
     @bdd-mutation-wrong-id
+    @req-REQ-0010
+    @ac-AC-0100
     Example: Mutation rejects mismatched record ID
       Given a record with id "al_0001"
       When a mutation is called with record_id "al_0002"

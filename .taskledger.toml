@@ -1,7 +1,7 @@
 # Project-local taskledger configuration.
 # This file lives in the source project root.
 config_version = 2
-taskledger_dir = '../taskledger-state/archledger'
+taskledger_dir = '../ledger/task/archledger'
 # Stable project identity. Commit this with your source tree.
 project_uuid = "bf999c8f-4e9e-46d6-9275-892c24d19f85"
 project_name = "archledger"
@@ -9,7 +9,7 @@ project_name = "archledger"
 # Taskledger branch-scoped state. This block is intentionally safe to commit.
 ledger_ref = "main"
 ledger_parent_ref = ""
-ledger_next_task_number = 48
+ledger_next_task_number = 49
 ledger_branch_guard = "off"
 
 # Project-local taskledger overrides.

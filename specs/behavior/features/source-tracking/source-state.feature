@@ -8,18 +8,24 @@ Feature: Source state tracking and change detection
   Rule: Source state records file and directory hashes
 
     @bdd-source-state-roundtrip
+    @req-REQ-0017
+    @ac-AC-0257
     Example: Source state serializes and deserializes correctly
       Given a source state with tracked files
       When the state is serialized to JSON and read back
       Then all file paths and hashes are preserved
 
     @bdd-source-state-relative-paths
+    @req-REQ-0017
+    @ac-AC-0258
     Example: Source state uses relative paths
       Given a workspace with files
       When a source state snapshot is created
       Then all paths are relative to workspace root
 
     @bdd-source-state-schema
+    @req-REQ-0017
+    @ac-AC-0259
     Example: Source state JSON uses correct schema
       Given any workspace
       When a source state snapshot is created
@@ -29,12 +35,16 @@ Feature: Source state tracking and change detection
   Rule: Changeset detects added, modified, and deleted files
 
     @bdd-changeset-detects-added
+    @req-REQ-0017
+    @ac-AC-0260
     Example: New files are detected as added
       Given a baseline without "new_file.py"
       When a changeset is computed
       Then "new_file.py" appears as added
 
     @bdd-changeset-detects-modified
+    @req-REQ-0017
+    @ac-AC-0261
     Example: Changed files are detected as modified
       Given a baseline with "old_hash" for "file.py"
       And the current file has a different hash
@@ -42,6 +52,8 @@ Feature: Source state tracking and change detection
       Then "file.py" appears as modified
 
     @bdd-changeset-detects-deleted
+    @req-REQ-0017
+    @ac-AC-0262
     Example: Removed files are detected as deleted
       Given a baseline with "deleted.py"
       And the file no longer exists
@@ -49,6 +61,8 @@ Feature: Source state tracking and change detection
       Then "deleted.py" appears as deleted
 
     @bdd-changeset-impacted-records
+    @req-REQ-0017
+    @ac-AC-0263
     Example: Changeset identifies impacted records
       Given a changed file referenced by a record's source_refs
       When a changeset is computed
