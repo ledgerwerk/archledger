@@ -6,6 +6,7 @@ from ledgercore.errors import FrontMatterError as CoreFrontMatterError
 from ledgercore.frontmatter import (
     read_front_matter_document as _read_front_matter_document,
 )
+from ledgercore.frontmatter import split_front_matter_text as _split_front_matter_text
 from ledgercore.frontmatter import (
     write_front_matter_document as _write_front_matter_document,
 )
@@ -35,6 +36,13 @@ def write_front_matter_document(
         if normalized_body and not normalized_body.endswith("\n"):
             normalized_body = normalized_body + "\n"
         _write_front_matter_document(path, metadata, normalized_body)
+    except CoreFrontMatterError as exc:
+        raise FrontMatterError(str(exc)) from exc
+
+
+def split_front_matter_text(text: str) -> tuple[dict[str, object], str]:
+    try:
+        return _split_front_matter_text(text)
     except CoreFrontMatterError as exc:
         raise FrontMatterError(str(exc)) from exc
 

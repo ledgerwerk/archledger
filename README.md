@@ -56,10 +56,10 @@ resolution is owned by an organizer such as Ledgerdeck.
 Safe mutation commands update front matter and re-run repository validation:
 
 ```bash
-archledger record set al_0013 --status accepted
-archledger refs add al_0013 --path src/example.py --role implements
-archledger links add al_0013 --rel decided_by --target al_0014
-archledger ac add al_0013 --statement "The behavior is covered"
+archledger record set content-0013 --status accepted
+archledger refs add content-0013 --path src/example.py --role implements
+archledger links add content-0013 --rel decided_by --target adr-0014
+archledger ac add content-0013 --statement "The behavior is covered"
 ```
 
 Published schemas and integration scaffolds are available from the CLI:
@@ -430,20 +430,23 @@ scanner = "auto"          # auto | git | filesystem
 
 For coding agents, prefer this loop:
 
-1. `archledger --json paths`
-2. `archledger --json source changed`
-3. `archledger --json read --body --include-drafts`
-4. Edit only source fragments under `archledger_dir/sections` and `archledger_dir/records`
-5. `archledger --json check`
-6. Build only when the user asks for an exported artifact
-7. `archledger --json source snapshot --reason after-archledger-update` after the docs have been updated and validated
+1. Run `archledger --json paths`, `archledger --json status`, and `archledger --json check` independently instead of chaining them with `&&`.
+2. If `check` reports legacy IDs or legacy timestamp metadata, review `archledger --json migrate ids --to ledgercore` and `archledger --json migrate metadata --to versioned` dry runs before applying them.
+3. Run `archledger --json source changed` and then `archledger --json read --body --include-drafts` for broad refreshes, or use narrower `context`, `trace`, `read --section`, or `read --kind` commands when possible.
+4. Edit only source fragments under `archledger_dir/sections` and `archledger_dir/records`.
+5. For list or object metadata, use `archledger record meta set RECORD_ID KEY --json-value '["item"]'`. For option-like string values, use `--string-value`.
+6. Never predict record IDs; capture the returned `result.id` from `archledger --json new ...`.
+7. Run `archledger --json check --strict`.
+8. Run `archledger --json source changed --fail-on-unlinked`.
+9. Build only when the user asks for an exported artifact.
+10. Run `archledger --json source snapshot --reason after-archledger-update` after the docs have been updated and validated.
 
 ### Archiving and structural repair
 
 Do not delete numbered source fragments. Use:
 
 ```bash
-archledger archive al_0022 --reason "obsolete after al_0041"
+archledger archive content-0022 --reason "obsolete after content-0041"
 ```
 
 Archived records move to `.archledger/archive/` and keep their original ID. They are excluded from default read/list/build flows but still reserve their ledger number.

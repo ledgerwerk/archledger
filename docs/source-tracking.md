@@ -18,6 +18,7 @@ sizes. Directory hashes are derived from file hashes after scanning.
 
 ```{code-block} bash
 archledger --json source changed
+archledger --json source changed --fail-on-unlinked
 archledger --json source changed --include-drafts
 ```
 
@@ -52,8 +53,9 @@ Use tracking as a repeatable drift loop instead of a one-off report:
 
 ```{code-block} bash
 archledger --json source changed
+archledger --json source changed --fail-on-unlinked
 archledger --json read --body --include-drafts
-archledger --json check
+archledger --json check --strict
 archledger --json source snapshot --reason after-archledger-update
 ```
 
@@ -61,5 +63,5 @@ In practice:
 
 1. Add `source_refs` when a fragment describes real code, configuration, or directories.
 2. Run `changed` to see what moved since the last accepted baseline.
-3. Update only the impacted fragments and validate them with `check`.
-4. Record a fresh snapshot after the documentation update is complete.
+3. Update only the impacted fragments and validate them with `check --strict`.
+4. Record a fresh snapshot only after the documentation update is complete and all validation passes.

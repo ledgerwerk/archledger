@@ -11,11 +11,12 @@ from pathlib import Path
 
 from archledger.errors import ValidationError
 from archledger.links import RELATION_RE
-from archledger.metadata_version import bump_metadata_version
+from archledger.metadata_version import bump_metadata_version, metadata_version
 from archledger.model import VALID_SOURCE_REF_ROLES
 from archledger.source_refs import RelativePosixPathError, validate_relative_posix_path
 from archledger.storage.frontmatter import (
     read_front_matter_document,
+    split_front_matter_text,
     write_front_matter_document,
 )
 
@@ -47,6 +48,45 @@ def set_record_meta(
     metadata = bump_metadata_version({**metadata, key: value})
     write_front_matter_document(path, metadata, body)
     return metadata, body
+
+
+def export_record_document(path: Path, record_id: str) -> str:
+    metadata, _body = read_front_matter_document(path)
+    _assert_record_id(metadata, record_id)
+    return path.read_text(encoding="utf-8")
+
+
+def apply_record_document(
+    path: Path,
+    record_id: str,
+    document_text: str,
+    *,
+    workspace_root: Path,
+) -> tuple[dict[str, object], str]:
+    del workspace_root
+    current_metadata, current_body = read_front_matter_document(path)
+    _assert_record_id(current_metadata, record_id)
+    candidate_metadata, candidate_body = split_front_matter_text(document_text)
+    _assert_record_id(candidate_metadata, record_id)
+    if candidate_metadata.get("kind") != current_metadata.get("kind"):
+        raise ValidationError(
+            f"Record kind mismatch: expected {current_metadata.get('kind')!r}, "
+            f"got {candidate_metadata.get('kind')!r}"
+        )
+
+    candidate_metadata = {
+        **candidate_metadata,
+        "version": current_metadata.get("version"),
+    }
+    if candidate_metadata == current_metadata and candidate_body == current_body:
+        return current_metadata, current_body
+
+    updated_metadata = {
+        **candidate_metadata,
+        "version": metadata_version(current_metadata) + 1,
+    }
+    write_front_matter_document(path, updated_metadata, candidate_body)
+    return updated_metadata, candidate_body
 
 
 def replace_record_body(
@@ -213,7 +253,9 @@ __all__ = [
     "add_link",
     "add_source_ref",
     "add_test_ref",
+    "apply_record_document",
     "append_record_body",
+    "export_record_document",
     "replace_record_body",
     "set_record_meta",
     "set_record_status",

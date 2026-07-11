@@ -676,6 +676,103 @@ def test_check_warns_for_incomplete_content_metadata(tmp_path: Path) -> None:
     assert "Runtime scenario runtime-0016 has no trigger." in messages
 
 
+def test_check_reports_type_specific_metadata_errors(tmp_path: Path) -> None:
+    init_project(tmp_path)
+    runner.invoke(app, ["--root", str(tmp_path), "new", "runtime", "CLI execution"])
+    record_path = tmp_path / ".archledger" / "records" / "runtime" / "runtime-0013.adoc"
+    record_path.write_text(
+        record_path.read_text(encoding="utf-8").replace(
+            "participants: []",
+            "participants: wrong",
+        ),
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(app, ["--root", str(tmp_path), "--json", "check"])
+
+    assert result.exit_code == 1
+    payload = json.loads(result.stdout)
+    messages = [item["message"] for item in payload["error"]["details"]["errors"]]
+    assert any(
+        "metadata field 'participants' must be a list of strings; got string."
+        in message
+        for message in messages
+    )
+
+
+def test_check_skips_content_warnings_for_archived_records(tmp_path: Path) -> None:
+    init_project(tmp_path)
+    runner.invoke(app, ["--root", str(tmp_path), "new", "runtime", "CLI execution"])
+    archive_result = runner.invoke(
+        app,
+        ["--root", str(tmp_path), "archive", "runtime-0013", "--reason", "obsolete"],
+    )
+    assert archive_result.exit_code == 0, archive_result.stdout
+
+    result = runner.invoke(app, ["--root", str(tmp_path), "--json", "check"])
+
+    assert result.exit_code == 0, result.stdout
+    payload = json.loads(result.stdout)
+    messages = [item["message"] for item in payload["result"]["warnings"]]
+    assert "Runtime scenario runtime-0013 has no participants." not in messages
+
+
+def test_check_fails_for_archived_record_outside_archive_storage(
+    tmp_path: Path,
+) -> None:
+    init_project(tmp_path)
+    runner.invoke(app, ["--root", str(tmp_path), "new", "runtime", "CLI execution"])
+    record_path = tmp_path / ".archledger" / "records" / "runtime" / "runtime-0013.adoc"
+    record_path.write_text(
+        record_path.read_text(encoding="utf-8").replace(
+            "status: draft",
+            "status: archived",
+        ),
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(app, ["--root", str(tmp_path), "--json", "check"])
+
+    assert result.exit_code == 1
+    payload = json.loads(result.stdout)
+    messages = [item["message"] for item in payload["error"]["details"]["errors"]]
+    assert "Archived record runtime-0013 is outside archive storage." in messages
+
+
+def test_check_fails_for_non_archived_record_inside_archive_storage(
+    tmp_path: Path,
+) -> None:
+    init_project(tmp_path)
+    runner.invoke(app, ["--root", str(tmp_path), "new", "runtime", "CLI execution"])
+    archive_result = runner.invoke(
+        app,
+        ["--root", str(tmp_path), "archive", "runtime-0013", "--reason", "obsolete"],
+    )
+    assert archive_result.exit_code == 0, archive_result.stdout
+    archived_path = (
+        tmp_path
+        / ".archledger"
+        / "archive"
+        / "records"
+        / "runtime"
+        / "runtime-0013.adoc"
+    )
+    archived_path.write_text(
+        archived_path.read_text(encoding="utf-8").replace(
+            "status: archived",
+            "status: proposed",
+        ),
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(app, ["--root", str(tmp_path), "--json", "check"])
+
+    assert result.exit_code == 1
+    payload = json.loads(result.stdout)
+    messages = [item["message"] for item in payload["error"]["details"]["errors"]]
+    assert "Archived file runtime-0013 must use status archived." in messages
+
+
 def test_check_warns_for_invalid_risk_levels_and_unmeasurable_quality_scenario(
     tmp_path: Path,
 ) -> None:

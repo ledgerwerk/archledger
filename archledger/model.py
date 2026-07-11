@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -30,6 +32,7 @@ from archledger.record_types import RECORD_TYPES as _RECORD_TYPES
 from archledger.record_types import (
     VALID_RECORD_TYPES as _VALID_RECORD_TYPES,
 )
+from archledger.record_types import metadata_field_specs_for_record_type
 
 if TYPE_CHECKING:
     from archledger.scopes import RecordScope
@@ -299,7 +302,140 @@ def validate_record(
                 f"Record id {record.id!r} has kind {parsed.kind!r}, "
                 f"but {expected_segment!r} is expected for type {record.type!r}."
             )
+    issues.extend(validate_record_metadata_shape(record))
     return issues
+
+
+def validate_record_metadata_shape(record: ArchitectureRecord) -> list[str]:
+    if record.type in {"archive_tombstone", "section"}:
+        return []
+    issues: list[str] = []
+    for field_name, field_spec in metadata_field_specs_for_record_type(
+        record.type
+    ).items():
+        if field_name not in record.metadata:
+            continue
+        value = record.metadata[field_name]
+        issue = _metadata_shape_issue(
+            record_id=record.id,
+            field_name=field_name,
+            value=value,
+            expected_kind=field_spec.kind,
+            allow_none=field_spec.allow_none,
+        )
+        if issue is None:
+            continue
+        issues.append(
+            issue
+            + " Use: "
+            + _metadata_field_fix_example(record.id, field_name, field_spec.kind)
+        )
+    return issues
+
+
+def _metadata_shape_issue(
+    *,
+    record_id: str,
+    field_name: str,
+    value: object,
+    expected_kind: str,
+    allow_none: bool,
+) -> str | None:
+    if value is None:
+        if allow_none:
+            return None
+        return (
+            f"Record {record_id} metadata field {field_name!r} must be "
+            f"{_metadata_kind_label(expected_kind)}; got null."
+        )
+    if _metadata_kind_matches(value, expected_kind):
+        return None
+    return (
+        f"Record {record_id} metadata field {field_name!r} must be "
+        f"{_metadata_kind_label(expected_kind)}; got {_metadata_value_kind(value)}."
+    )
+
+
+def _metadata_kind_matches(value: object, expected_kind: str) -> bool:
+    if expected_kind == "string":
+        return isinstance(value, str)
+    if expected_kind == "integer":
+        return isinstance(value, int) and not isinstance(value, bool)
+    if expected_kind == "boolean":
+        return isinstance(value, bool)
+    if expected_kind == "string_list":
+        return isinstance(value, list) and all(isinstance(item, str) for item in value)
+    if expected_kind == "object":
+        return isinstance(value, Mapping)
+    if expected_kind == "object_list":
+        return isinstance(value, list) and all(
+            isinstance(item, Mapping) for item in value
+        )
+    raise ValueError(f"Unsupported metadata field kind: {expected_kind}")
+
+
+def _metadata_kind_label(expected_kind: str) -> str:
+    return {
+        "string": "a string",
+        "integer": "an integer",
+        "boolean": "a boolean",
+        "string_list": "a list of strings",
+        "object": "an object",
+        "object_list": "a list of objects",
+    }[expected_kind]
+
+
+def _metadata_value_kind(value: object) -> str:
+    if value is None:
+        return "null"
+    if isinstance(value, bool):
+        return "boolean"
+    if isinstance(value, str):
+        return "string"
+    if isinstance(value, int):
+        return "integer"
+    if isinstance(value, Mapping):
+        return "object"
+    if isinstance(value, list):
+        return "list"
+    return type(value).__name__
+
+
+def _metadata_field_fix_example(
+    record_id: str,
+    field_name: str,
+    expected_kind: str,
+) -> str:
+    examples = {
+        "string": (
+            f"archledger record meta set {record_id} {field_name} "
+            '--string-value "example"'
+        ),
+        "integer": (
+            f"archledger record meta set {record_id} {field_name} "
+            "--json-value '1'"
+        ),
+        "boolean": (
+            f"archledger record meta set {record_id} {field_name} "
+            "--json-value 'true'"
+        ),
+        "string_list": (
+            f"archledger record meta set {record_id} {field_name} --json-value "
+            + json.dumps(["item"])
+        ),
+        "object": (
+            f"archledger record meta set {record_id} {field_name} --json-value "
+            + json.dumps({"key": "value"})
+        ),
+        "object_list": (
+            f"archledger record meta set {record_id} {field_name} --json-value "
+            + json.dumps([{"key": "value"}])
+        ),
+    }
+    example = examples[expected_kind]
+    if expected_kind in {"string_list", "object", "object_list"}:
+        return example.replace("--json-value ", "--json-value '") + "'"
+    return example
 
 
 @dataclass(frozen=True, slots=True)

@@ -273,25 +273,44 @@ archledger --json doctor
 archledger --json read --body --include-drafts
 ```
 
+When `check` reports legacy IDs or legacy timestamp metadata, inspect the migration dry runs first:
+
+```{code-block} bash
+archledger --json migrate ids --to ledgercore
+archledger --json migrate metadata --to versioned
+```
+
 Track implementation drift:
 
 ```{code-block} bash
-archledger --json source snapshot --reason after-archledger-update
 archledger --json source changed
+archledger --json source changed --fail-on-unlinked
+archledger --json source snapshot --reason after-archledger-update
 ```
 
 Create records:
 
 ```{code-block} bash
-archledger new requirement "Render architecture document" --status proposed
-archledger new adr "Treat source fragments as canonical" --status proposed
-archledger new diagram "Runtime login flow" --section runtime_view --status proposed
+archledger --json new requirement "Render architecture document" --status proposed
+archledger --json new adr "Treat source fragments as canonical" --status proposed
+archledger --json new diagram "Runtime login flow" --section runtime_view --status proposed
+```
+
+Capture the returned `result.id` from `new`; do not predict record IDs.
+
+Typed metadata mutation:
+
+```{code-block} bash
+archledger record meta set runtime-0013 participants --json-value '["caller", "service"]'
+archledger record meta set content-0013 source --string-value "--json envelopes are supported"
+archledger record meta set runtime-0013 participants --from-file participants.yaml
+archledger record body set runtime-0013 --from-file /tmp/runtime-body.md
 ```
 
 Archive and repair:
 
 ```{code-block} bash
-archledger archive al_0022 --reason "obsolete after al_0041"
+archledger archive content-0022 --reason "obsolete after content-0041"
 archledger doctor
 archledger doctor --repair
 ```
@@ -306,7 +325,7 @@ archledger renumber --id-segment-mode type --apply
 archledger renumber --id-segment-mode none --apply
 ```
 
-`check` is read-only. It validates numbering and integrity but does not mutate counters or source files.
+`check` is read-only. It validates numbering and integrity but does not mutate counters or source files. Use `archledger --json check --strict` before finalizing agent-driven updates.
 
 Build output:
 

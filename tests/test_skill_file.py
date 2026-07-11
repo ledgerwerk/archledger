@@ -12,6 +12,15 @@ def test_archledger_skill_exists() -> None:
     assert "archledger --json read" in text
     assert "archledger --json check" in text
     assert "archledger --json source changed" in text
+    assert "archledger --json migrate ids --to ledgercore" in text
+    assert "archledger --json migrate metadata --to versioned" in text
+    assert "--json-value" in text
+    assert "archledger --json check --strict" in text
+    assert "archledger --json source changed --fail-on-unlinked" in text
+    assert "archledger --json source snapshot" in text
+    assert "capture" in text.lower() and "result.id" in text
+    assert "isolated architecture ledger" in text.lower()
+    assert "never predict record ids" in text.lower()
 
 
 def test_skill_file_removes_sdd_bdd_command_guidance() -> None:

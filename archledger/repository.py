@@ -412,8 +412,11 @@ class ArchitectureRepository:
             )
 
             loaded_records.append(record)
-            for warning_message in content_warnings(record):
-                findings_warnings.append(CheckFinding("warning", warning_message, path))
+            if record.status != "archived":
+                for warning_message in content_warnings(record):
+                    findings_warnings.append(
+                        CheckFinding("warning", warning_message, path)
+                    )
             if record.status == "archived" and not path.is_relative_to(
                 self.paths.archive_dir
             ):

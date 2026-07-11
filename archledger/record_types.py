@@ -1,9 +1,18 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Literal
 
 ContextFactory = Callable[["RecordContextInput"], dict[str, object]]
+MetadataFieldKind = Literal[
+    "string",
+    "integer",
+    "boolean",
+    "string_list",
+    "object",
+    "object_list",
+]
 
 
 @dataclass(frozen=True, slots=True)
@@ -16,6 +25,14 @@ class RecordContextInput:
 
 
 @dataclass(frozen=True, slots=True)
+class MetadataFieldSpec:
+    kind: MetadataFieldKind
+    required: bool = False
+    allowed_values: frozenset[str] | None = None
+    allow_none: bool = False
+
+
+@dataclass(frozen=True, slots=True)
 class RecordTypeSpec:
     kind: str
     aliases: tuple[str, ...]
@@ -25,6 +42,21 @@ class RecordTypeSpec:
     context_factory: ContextFactory
     default_status: str = "draft"
     default_level: int = 1
+    metadata_fields: Mapping[str, MetadataFieldSpec] = field(default_factory=dict)
+
+
+STRING_FIELD = MetadataFieldSpec("string")
+OPTIONAL_STRING_FIELD = MetadataFieldSpec("string", allow_none=True)
+INTEGER_FIELD = MetadataFieldSpec("integer")
+STRING_LIST_FIELD = MetadataFieldSpec("string_list")
+OBJECT_FIELD = MetadataFieldSpec("object")
+OBJECT_LIST_FIELD = MetadataFieldSpec("object_list")
+
+COMMON_METADATA_FIELD_SPECS: dict[str, MetadataFieldSpec] = {
+    "applies_to": STRING_LIST_FIELD,
+    "level": INTEGER_FIELD,
+    "parent": OPTIONAL_STRING_FIELD,
+}
 
 
 def _string_kwarg(
@@ -207,6 +239,12 @@ RECORD_TYPE_SPECS = (
         default_section="introduction_and_goals",
         template_basename="requirement",
         context_factory=_requirement_context,
+        metadata_fields={
+            "priority": STRING_FIELD,
+            "quality_goals": STRING_LIST_FIELD,
+            "source": STRING_FIELD,
+            "stakeholders": STRING_LIST_FIELD,
+        },
     ),
     RecordTypeSpec(
         kind="stakeholder",
@@ -215,6 +253,10 @@ RECORD_TYPE_SPECS = (
         default_section="introduction_and_goals",
         template_basename="stakeholder",
         context_factory=_stakeholder_context,
+        metadata_fields={
+            "contact": STRING_FIELD,
+            "expectations": STRING_LIST_FIELD,
+        },
     ),
     RecordTypeSpec(
         kind="quality_goal",
@@ -223,6 +265,10 @@ RECORD_TYPE_SPECS = (
         default_section="introduction_and_goals",
         template_basename="quality_goal",
         context_factory=_quality_goal_context,
+        metadata_fields={
+            "priority": INTEGER_FIELD,
+            "scenario": STRING_FIELD,
+        },
     ),
     RecordTypeSpec(
         kind="constraint",
@@ -231,6 +277,10 @@ RECORD_TYPE_SPECS = (
         default_section="architecture_constraints",
         template_basename="constraint",
         context_factory=_constraint_context,
+        metadata_fields={
+            "category": STRING_FIELD,
+            "impact": STRING_FIELD,
+        },
     ),
     RecordTypeSpec(
         kind="context_interface",
@@ -239,6 +289,13 @@ RECORD_TYPE_SPECS = (
         default_section="context_and_scope",
         template_basename="context_interface",
         context_factory=_context_interface_context,
+        metadata_fields={
+            "channels": STRING_LIST_FIELD,
+            "context_kind": STRING_FIELD,
+            "inputs": STRING_LIST_FIELD,
+            "outputs": STRING_LIST_FIELD,
+            "partner": STRING_FIELD,
+        },
     ),
     RecordTypeSpec(
         kind="strategy_item",
@@ -247,6 +304,11 @@ RECORD_TYPE_SPECS = (
         default_section="solution_strategy",
         template_basename="strategy_item",
         context_factory=_strategy_item_context,
+        metadata_fields={
+            "constraints": STRING_LIST_FIELD,
+            "drivers": STRING_LIST_FIELD,
+            "related_adrs": STRING_LIST_FIELD,
+        },
     ),
     RecordTypeSpec(
         kind="white_box",
@@ -255,6 +317,11 @@ RECORD_TYPE_SPECS = (
         default_section="building_block_view",
         template_basename="white_box",
         context_factory=_white_box_context,
+        metadata_fields={
+            "diagram": OPTIONAL_STRING_FIELD,
+            "quality_characteristics": STRING_LIST_FIELD,
+            "tags": STRING_LIST_FIELD,
+        },
     ),
     RecordTypeSpec(
         kind="black_box",
@@ -263,6 +330,13 @@ RECORD_TYPE_SPECS = (
         default_section="building_block_view",
         template_basename="black_box",
         context_factory=_black_box_context,
+        metadata_fields={
+            "fulfilled_requirements": STRING_LIST_FIELD,
+            "interfaces": STRING_LIST_FIELD,
+            "location": STRING_LIST_FIELD,
+            "risks": STRING_LIST_FIELD,
+            "tags": STRING_LIST_FIELD,
+        },
     ),
     RecordTypeSpec(
         kind="interface",
@@ -271,6 +345,11 @@ RECORD_TYPE_SPECS = (
         default_section="building_block_view",
         template_basename="interface",
         context_factory=_interface_context,
+        metadata_fields={
+            "consumers": STRING_LIST_FIELD,
+            "protocol": STRING_FIELD,
+            "providers": STRING_LIST_FIELD,
+        },
     ),
     RecordTypeSpec(
         kind="runtime_scenario",
@@ -279,6 +358,11 @@ RECORD_TYPE_SPECS = (
         default_section="runtime_view",
         template_basename="runtime_scenario",
         context_factory=_runtime_scenario_context,
+        metadata_fields={
+            "participants": STRING_LIST_FIELD,
+            "result": STRING_FIELD,
+            "trigger": STRING_FIELD,
+        },
     ),
     RecordTypeSpec(
         kind="infrastructure",
@@ -287,6 +371,10 @@ RECORD_TYPE_SPECS = (
         default_section="deployment_view",
         template_basename="infrastructure",
         context_factory=_infrastructure_context,
+        metadata_fields={
+            "environment": STRING_FIELD,
+            "maps_building_blocks": STRING_LIST_FIELD,
+        },
     ),
     RecordTypeSpec(
         kind="concept",
@@ -295,6 +383,9 @@ RECORD_TYPE_SPECS = (
         default_section="cross_cutting_concepts",
         template_basename="concept",
         context_factory=_concept_context,
+        metadata_fields={
+            "applies_to": STRING_LIST_FIELD,
+        },
     ),
     RecordTypeSpec(
         kind="adr",
@@ -303,6 +394,12 @@ RECORD_TYPE_SPECS = (
         default_section="architecture_decisions",
         template_basename="adr",
         context_factory=_adr_context,
+        metadata_fields={
+            "deciders": STRING_LIST_FIELD,
+            "related": STRING_LIST_FIELD,
+            "supersedes": STRING_LIST_FIELD,
+            "tags": STRING_LIST_FIELD,
+        },
     ),
     RecordTypeSpec(
         kind="quality_requirement",
@@ -311,6 +408,12 @@ RECORD_TYPE_SPECS = (
         default_section="quality_requirements",
         template_basename="quality_requirement",
         context_factory=_quality_requirement_context,
+        metadata_fields={
+            "category": STRING_FIELD,
+            "measure": STRING_FIELD,
+            "scenarios": STRING_LIST_FIELD,
+            "source": STRING_FIELD,
+        },
     ),
     RecordTypeSpec(
         kind="quality_scenario",
@@ -319,6 +422,15 @@ RECORD_TYPE_SPECS = (
         default_section="quality_requirements",
         template_basename="quality_scenario",
         context_factory=_quality_scenario_context,
+        metadata_fields={
+            "artifact": STRING_FIELD,
+            "environment": STRING_FIELD,
+            "quality": STRING_FIELD,
+            "response": STRING_FIELD,
+            "response_measure": STRING_FIELD,
+            "source": STRING_FIELD,
+            "stimulus": STRING_FIELD,
+        },
     ),
     RecordTypeSpec(
         kind="risk",
@@ -327,6 +439,11 @@ RECORD_TYPE_SPECS = (
         default_section="risks_and_technical_debt",
         template_basename="risk",
         context_factory=_risk_context,
+        metadata_fields={
+            "mitigation": STRING_FIELD,
+            "probability": STRING_FIELD,
+            "severity": STRING_FIELD,
+        },
     ),
     RecordTypeSpec(
         kind="diagram",
@@ -335,6 +452,11 @@ RECORD_TYPE_SPECS = (
         default_section="cross_cutting_concepts",
         template_basename="diagram",
         context_factory=_diagram_context,
+        metadata_fields={
+            "caption": STRING_FIELD,
+            "diagram_type": STRING_FIELD,
+            "related_records": STRING_LIST_FIELD,
+        },
     ),
     RecordTypeSpec(
         kind="acceptance_criterion",
@@ -343,6 +465,9 @@ RECORD_TYPE_SPECS = (
         default_section="requirements_overview",
         template_basename="acceptance_criterion",
         context_factory=_acceptance_criterion_context,
+        metadata_fields={
+            "requirement": STRING_FIELD,
+        },
     ),
     RecordTypeSpec(
         kind="glossary_term",
@@ -351,6 +476,10 @@ RECORD_TYPE_SPECS = (
         default_section="glossary",
         template_basename="glossary_term",
         context_factory=_glossary_term_context,
+        metadata_fields={
+            "definition": STRING_FIELD,
+            "term": STRING_FIELD,
+        },
     ),
     RecordTypeSpec(
         kind="architecture_question",
@@ -359,6 +488,16 @@ RECORD_TYPE_SPECS = (
         default_section="architecture_decisions",
         template_basename="architecture_question",
         context_factory=_architecture_question_context,
+        metadata_fields={
+            "constraints": STRING_LIST_FIELD,
+            "decision_due": STRING_FIELD,
+            "linked_decision": STRING_FIELD,
+            "options": STRING_LIST_FIELD,
+            "owner": STRING_FIELD,
+            "question": STRING_FIELD,
+            "resolution_status": STRING_FIELD,
+            "risks": STRING_LIST_FIELD,
+        },
     ),
 )
 
@@ -374,3 +513,12 @@ RECORD_TYPE_TO_TEMPLATE = {
 CLI_KIND_ALIASES = {
     alias: spec.kind for spec in RECORD_TYPE_SPECS for alias in spec.aliases
 }
+
+
+def metadata_field_specs_for_record_type(
+    record_type: str,
+) -> Mapping[str, MetadataFieldSpec]:
+    spec = RECORD_TYPES.get(record_type)
+    if spec is None:
+        return COMMON_METADATA_FIELD_SPECS
+    return {**COMMON_METADATA_FIELD_SPECS, **spec.metadata_fields}

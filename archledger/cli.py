@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Annotated, TypedDict, cast
 
 import typer
+import yaml
 
 from archledger import __version__
 from archledger.cli_formatting import (
@@ -1526,36 +1527,42 @@ def record_set_status(
     if not set_status:
         raise ArchledgerError("--status is required.")
 
-    def _build(
+    def _mutate(
         repo: ArchitectureRepository,
         paths: ProjectPaths,
         config: ProjectConfig,
+        target_path: Path,
     ) -> dict[str, object]:
         del config
         from archledger.mutations import set_record_status as _set_status
 
-        target_path = _find_record_path(repo, record_id)
         _set_status(
             target_path,
             record_id,
             set_status,
             workspace_root=paths.workspace_root,
         )
-        _validate_mutation(repo, target_path)
         return {"id": record_id, "path": str(target_path), "status": set_status}
 
     def _fmt(p: dict[str, object]) -> str:
         return f"Set {p.get('id')} status to {p.get('status')}."
 
-    _run_configured_command(state, "record set", _build, _fmt)
+    _run_record_mutation(state, "record set", record_id, _mutate, _fmt)
 
 
-@record_meta_app.command("set")
-def record_meta_set(
+@record_app.command("export")
+def record_export(
     ctx: typer.Context,
     record_id: Annotated[str, typer.Argument()],
-    key: Annotated[str, typer.Argument()],
-    value: Annotated[str, typer.Argument()],
+    output: Annotated[
+        Path,
+        typer.Option(
+            "--output",
+            dir_okay=False,
+            resolve_path=True,
+            help="Write the record document to this path.",
+        ),
+    ],
 ) -> None:
     state = _state(ctx)
 
@@ -1564,24 +1571,143 @@ def record_meta_set(
         paths: ProjectPaths,
         config: ProjectConfig,
     ) -> dict[str, object]:
+        del paths, config
+        from archledger.mutations import export_record_document
+
+        target_path = _find_record_path(repo, record_id)
+        write_text_atomic(output, export_record_document(target_path, record_id))
+        return {"id": record_id, "output_path": str(output), "path": str(target_path)}
+
+    _run_configured_command(
+        state,
+        "record export",
+        _build,
+        lambda payload: (
+            f"Exported {payload.get('id')} to {payload.get('output_path')}."
+        ),
+    )
+
+
+@record_app.command("apply")
+def record_apply(
+    ctx: typer.Context,
+    record_id: Annotated[str, typer.Argument()],
+    from_file: Annotated[
+        Path,
+        typer.Option(
+            "--from-file",
+            exists=True,
+            dir_okay=False,
+            resolve_path=True,
+            help="Read the replacement record document from this file.",
+        ),
+    ],
+) -> None:
+    state = _state(ctx)
+
+    def _mutate(
+        repo: ArchitectureRepository,
+        paths: ProjectPaths,
+        config: ProjectConfig,
+        target_path: Path,
+    ) -> dict[str, object]:
+        del config
+        from archledger.mutations import apply_record_document
+
+        before = target_path.read_text(encoding="utf-8")
+        apply_record_document(
+            target_path,
+            record_id,
+            from_file.read_text(encoding="utf-8"),
+            workspace_root=paths.workspace_root,
+        )
+        after = target_path.read_text(encoding="utf-8")
+        return {
+            "id": record_id,
+            "path": str(target_path),
+            "changed": before != after,
+            "source_path": str(from_file),
+        }
+
+    def _fmt(payload: dict[str, object]) -> str:
+        if payload.get("changed"):
+            return (
+                f"Applied record document from {payload.get('source_path')} "
+                f"to {payload.get('id')}."
+            )
+        return f"No changes applied to {payload.get('id')}."
+
+    _run_record_mutation(state, "record apply", record_id, _mutate, _fmt)
+
+
+@record_meta_app.command("set")
+def record_meta_set(
+    ctx: typer.Context,
+    record_id: Annotated[str, typer.Argument()],
+    key: Annotated[str, typer.Argument()],
+    value: Annotated[
+        str | None,
+        typer.Argument(
+            help="Positional value; parsed as JSON when possible for compatibility.",
+            show_default=False,
+        ),
+    ] = None,
+    json_value: Annotated[
+        str | None,
+        typer.Option(
+            "--json-value",
+            help="Parse this JSON value literally.",
+        ),
+    ] = None,
+    string_value: Annotated[
+        str | None,
+        typer.Option(
+            "--string-value",
+            help="Store this value as a raw string.",
+        ),
+    ] = None,
+    from_file: Annotated[
+        Path | None,
+        typer.Option(
+            "--from-file",
+            exists=True,
+            dir_okay=False,
+            resolve_path=True,
+            help="Parse one YAML or JSON value from this file.",
+        ),
+    ] = None,
+) -> None:
+    state = _state(ctx)
+    metadata_value = _resolve_record_meta_value(
+        value=value,
+        json_value=json_value,
+        string_value=string_value,
+        from_file=from_file,
+    )
+
+    def _mutate(
+        repo: ArchitectureRepository,
+        paths: ProjectPaths,
+        config: ProjectConfig,
+        target_path: Path,
+    ) -> dict[str, object]:
         del config
         from archledger.mutations import set_record_meta
 
-        target_path = _find_record_path(repo, record_id)
         set_record_meta(
             target_path,
             record_id,
             key,
-            _parse_cli_value(value),
+            metadata_value,
             workspace_root=paths.workspace_root,
         )
-        _validate_mutation(repo, target_path)
         return {"id": record_id, "path": str(target_path), "key": key}
 
-    _run_configured_command(
+    _run_record_mutation(
         state,
         "record meta set",
-        _build,
+        record_id,
+        _mutate,
         lambda payload: f"Set {payload.get('id')} metadata {payload.get('key')}.",
     )
 
@@ -1594,28 +1720,28 @@ def record_body_append(
 ) -> None:
     state = _state(ctx)
 
-    def _build(
+    def _mutate(
         repo: ArchitectureRepository,
         paths: ProjectPaths,
         config: ProjectConfig,
+        target_path: Path,
     ) -> dict[str, object]:
         del config
         from archledger.mutations import append_record_body
 
-        target_path = _find_record_path(repo, record_id)
         append_record_body(
             target_path,
             record_id,
             file.read_text(encoding="utf-8"),
             workspace_root=paths.workspace_root,
         )
-        _validate_mutation(repo, target_path)
         return {"id": record_id, "path": str(target_path)}
 
-    _run_configured_command(
+    _run_record_mutation(
         state,
         "record body append",
-        _build,
+        record_id,
+        _mutate,
         lambda payload: f"Appended body content to {payload.get('id')}.",
     )
 
@@ -1643,15 +1769,15 @@ def record_body_set(
     if (from_file is None) == (text is None):
         raise ArchledgerError("Provide exactly one of --from-file or --text.")
 
-    def _build(
+    def _mutate(
         repo: ArchitectureRepository,
         paths: ProjectPaths,
         config: ProjectConfig,
+        target_path: Path,
     ) -> dict[str, object]:
         del config
         from archledger.mutations import replace_record_body
 
-        target_path = _find_record_path(repo, record_id)
         body_text = (
             from_file.read_text(encoding="utf-8")
             if from_file is not None
@@ -1663,13 +1789,13 @@ def record_body_set(
             body_text,
             workspace_root=paths.workspace_root,
         )
-        _validate_mutation(repo, target_path)
         return {"id": record_id, "path": str(target_path)}
 
-    _run_configured_command(
+    _run_record_mutation(
         state,
         "record body set",
-        _build,
+        record_id,
+        _mutate,
         lambda payload: f"Replaced body of {payload.get('id')}.",
     )
 
@@ -1686,15 +1812,15 @@ def refs_add(
     if not path:
         raise ArchledgerError("--path is required.")
 
-    def _build(
+    def _mutate(
         repo: ArchitectureRepository,
         paths: ProjectPaths,
         config: ProjectConfig,
+        target_path: Path,
     ) -> dict[str, object]:
         del config
         from archledger.mutations import add_source_ref as _add_ref
 
-        target_path = _find_record_path(repo, record_id)
         _add_ref(
             target_path,
             record_id,
@@ -1703,13 +1829,12 @@ def refs_add(
             reason=reason,
             workspace_root=paths.workspace_root,
         )
-        _validate_mutation(repo, target_path)
         return {"id": record_id, "path": str(target_path), "ref": path}
 
     def _fmt(p: dict[str, object]) -> str:
         return f"Added source_ref to {p.get('id')}: {p.get('ref')}."
 
-    _run_configured_command(state, "refs add", _build, _fmt)
+    _run_record_mutation(state, "refs add", record_id, _mutate, _fmt)
 
 
 @links_app.command("add")
@@ -1724,15 +1849,15 @@ def links_add(
     if not rel or not target:
         raise ArchledgerError("--rel and --target are required.")
 
-    def _build(
+    def _mutate(
         repo: ArchitectureRepository,
         paths: ProjectPaths,
         config: ProjectConfig,
+        target_path: Path,
     ) -> dict[str, object]:
         del config
         from archledger.mutations import add_link as _add_link
 
-        target_path = _find_record_path(repo, record_id)
         _add_link(
             target_path,
             record_id,
@@ -1741,7 +1866,6 @@ def links_add(
             reason=reason,
             workspace_root=paths.workspace_root,
         )
-        _validate_mutation(repo, target_path)
         return {
             "id": record_id,
             "path": str(target_path),
@@ -1752,7 +1876,7 @@ def links_add(
     def _fmt(p: dict[str, object]) -> str:
         return f"Added link {p.get('rel')} -> {p.get('target')} to {p.get('id')}."
 
-    _run_configured_command(state, "links add", _build, _fmt)
+    _run_record_mutation(state, "links add", record_id, _mutate, _fmt)
 
 
 class _ScopeEntry(TypedDict):
@@ -1948,15 +2072,15 @@ def acceptance_criterion_add(
 ) -> None:
     state = _state(ctx)
 
-    def _build(
+    def _mutate(
         repo: ArchitectureRepository,
         paths: ProjectPaths,
         config: ProjectConfig,
+        target_path: Path,
     ) -> dict[str, object]:
         del config
         from archledger.mutations import add_acceptance_criterion
 
-        target_path = _find_record_path(repo, record_id)
         add_acceptance_criterion(
             target_path,
             record_id,
@@ -1965,13 +2089,13 @@ def acceptance_criterion_add(
             expected=expected,
             workspace_root=paths.workspace_root,
         )
-        _validate_mutation(repo, target_path)
         return {"id": record_id, "path": str(target_path)}
 
-    _run_configured_command(
+    _run_record_mutation(
         state,
         "ac add",
-        _build,
+        record_id,
+        _mutate,
         lambda payload: f"Added acceptance criterion to {payload.get('id')}.",
     )
 
@@ -1981,11 +2105,81 @@ def _find_record_path(repo: ArchitectureRepository, record_id: str) -> Path:
     return record.path
 
 
+def _run_record_mutation(
+    state: CLIState,
+    command: str,
+    record_id: str,
+    payload_builder: Callable[
+        [ArchitectureRepository, ProjectPaths, ProjectConfig, Path],
+        dict[str, object],
+    ],
+    human_formatter: Callable[[dict[str, object]], str],
+) -> None:
+    def _build(
+        repo: ArchitectureRepository,
+        paths: ProjectPaths,
+        config: ProjectConfig,
+    ) -> dict[str, object]:
+        target_path = _find_record_path(repo, record_id)
+        original_text = target_path.read_text(encoding="utf-8")
+        try:
+            payload = payload_builder(repo, paths, config, target_path)
+            _validate_mutation(repo, target_path)
+            return payload
+        except ArchledgerError:
+            _restore_record_text(target_path, original_text)
+            raise
+
+    _run_configured_command(state, command, _build, human_formatter)
+
+
+def _restore_record_text(path: Path, original_text: str) -> None:
+    write_text_atomic(path, original_text)
+
+
 def _parse_cli_value(value: str) -> object:
     try:
         return json.loads(value)
     except json.JSONDecodeError:
         return value
+
+
+def _resolve_record_meta_value(
+    *,
+    value: str | None,
+    json_value: str | None,
+    string_value: str | None,
+    from_file: Path | None,
+) -> object:
+    provided_sources = [
+        value is not None,
+        json_value is not None,
+        string_value is not None,
+        from_file is not None,
+    ]
+    if sum(provided_sources) != 1:
+        raise ArchledgerError(
+            "Provide exactly one of VALUE, --json-value, "
+            "--string-value, or --from-file."
+        )
+    if json_value is not None:
+        try:
+            return json.loads(json_value)
+        except json.JSONDecodeError as exc:
+            raise ArchledgerError(
+                f"Invalid JSON for --json-value: {exc.msg}"
+            ) from exc
+    if string_value is not None:
+        return string_value
+    if from_file is not None:
+        try:
+            return yaml.safe_load(from_file.read_text(encoding="utf-8"))
+        except yaml.YAMLError as exc:
+            raise ArchledgerError(
+                f"Invalid YAML or JSON in {from_file}: {exc}"
+            ) from exc
+    assert value is not None
+    return _parse_cli_value(value)
 
 
 def _validate_mutation(repo: ArchitectureRepository, path: Path) -> None:
