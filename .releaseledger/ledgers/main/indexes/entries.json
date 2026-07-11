@@ -52,6 +52,20 @@
   {
     "audience": null,
     "breaking": false,
+    "entry_id": "entry-0001",
+    "internal": false,
+    "kind": "added",
+    "order": 1,
+    "record_revision": 3,
+    "release_version": "v0.3.2",
+    "scopes": [],
+    "source_refs": ["git:1f1c26512abe59b30dad08a265d6992332a81fde"],
+    "status": "accepted",
+    "summary": "Added record export and record apply commands for versioned complete-document replacement with automatic rollback"
+  },
+  {
+    "audience": null,
+    "breaking": false,
     "entry_id": "entry-0002",
     "internal": false,
     "kind": "added",
@@ -110,6 +124,20 @@
   {
     "audience": null,
     "breaking": false,
+    "entry_id": "entry-0002",
+    "internal": false,
+    "kind": "added",
+    "order": 2,
+    "record_revision": 3,
+    "release_version": "v0.3.2",
+    "scopes": [],
+    "source_refs": ["git:1f1c26512abe59b30dad08a265d6992332a81fde"],
+    "status": "accepted",
+    "summary": "Added typed metadata field specifications with per-record-type validation for common metadata shapes"
+  },
+  {
+    "audience": null,
+    "breaking": false,
     "entry_id": "entry-0003",
     "internal": false,
     "kind": "added",
@@ -161,6 +189,23 @@
   {
     "audience": null,
     "breaking": false,
+    "entry_id": "entry-0003",
+    "internal": false,
+    "kind": "added",
+    "order": 3,
+    "record_revision": 3,
+    "release_version": "v0.3.2",
+    "scopes": [],
+    "source_refs": [
+      "git:505ad5c4c42e721a18424a85d4d6d900b42dda2d",
+      "git:1f1c26512abe59b30dad08a265d6992332a81fde"
+    ],
+    "status": "accepted",
+    "summary": "Added SpecMason integration with ID mapping files for behavior specification traceability"
+  },
+  {
+    "audience": null,
+    "breaking": false,
     "entry_id": "entry-0004",
     "internal": false,
     "kind": "changed",
@@ -205,6 +250,20 @@
     ],
     "status": "accepted",
     "summary": "Replaced date-based record tracking with document version and metadata versioning"
+  },
+  {
+    "audience": null,
+    "breaking": false,
+    "entry_id": "entry-0004",
+    "internal": true,
+    "kind": "added",
+    "order": 4,
+    "record_revision": 2,
+    "release_version": "v0.3.2",
+    "scopes": [],
+    "source_refs": ["git:1f1c26512abe59b30dad08a265d6992332a81fde"],
+    "status": "accepted",
+    "summary": "Added split_front_matter_text utility for parsing front matter from raw text strings"
   },
   {
     "audience": null,
@@ -259,6 +318,20 @@
   {
     "audience": null,
     "breaking": false,
+    "entry_id": "entry-0005",
+    "internal": false,
+    "kind": "changed",
+    "order": 5,
+    "record_revision": 3,
+    "release_version": "v0.3.2",
+    "scopes": [],
+    "source_refs": ["git:9f57ca77e69a8fbcadba327731eaac1339a708a7"],
+    "status": "accepted",
+    "summary": "Changed architecture documentation to reflect the isolated architecture ledger scope, removing SDD and BDD references"
+  },
+  {
+    "audience": null,
+    "breaking": false,
     "entry_id": "entry-0006",
     "internal": false,
     "kind": "fixed",
@@ -305,6 +378,20 @@
     "source_refs": ["git:6a941b3cba824bb0071150e6772c4d6ff161b605"],
     "status": "accepted",
     "summary": "Updated CHANGELOG.md with v0.3.0 release notes"
+  },
+  {
+    "audience": null,
+    "breaking": false,
+    "entry_id": "entry-0006",
+    "internal": false,
+    "kind": "changed",
+    "order": 6,
+    "record_revision": 3,
+    "release_version": "v0.3.2",
+    "scopes": [],
+    "source_refs": ["git:1f1c26512abe59b30dad08a265d6992332a81fde"],
+    "status": "accepted",
+    "summary": "Changed check command to skip completeness warnings for archived records while preserving structural validation"
   },
   {
     "audience": null,
@@ -357,6 +444,20 @@
     "source_refs": ["git:5c88ac43d5dcd4071793cdf94036420f90586145"],
     "status": "accepted",
     "summary": "Bootstrapped releaseledger-managed changelog and backfilled prior release history"
+  },
+  {
+    "audience": null,
+    "breaking": false,
+    "entry_id": "entry-0007",
+    "internal": false,
+    "kind": "changed",
+    "order": 7,
+    "record_revision": 3,
+    "release_version": "v0.3.2",
+    "scopes": [],
+    "source_refs": ["git:1f1c26512abe59b30dad08a265d6992332a81fde"],
+    "status": "accepted",
+    "summary": "Changed record type registry with per-type metadata field specs for all architecture record kinds"
   },
   {
     "audience": null,
@@ -421,5 +522,19 @@
     "source_refs": ["git:4d23cc9089841e648519294f5fb5967e352972f3"],
     "status": "accepted",
     "summary": "Converted project documentation from reStructuredText to MyST Markdown"
+  },
+  {
+    "audience": null,
+    "breaking": false,
+    "entry_id": "entry-0008",
+    "internal": false,
+    "kind": "removed",
+    "order": 8,
+    "record_revision": 2,
+    "release_version": "v0.3.2",
+    "scopes": [],
+    "source_refs": ["git:505ad5c4c42e721a18424a85d4d6d900b42dda2d"],
+    "status": "accepted",
+    "summary": "Removed legacy BDD metadata files and replaced with SpecMason-managed behavior specifications"
   }
 ]
