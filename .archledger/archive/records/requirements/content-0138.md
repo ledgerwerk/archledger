@@ -3,7 +3,7 @@ schema_version: 4
 id: content-0138
 type: requirement
 title: BDD metadata imports and exports supported Gherkin scenarios
-status: proposed
+status: archived
 section: introduction_and_goals
 order: 130
 source: BDD metadata import and export implementation
@@ -33,7 +33,9 @@ acceptance_criteria:
       command: pytest -q tests/test_bdd_import_cli.py tests/test_bdd_export_cli.py tests/test_bdd_checks.py
       expected: passes
 kind: content
-version: 1
+version: 2
+archived_reason: Behavior specification management belongs to SpecMason, not Archledger.
+archived_from: records/requirements/content-0138.md
 ---
 
 ## Requirement

@@ -8,9 +8,14 @@ body_format: markdown
 order: 60
 status: accepted
 kind: content
-version: 1
+version: 2
 ---
 
-Key runtime scenarios: initializing a new project (scaffolding directories and section files), creating and rendering records (the primary authoring flow), validating records with check (ensuring consistency and completeness), building multi-format output (assembly plus optional conversion), taking source snapshots and detecting changes (source tracking), and converting source dialects (Markdown to AsciiDoc migration).
+Key runtime scenarios cover project initialization, record creation, strict
+validation, safe complete-record replacement with rollback, document assembly
+and conversion, source snapshot and impact detection, focused context and trace
+queries, source dialect conversion, and ledger ID renumbering.
 
-See the [Build Pipeline Flow diagram](#diagram-al_diagram_0059) for a visual overview of the four-stage pipeline.
+See the [Build Pipeline Flow diagram](#diagram-al_diagram_0059) for the document
+assembly path. The safe mutation scenario describes the supported edit and
+apply path for existing records.

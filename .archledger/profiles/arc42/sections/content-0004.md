@@ -8,11 +8,22 @@ body_format: markdown
 order: 40
 status: accepted
 kind: content
-version: 1
+version: 2
 ---
 
-The fundamental approach is a file-based pipeline: human-editable Markdown or AsciiDoc records with YAML front matter are stored in a configurable directory, validated by a check command, assembled into a single arc42-style document by a Jinja2-based render step, and optionally converted to other formats (HTML, PDF, DOCX, RST, Textile) via pandoc or asciidoctor. A dialect abstraction (`dialects.py`) ensures that rendering logic works identically for both source formats. The CLI provides the sole interface. No server, database, or GUI is involved.
+The fundamental approach is a file-based pipeline: human-editable Markdown or
+AsciiDoc records with YAML front matter are validated, assembled into an arc42
+document with Jinja2, and optionally converted through pandoc or asciidoctor. A
+dialect abstraction keeps rendering independent of the source format. The CLI
+is the sole product interface; there is no server, database, or GUI.
 
-A source tracking subsystem (`source snapshot`/`source changed`) allows agents to detect which source files changed since the last baseline and which architecture records are impacted via `source_refs` linkage.
+A typed record registry describes per-record metadata shapes. Existing records
+are changed through version-aware mutation commands. Complete-document apply
+operations validate identity and kind, increment versions only for real changes,
+and roll back the target when repository validation fails.
 
-The build pipeline is visualized in the [Build Pipeline Flow diagram](#diagram-al_diagram_0059) in the runtime view.
+Source tracking compares the workspace with an explicit snapshot and maps
+changed files to architecture records through `source_refs`. Focused context and
+trace queries expose bounded architecture evidence without requiring a build.
+Archledger deliberately remains isolated from behavior-specification and
+cross-ledger workflow semantics.

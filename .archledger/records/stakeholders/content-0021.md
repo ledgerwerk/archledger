@@ -7,7 +7,7 @@ body_format: markdown
 status: accepted
 section: introduction_and_goals
 order: 30
-contact: null
+contact: Project repository
 expectations:
   - Structured arc42 sections with deterministic ordering
   - ADR records with Context/Decision/Consequences validation
@@ -17,7 +17,7 @@ source_refs:
   - README.md
   - docs/index.md
 kind: content
-version: 2
+version: 3
 ---
 
 Software architects who define and maintain the architectural vision. They author ADRs, quality scenarios, building block decompositions, and ensure that the documentation stays consistent with the implemented system.

@@ -1,30 +1,27 @@
 ---
 schema_version: 4
-id: runtime-0126
+id: runtime-0127
 type: runtime_scenario
-title: Agent tries to implement before approval
-status: proposed
+title: Agent implements after approval
+status: archived
 section: runtime_view
-order: 90
+order: 100
 participants: []
 trigger: ""
 result: ""
 body_format: markdown
 bdd:
   feature: Task lifecycle gates
-  scenario: Agent tries to implement before approval
+  scenario: Agent implements after approval
   tags:
     - lifecycle
     - approval
-    - happy-path
   given:
-    - a task has a proposed plan
-    - the plan has not been approved by the user
+    - a task has an approved plan
   when:
     - the agent starts implementation
   then:
-    - implementation is blocked
-    - the task remains in planning or review state
+    - implementation proceeds normally
   automation:
     status: pending
   rule: Implementation requires an accepted plan
@@ -33,7 +30,11 @@ source_refs:
     role: documents
     reason: Imported Gherkin scenario source.
 kind: runtime
-version: 1
+version: 2
+archived_reason:
+  Obsolete imported Taskledger lifecycle scenario outside the Archledger
+  boundary.
+archived_from: records/runtime/runtime-0127.md
 ---
 
 Describe the runtime scenario.
@@ -42,10 +43,8 @@ Describe the runtime scenario.
 
 Rule: Implementation requires an accepted plan
 
-Example: Agent tries to implement before approval
+Example: Agent implements after approval
 
-Given a task has a proposed plan
-Given the plan has not been approved by the user
+Given a task has an approved plan
 When the agent starts implementation
-Then implementation is blocked
-And the task remains in planning or review state
+Then implementation proceeds normally

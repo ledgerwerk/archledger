@@ -8,9 +8,22 @@ body_format: markdown
 order: 50
 status: accepted
 kind: content
-version: 1
+version: 2
 ---
 
-The system is decomposed into fifteen black boxes within a single white box. The CLI Layer receives user input and delegates output formatting, the Config Layer parses and renders project configuration, the Repository Layer orchestrates business logic, the Model Layer defines core data structures and validation, the Record Type Registry maps record types to templates and defaults, the Check Layer validates record content per type, the Source Ref Validation layer normalizes traceability links, the Storage Layer handles file I/O, the Assembly Layer renders the document via Jinja2 templates, the Dialect Layer abstracts format-specific markup, the Section Rendering Layer handles per-record-type output, the Render Layer orchestrates the build pipeline, the Converter Layer handles multi-format export, the Source Tracking Layer detects changes and impacts, and the Migration Layer converts between source dialects.
+The system is one white box composed of focused services. The CLI layer parses
+commands and presents human or JSON results. Config and Storage resolve project
+paths and persist front-matter records. Repository and Model load records and
+enforce structural, metadata-shape, and cross-reference rules. The Record Type
+Registry supplies type-specific metadata contracts and templates. The Record
+Mutation Service performs versioned, validated writes with rollback.
 
-See the [Building Block Layer Structure diagram](#diagram-al_diagram_0040) for a visual decomposition showing the layer relationships.
+Assembly, Dialect, Section Rendering, Render, and Converter services build native
+or converted documents. Source Tracking reports drift and impact. Context and
+Trace provide bounded architecture evidence. Migration, identity, renumbering,
+ID sequence, and segment services preserve source-model integrity. Diagram,
+source-ref, test-ref, link, scope, and check services validate specialized
+contracts.
+
+See the [Building Block Layer Structure diagram](#diagram-al_diagram_0040) for a
+visual decomposition of the principal layer relationships.

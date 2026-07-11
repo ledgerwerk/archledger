@@ -412,12 +412,10 @@ def _metadata_field_fix_example(
             '--string-value "example"'
         ),
         "integer": (
-            f"archledger record meta set {record_id} {field_name} "
-            "--json-value '1'"
+            f"archledger record meta set {record_id} {field_name} --json-value '1'"
         ),
         "boolean": (
-            f"archledger record meta set {record_id} {field_name} "
-            "--json-value 'true'"
+            f"archledger record meta set {record_id} {field_name} --json-value 'true'"
         ),
         "string_list": (
             f"archledger record meta set {record_id} {field_name} --json-value "

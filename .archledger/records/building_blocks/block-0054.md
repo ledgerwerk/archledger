@@ -12,6 +12,8 @@ interfaces:
   - RECORD_TYPES registry
   - CLI_KIND_ALIASES
   - RecordTypeSpec dataclass
+  - MetadataFieldSpec dataclass
+  - metadata_field_specs_for_record_type()
 location:
   - archledger/record_types.py
 fulfilled_requirements: []
@@ -25,11 +27,19 @@ source_refs:
   - path: archledger/templates/records/diagram.adoc.j2
     reason: Diagram template scaffolding per diagram type
 kind: block
-version: 1
+version: 2
 ---
 
-The `record_types.py` module is the central registry for all arc42 record types. It defines `RecordTypeSpec`, a frozen dataclass mapping each record kind to its directory name, filename prefix, default section, template basename, CLI aliases, default status/level, and a context factory function. The `RECORD_TYPES` dictionary provides the authoritative lookup. `CLI_KIND_ALIASES` maps alternative names (e.g., `qg` for `quality_goal`) for the CLI.
+`record_types.py` is the authoritative registry for arc42 record kinds. Each
+`RecordTypeSpec` maps a kind to its directory, filename prefix, section,
+template, aliases, default status and level, context factory, and typed metadata
+fields.
 
-The diagram context factory defaults `diagram_type` to `"text"` (previously `"mermaid"`). Supported diagram types are `text`, `ascii`, `unicode`, `svgbob`, and `mermaid`. The default can be overridden per-project via the `[diagrams].default_type` config key, which the Repository Layer passes through when creating diagram records.
+`MetadataFieldSpec` describes supported value shapes and nullability. Shared
+fields such as `applies_to`, `level`, and `parent` combine with per-type fields
+for requirements, stakeholders, runtime scenarios, diagrams, interfaces, and
+other records. The Model Layer consumes this contract during validation, while
+CLI metadata mutation accepts explicit JSON, raw strings, or YAML/JSON files.
 
-This module was extracted from `model.py` to keep the model focused on data structures while record type configuration lives in one discoverable location.
+Diagram records default to text and support text, ascii, unicode, svgbob, and
+mermaid content with type-specific scaffolding and checks.

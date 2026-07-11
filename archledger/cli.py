@@ -2166,9 +2166,7 @@ def _resolve_record_meta_value(
         try:
             return json.loads(json_value)
         except json.JSONDecodeError as exc:
-            raise ArchledgerError(
-                f"Invalid JSON for --json-value: {exc.msg}"
-            ) from exc
+            raise ArchledgerError(f"Invalid JSON for --json-value: {exc.msg}") from exc
     if string_value is not None:
         return string_value
     if from_file is not None:

@@ -8,23 +8,32 @@ body_format: markdown
 order: 10
 status: accepted
 kind: content
-version: 2
+version: 3
 ---
 
-archledger is a dual-source architecture documentation ledger for arc42-style documents. Both Markdown and AsciiDoc are first-class source formats. The tool keeps project-local configuration (`archledger.toml`) in the source workspace and stores human-editable architecture records as individual files with YAML front matter. The primary output is a rendered document assembled from these records, with optional exports to HTML, PDF, DOCX, RST, and Textile via pandoc or asciidoctor.
+archledger is a source-first architecture documentation ledger for arc42-style
+documents. Markdown and AsciiDoc are first-class source formats. Project-local
+configuration selects the storage paths, while human-editable architecture
+records use YAML front matter and versioned bodies. Native builds assemble these
+records directly; optional converters produce HTML, PDF, DOCX, RST, or Textile.
 
-The tool targets three stakeholders: developers who document alongside code, architects who maintain the structural vision, and coding agents that automate documentation workflows via the CLI.
+The tool targets developers, architects, and coding agents. Its scope is
+architecture records, links, and source evidence. Behavior specifications are
+maintained by SpecMason, and lifecycle or cross-ledger orchestration remains
+outside Archledger.
 
 ## How to update this architecture
 
 Use the source-first maintenance loop:
 
 ```bash
-archledger source changed --json
-archledger read --json --body
-archledger new <type> "<title>" --status accepted
-archledger check --strict
-archledger build
+archledger --json source changed
+archledger --json context --changed
+archledger record export RECORD_ID --output /tmp/record.md
+# edit /tmp/record.md
+archledger record apply RECORD_ID --from-file /tmp/record.md
+archledger --json check --strict
+archledger --json source snapshot --reason after-archledger-update
 ```
 
 Detailed agent guidance lives in `docs/agent-workflow.md`.

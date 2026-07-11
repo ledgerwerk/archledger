@@ -22,8 +22,11 @@ source_refs:
   - archledger/converters.py
   - archledger/conversion_plan.py
   - archledger/formats.py
+  - path: docs/build-and-export.md
+    role: documents
+    reason: Documents assembly and converter behavior.
 kind: block
-version: 1
+version: 2
 ---
 
 The converter module handles multi-format export. It takes an assembled document (from the Assembly Layer) and produces output in the requested formats. For native format builds (Markdown source to Markdown output, or AsciiDoc source to AsciiDoc output), it does a direct file copy. For other formats, it invokes external converters: pandoc for Markdown-to-HTML/PDF/DOCX/RST/Textile, asciidoctor for AsciiDoc-to-HTML/PDF (direct or via DocBook intermediate), and pandoc for AsciiDoc-to-DOCX/Markdown/RST/Textile (via DocBook). The formats module (`formats.py`) defines the `OutputFormat` enum and resolves requested formats from CLI options and config.

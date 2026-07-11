@@ -13,6 +13,7 @@ interfaces:
   - ArchitectureRecord dataclass
   - SourceRef dataclass
   - validate_record()
+  - validate_record_metadata_shape()
   - filename_for()
   - record_sort_key()
   - normalize_kind()
@@ -26,7 +27,20 @@ source_refs:
   - archledger/model.py
   - archledger/errors.py
 kind: block
-version: 1
+version: 2
 ---
 
-The model module defines the core data structures and validation rules. `ArchitectureRecord` is a frozen dataclass holding id, type, title, status, section, order, path, metadata, body, and source_refs. `SourceRef` holds path, symbols, and reason for traceability linking. `validate_record()` checks field types, status values, and ID/filename consistency. Constants for valid formats, status values, and file extension mappings remain in `model.py`. Record type to directory/template/section mappings have been extracted to the Record Type Registry (`record_types.py`). Source ref validation and normalization have been extracted to the Source Ref Validation layer (`source_refs.py`). The `errors.py` module defines the exception hierarchy: `ArchledgerError` base with `ConfigError`, `StorageError`, `FrontMatterError`, `ValidationError`, and `RenderError` subclasses.
+The Model Layer defines immutable architecture records, normalized source
+references, validation constants, and core record invariants. `validate_record()`
+checks field types, lifecycle status, identifier and filename consistency, and
+segment expectations.
+
+Metadata-shape validation obtains field specifications from the Record Type
+Registry and verifies strings, integers, booleans, string lists, objects, and
+object lists. Diagnostics identify the record and field, report the observed
+shape, and provide a typed `record meta set` repair example. Archive tombstones
+and section records use their dedicated contracts.
+
+Specialized source-reference validation remains in `source_refs.py`; record type
+definitions remain in `record_types.py`; domain exceptions remain in
+`errors.py`.

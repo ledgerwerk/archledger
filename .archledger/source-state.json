@@ -1,8 +1,8 @@
 {
   "directories": {
     ".": {
-      "file_count": 192,
-      "sha256": "155bc120ad1bd8549d575c6093c82744974e3f373a93f2be38e193ea4ecff9e3"
+      "file_count": 194,
+      "sha256": "9dc8b1791a565721769c95b9a719c8a44f329a478576d8a157ff6d7695423316"
     },
     ".github": {
       "file_count": 4,
@@ -13,24 +13,24 @@
       "sha256": "9489f53c863d148a5a1ad16c0c0e2445fc7d6d92dc5a6650fe54e19f40f43158"
     },
     ".releaseledger": {
-      "file_count": 28,
-      "sha256": "3578e5ab09156f15bcfdecfa55d1409624782b2e0e97e3096cfa1cb9aef197a8"
+      "file_count": 30,
+      "sha256": "818e21581b244bb36841d71a8657221e9081fd8e8340c9ac66bfff939e18b9db"
     },
     ".releaseledger/ledgers": {
-      "file_count": 28,
-      "sha256": "14fbc9c0fd77ce0156e46c0da5b41e004398e3daaedc3443a400d3bfa8ad9b25"
+      "file_count": 30,
+      "sha256": "47a6beb6eaa02015635ced3b8186509c5495baebe4bc8cb0039988bcc7c7c199"
     },
     ".releaseledger/ledgers/main": {
-      "file_count": 28,
-      "sha256": "4deb40de66f4c881fc039795e54b7f3ebd973e8f5b8ce0ae225c1b9be5b8c8df"
+      "file_count": 30,
+      "sha256": "6526f30fd1708b5cb73e590bf33d2c22f58e5c381acdcecbcf1b77888d4b40c0"
     },
     ".releaseledger/ledgers/main/indexes": {
       "file_count": 2,
-      "sha256": "02164646919f4a0ae1dbcc60dd6b296486941165ee92e260154903ff98ce5328"
+      "sha256": "dc8b2b4b7a5609d34f865dd161cb8625cdca2263f6dd470aa72986f682935b38"
     },
     ".releaseledger/ledgers/main/releases": {
-      "file_count": 26,
-      "sha256": "329fdf6e99d3cc836643ba39cae67bd4d4f1a5f3e0926df26a60861c54b28e54"
+      "file_count": 28,
+      "sha256": "99f13a19700dcdee92334b604990ef3ff2ff95c9cdf69d04b36d14722905af42"
     },
     ".releaseledger/ledgers/main/releases/v0.1.0": {
       "file_count": 1,
@@ -52,17 +52,17 @@
       "file_count": 8,
       "sha256": "7181b7786172faef8dac2a0a4a9941310db73e4c0bc384be4712289688ea780b"
     },
-    ".releaseledger/ledgers/main/releases/v0.4.0": {
-      "file_count": 7,
-      "sha256": "7fc8d2da609e38d1ad1f28dc932b1eca6d5d7d02f342a9bad780a299e113874e"
+    ".releaseledger/ledgers/main/releases/v0.3.1": {
+      "file_count": 9,
+      "sha256": "b3b01acbbcd547afe7fa098406b099a4cf84288794876cfdfe06d2fd0dad212f"
     },
-    ".releaseledger/ledgers/main/releases/v0.4.0/entries": {
-      "file_count": 6,
-      "sha256": "10b2f0adcea4ec6d412919603cf2389c299ed2fc234048f9e63c59c4a6710a71"
+    ".releaseledger/ledgers/main/releases/v0.3.1/entries": {
+      "file_count": 8,
+      "sha256": "0ea879dbce6bf4c573ae944665960bee0d8458782dd42e4e56cad56fe63bf8ca"
     },
     "archledger": {
       "file_count": 105,
-      "sha256": "679db10b955113d76d26ae87003bcd09e7f5d6ad08d3d4950ab3dbd473a6bebe"
+      "sha256": "9aa145ba75dd6f71768c63ccf07d4aea418a5c3149eaf2e43725d24ffc303b33"
     },
     "archledger/config": {
       "file_count": 5,
@@ -74,7 +74,7 @@
     },
     "archledger/storage": {
       "file_count": 7,
-      "sha256": "dcce775908047ee58fd40c6b0593b7baaedc41c1667602bd08052a3cd7363fa1"
+      "sha256": "f6ae4f6d75bc8fd3906e5cb380bd492061998a70883f76d2f403764082c103ec"
     },
     "archledger/templates": {
       "file_count": 44,
@@ -86,27 +86,31 @@
     },
     "docs": {
       "file_count": 10,
-      "sha256": "574c13fdffeb36fc018fa3ab59b0d12df6e61fbe9bb393e6559394b0cb475469"
+      "sha256": "54c0b04a85a8a3e00a4b8e18b0c5acfff62bfbc20489ad4be1d1c5b414af7e9c"
     },
     "skills": {
       "file_count": 1,
-      "sha256": "b957e70dc5ddc30e4a2057a6a708ece94b72880e503acb4a6feea252300e3488"
+      "sha256": "aef714e998d997fcedc6f0932ee8aae68183f0666ecb259d4ac05c931466ac83"
     },
     "skills/archledger": {
       "file_count": 1,
-      "sha256": "b3b5ceb40ec26d35d6e737349cf6bd9a86af3d8df63f8d23cb6cad5089f46c18"
+      "sha256": "4c7981c8e6e7147d17a18476842bef6f126d8d81b093c350f3288622c4defce5"
     },
     "specs": {
-      "file_count": 1,
-      "sha256": "d720b340cdc57d0ae282144583a7c1030400d3eea6d8ddfe8054dd560b2e907a"
+      "file_count": 2,
+      "sha256": "39f80cee7662fc2927de2ee828f622077e533f802db4e79731ff17d1d2ae201c"
     },
     "specs/behavior": {
+      "file_count": 2,
+      "sha256": "5100ac0792849377e99c24816ea67822a83a2ebc64d264d81b44676fc5092200"
+    },
+    "specs/behavior/mappings": {
       "file_count": 1,
-      "sha256": "edf1722f8329658fb4b2ec9f47cc003640e24bd7efc631829475147f6bef29e2"
+      "sha256": "81c251ff1953b6a6ace7feb5e8640e604003c1dca3d52977c91978efc0209ebe"
     },
     "tests": {
       "file_count": 31,
-      "sha256": "fa9ecac9752131c0be68854aae2b465414868719a0885640bb848c8270e302cb"
+      "sha256": "82afd35b6d5a81a609d37d85df363dfbfdf2e67f2d22e07af48051911b363c42"
     }
   },
   "files": {
@@ -114,7 +118,7 @@
       "sha256": "9c9a93796c8941454f5c919431a1ea430266fa4c2909434a7c5872b63466ad1f"
     },
     ".codecrate.toml": {
-      "sha256": "ab8257d709852a4d1dd91afadffe4a04240974d02d31f4b1a3ccc5fe34c14570"
+      "sha256": "9fc4b56fc022eeac212c37e696449b434bfbe949e56d804aa6acd2e87dd318e1"
     },
     ".github/workflows/codecov.yml": {
       "sha256": "38f978fafd266e8c0ede289c983c4ed9dd443846f5c7c73b3e4007bec90c4915"
@@ -138,10 +142,10 @@
       "sha256": "56fb5291a4e75ee787876a382613fd09325e94f9fff9da9a9cfeed6bbbf1bfcb"
     },
     ".releaseledger/ledgers/main/indexes/entries.json": {
-      "sha256": "e7932b99b5320c57898d925c26403001402acb0acd204df8cb136a4a2541e2c7"
+      "sha256": "053da87f78de68d31a08c6097e07aa9bb0e00f13863bb9944c95c7a73089a7df"
     },
     ".releaseledger/ledgers/main/indexes/releases.json": {
-      "sha256": "1222d499623da78fa314153d166a847d4ce78e5411d32657010b6c8606352f22"
+      "sha256": "bf4dc9718c296274277360fc76a2d13fc51990b270a0d16b83dfc88216897880"
     },
     ".releaseledger/ledgers/main/releases/v0.1.0/release.md": {
       "sha256": "41e5622d6425a47eb21e85b2693aa0b7566b461779a8ec28ec069413f4d6abc0"
@@ -200,41 +204,44 @@
     ".releaseledger/ledgers/main/releases/v0.3.0/release.md": {
       "sha256": "22b7db3a1370858264fef3d91ca12cfa1052f8b8362dc775e20a3f6a14ae3707"
     },
-    ".releaseledger/ledgers/main/releases/v0.4.0/entries/entry-0001.md": {
-      "sha256": "82d46bddb72102f51b79431d4e90be1f4c34f821b40c4dc9d30fb507cf39e902"
+    ".releaseledger/ledgers/main/releases/v0.3.1/entries/entry-0001.md": {
+      "sha256": "c8e423537ff6aba733bcbbdecc69141f60153089aa2e32ffb761089e35796a62"
     },
-    ".releaseledger/ledgers/main/releases/v0.4.0/entries/entry-0002.md": {
-      "sha256": "6d6221813a783302dd0ff548303e2fc7a8c2b284b68e6a35efa6acc994928eb5"
+    ".releaseledger/ledgers/main/releases/v0.3.1/entries/entry-0002.md": {
+      "sha256": "e90cfa2d028a039fb358e77ec7aa5b4f8e7795a15a5c07302857ee66fcc67fed"
     },
-    ".releaseledger/ledgers/main/releases/v0.4.0/entries/entry-0003.md": {
-      "sha256": "8100b2c26303ba12331355e4a7f59a1e2c9de2ddc9692157af619415882c83aa"
+    ".releaseledger/ledgers/main/releases/v0.3.1/entries/entry-0003.md": {
+      "sha256": "9f578e1351473e3aa0a3eae359837b4331f861d5c33c81ea6f3ebb56dc245875"
     },
-    ".releaseledger/ledgers/main/releases/v0.4.0/entries/entry-0004.md": {
-      "sha256": "584e65a02a3320e305aafa713702ebdb3556a2156e7ba541d4639e854a212795"
+    ".releaseledger/ledgers/main/releases/v0.3.1/entries/entry-0004.md": {
+      "sha256": "799fafe6dd2a2c75bc7141eaaf7517fae80dddd7d0f1b3b6996b523add2cdd57"
     },
-    ".releaseledger/ledgers/main/releases/v0.4.0/entries/entry-0005.md": {
-      "sha256": "4375828dd9ea85f147b0b6c5878cacb5a08883f56e7b24ade5917124ff3b07bf"
+    ".releaseledger/ledgers/main/releases/v0.3.1/entries/entry-0005.md": {
+      "sha256": "dc506138ce8934d0418e3a5e52c498d295623f7121d88aaef59624ef822333e7"
     },
-    ".releaseledger/ledgers/main/releases/v0.4.0/entries/entry-0006.md": {
-      "sha256": "487fbea34e2b9b76f28dcfc19ca2d67d41fb2c85eb0ca8a2f69602ba1356bfa8"
+    ".releaseledger/ledgers/main/releases/v0.3.1/entries/entry-0006.md": {
+      "sha256": "372df954dfaca1d81a55799765f2b7c03c54e9bb04320b13cd2ae59e5f075c07"
     },
-    ".releaseledger/ledgers/main/releases/v0.4.0/release.md": {
-      "sha256": "3318a2167b1216483501a6842b8cd16d18b1373ada3ca1d26502a9d13c34e6ef"
+    ".releaseledger/ledgers/main/releases/v0.3.1/entries/entry-0007.md": {
+      "sha256": "0aba72a05e3068ac0cdab224eeb5e16ddee6b5648ce7c2aeccbb27974da67f25"
+    },
+    ".releaseledger/ledgers/main/releases/v0.3.1/entries/entry-0008.md": {
+      "sha256": "b9a2a850540d9db3ba0a0142a2a8aee2fa053fc9440acaf516c6e9e4763258e2"
+    },
+    ".releaseledger/ledgers/main/releases/v0.3.1/release.md": {
+      "sha256": "c6ddd997fe6cf1ea2a5e9a6f2113e60c4539d9cb1be7e3202f8b135af79985b8"
     },
     ".ruff.toml": {
       "sha256": "a2772615e41d74ec62417cea55b13a2b371822b0ce7f02552198f33822f184b1"
     },
-    ".specweave.toml": {
-      "sha256": "21c9faa1beebb5ca709c29dc5af1ded8cc045143653a28734852cd6ace41cec4"
-    },
     ".taskledger.toml": {
-      "sha256": "7e8f9094b19f8222bb9aa35bd1edea39c4e17aed269e70b78ec62f6d533d8c10"
+      "sha256": "72b6909f5c74e5d7edb38f8ec6247c3d2f6b274ba4c270f01b93bd38f6f033e7"
     },
     "CHANGELOG.md": {
-      "sha256": "e9805af76e61a5db35962f25eaafb3dd5295a08f075d4e48351c1ad113eb2d3d"
+      "sha256": "dfa2c3dabe31b9cda4fffd7fbc98dcdc96a4dadb27b43a7f06045f79b73e8e07"
     },
     "README.md": {
-      "sha256": "ba72019aad1a6a8c46efbae62e8e191f9a1ffae5ab57e944c10c306f26b788d9"
+      "sha256": "e1e07bf2fc1d2d732d2a647718a00a66bc02e014fc7727419a5c80f02634372a"
     },
     "archledger/__init__.py": {
       "sha256": "c442496577c6ee3d7260f799fa229c81f0b3fa94eb372fbd88797cc37f8de242"
@@ -246,7 +253,7 @@
       "sha256": "80b77f44f4f4fe03655332b61cecd692cb0e41422214bcbcde60fecd28c01055"
     },
     "archledger/cli.py": {
-      "sha256": "68469e60f805183ce99f5eb00fd43a878dc5200ee5002e26165e1129e62d83a8"
+      "sha256": "b11be69c1d2c8bf1d1b120c58bc1e859655c32a0cd18a65bd1c6a2143610e773"
     },
     "archledger/cli_formatting.py": {
       "sha256": "0fd07d2acfd102cd3f8d33a2a149e757af8e07f5614660ee5699cb16f22d524b"
@@ -339,16 +346,16 @@
       "sha256": "a0aeb864b42f9831bd84c4744fd2ad95eb9b26b89aee978fe0787eb27670c518"
     },
     "archledger/model.py": {
-      "sha256": "2a90873287872241dba87580b57c6e19953aad234fa62aeca9d153ac048b2cb8"
+      "sha256": "0ae4e6cf76e90feb5aa4697ba48af2bef6884f175f9a39fdef8520a7d36607c5"
     },
     "archledger/mutations.py": {
-      "sha256": "fd2078e9b271cc7015cbeca7cd78f65e0b00ec2e0150278fa1f99967418c9a35"
+      "sha256": "631f016208ab4f58e69cdee192be9eb0acac2e4954725ea685f9fb98b13923c5"
     },
     "archledger/profiles.py": {
       "sha256": "7f6fd1c1354660335af59f5679883d3dc648d0c6c92c23acec35c310537b53ed"
     },
     "archledger/record_types.py": {
-      "sha256": "7e8dcf521b0792bcf1cb9f7298482a0121ecfd7782af6c0d44cfdfdee2c2bc00"
+      "sha256": "8481b5de609ca757a6842502c7360e9a361e31beb325bc844bf99a28a84487af"
     },
     "archledger/render.py": {
       "sha256": "da556c55b0a540f57ff1c809f8e96f36e0c38bc1b48d426d736f96b9d485e74e"
@@ -357,7 +364,7 @@
       "sha256": "170d4cbe7971c7fafd0f17cb937f15b2d1da24acd18c969a2faa43a7af571ed7"
     },
     "archledger/repository.py": {
-      "sha256": "5924bc5e9dc87dfbb94078e7a84c530423951b4787488fdfb954bf552058c5c7"
+      "sha256": "8ad9177fb87f15839fdc498c9529a73ff9ed1723aa68073a6aaa0859f49ecfe5"
     },
     "archledger/schemas/archledger.changed.v1.schema.json": {
       "sha256": "e32e37314288614d6aee33f787f5714f50d4ba1aa53baaaa2ec021ee2d7a2cb7"
@@ -399,7 +406,7 @@
       "sha256": "4999e5ed0abb729dcf114e4cccf76315a1245521a95905ea84ac2a8420a92b1c"
     },
     "archledger/storage/frontmatter.py": {
-      "sha256": "98c68e691592be3b8f211462bf8aa51b03a8d0609d6293d8829dc5883df41b1d"
+      "sha256": "98800fcb068dc3265420b04aa776a43ed0a421bb25adfc40eec6554f8eda5eff"
     },
     "archledger/storage/meta.py": {
       "sha256": "4f175a849bbc400c50174b0f76a8e463b6283e4ad65417f7baeab66211ae657a"
@@ -551,26 +558,23 @@
     "archledger/trace.py": {
       "sha256": "062254058218686d06de5943edc4bda060ad71756b097b9bb88bd78ea48b9e5c"
     },
-    "archledger_sphinx_markdown_conversion_brief.md": {
-      "sha256": "9d645c93d7fe5729c375e561667cda5fa2619d0fa3076fe2fc284f0159273be5"
-    },
     "docs/agent-workflow.md": {
-      "sha256": "fe96e760f6ac543f1472b11b10c7903feb65fd2b7296fa46518ae5ac9c186ad6"
+      "sha256": "3f1c831950210f8d1ee76b30dc1f1b737b44ae49b45f64bf809731f08f329e28"
     },
     "docs/api.md": {
       "sha256": "fdb91482dc4e26598e353a648df2d877b2fdff8dd79ea6d48b0fdb35f1624c6e"
     },
     "docs/build-and-export.md": {
-      "sha256": "dac9b207b5f834791aeeed6fb744d9ff65e8937f539be5da7f0441b0e9e517e1"
+      "sha256": "6c8b6bea47734992d56186b1a116c0802a24aded636bf8f92a3506e14347467f"
     },
     "docs/cli.md": {
-      "sha256": "2e0133b1241b3d2401e6b5bc4a0df4fa480d95dcbd720179945e5875adfef9be"
+      "sha256": "c296db2c41a79904d8f776c62d92cfdd24f4524888016a9441752850fe54606b"
     },
     "docs/conf.py": {
       "sha256": "ff642fbb274180688344be720920555acb4a7fda62bb2ac2da11bddf6632b429"
     },
     "docs/configuration.md": {
-      "sha256": "bd45208efbdf8f45fb267c60f993df37667f88bfa59d47ad3ad5206baf10d9b2"
+      "sha256": "2391b88472099595c857ac90cf17cf6bde2301329b8d96969c2e7b426e6f5dba"
     },
     "docs/index.md": {
       "sha256": "c8aafea40f5ebed85edfe2d68128fe4dbd13baf8eabd52509449e31d43c394c9"
@@ -582,16 +586,22 @@
       "sha256": "8863d1f4761e8128ab13e6efaa0c756cfd998e58d1ab100b79cc45317699435d"
     },
     "docs/source-tracking.md": {
-      "sha256": "7a72b0d4bb775bcd9e1e518a43966c973e9bcd67861860817e63efe35e1dda7b"
+      "sha256": "a33e8fb2ed7b7fe2a503f4e2a343509f120a08f06fa7043179bb4303cbc0d49f"
     },
     "pyproject.toml": {
-      "sha256": "59daa317c0a025c83f08a7d3365ae8da43d31967d25d3510d431574847ec8818"
+      "sha256": "d1d7f7b0b56032878733cada478291c90d20f531621717dad12de632403f74bb"
     },
     "skills/archledger/SKILL.md": {
-      "sha256": "952bee92143bde2ca4a09c2a22983f46193603d779f9e0f9315eed3945b3ecd3"
+      "sha256": "5509f100c2b1dad4aa4d9154bd6adcb0dbdb8395da59745d63b918e33b897871"
+    },
+    "specmason.toml": {
+      "sha256": "dbe8c6c96057a43fa4ed73e8632a8ef09cf1d080e0ef3c7f611c355747e678ad"
     },
     "specs/behavior/README.md": {
-      "sha256": "4ca3373f2daf3d19fc69af086cc4c35c3117fdfa7888a344f1ba60cefa68e870"
+      "sha256": "950d30ee93fd68d3fc1718568dcb7bb6b6ed351d84dbf9aaba3ac9950b3bbbb9"
+    },
+    "specs/behavior/mappings/intentional-unmapped.json": {
+      "sha256": "3d49915c13f2efc95cb3990619de7b282ccbdda10a0e2d34d0f3219cdebacaab"
     },
     "tests/__init__.py": {
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -642,7 +652,7 @@
       "sha256": "66f4154f545956d2f8308dc43c74ac4841526fd521bf95e0ba15e561ee0ba62a"
     },
     "tests/test_mutation_cli.py": {
-      "sha256": "87c320efcc56449304f4af48ed3f602a5c41bf984705cb0fb9285122535343ca"
+      "sha256": "c5187e2a046cd0bcd03b51c4c7936eb13d7598f6952df10353523ec51a071214"
     },
     "tests/test_paths.py": {
       "sha256": "22b4be058b2a859fa8495fd36f43d552ca18a5c64c37d08bf70690bc60377bea"
@@ -660,7 +670,7 @@
       "sha256": "c4982e9a3b1ad783775fcfff282998c239eeee1f4ba427a5c2c54588f40015fc"
     },
     "tests/test_repository_cli.py": {
-      "sha256": "bc6b92e5c1d0962706687c9dee2a6cb04d915fd1f0bf473067d44aefb9bbf4a8"
+      "sha256": "7b76e631bf21d8b55c6936ea6cbdc74db0fd51f12c3acfc4a70f907a84798d2a"
     },
     "tests/test_schema_install_cli.py": {
       "sha256": "4ab30984d2b22d0f8504284f27d438048dc4d2929aa5b4aa9ea2d1802718f96e"
@@ -672,7 +682,7 @@
       "sha256": "d32f5c3a2be1cd7ee752c9c66843d69d9c3eb871e89ef542b8073bb4ec5b2978"
     },
     "tests/test_skill_file.py": {
-      "sha256": "4675f0c026e61e7b644843482b52e458425f831558f50064aa811318acea10a5"
+      "sha256": "3c39a1798587f59fe0b182daa61f84e66527f9339ebaf65015e702ca19fe75fb"
     },
     "tests/test_source_tracking.py": {
       "sha256": "7a555800ffb6c76e03528d4bdb2acd3bf588d04cc26f72f8e4669ebabfc22b9a"
@@ -689,7 +699,7 @@
   },
   "project_name": "archledger",
   "project_uuid": "6bddbb56-b273-4aae-9860-bfa4de93f115",
-  "reason": "sphinx-docs-markdown-conversion",
+  "reason": "after-archledger-update",
   "scanner": {
     "exclude": [
       ".git/**",
@@ -719,5 +729,5 @@
     "used": "git"
   },
   "schema": "archledger.source-state.v3",
-  "version": 2
+  "version": 3
 }

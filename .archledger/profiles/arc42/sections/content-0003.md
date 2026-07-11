@@ -8,9 +8,18 @@ body_format: markdown
 order: 30
 status: accepted
 kind: content
-version: 1
+version: 2
 ---
 
-archledger interacts with three external partners: the source repository (reads config and records, writes build output), coding agents (CLI invocations with JSON output), and CI pipelines (exit codes and build artifacts). Optional external converters (pandoc, asciidoctor, asciidoctor-pdf) are invoked as subprocesses for multi-format exports. All communication is local filesystem access, process I/O, or subprocess invocation.
+Archledger interacts with the source repository, developers and coding agents,
+CI pipelines, and optional document converters. All communication uses local
+filesystem access, process I/O, or converter subprocesses. The CLI returns human
+text or stable JSON envelopes for automation.
 
-See the [System Context diagram](#diagram-al_diagram_0035) for a visual overview of actors and system boundaries.
+Behavior specifications and other ledgers are external systems. Archledger may
+preserve opaque links or source references to their artifacts, but it does not
+execute their workflows or interpret cross-ledger semantics. SpecMason owns the
+repository's behavior specifications.
+
+See the [System Context diagram](#diagram-al_diagram_0035) for a visual overview
+of actors and system boundaries.

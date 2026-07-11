@@ -12,22 +12,33 @@ providers:
   - Repository layer
 consumers:
   - Check/read/build pipelines
+  - Record Mutation Service
   - Migration flows
 protocol: YAML front matter + Markdown/AsciiDoc body
 body_format: markdown
 source_refs:
   - archledger/storage/frontmatter.py
   - archledger/repository.py
+  - archledger/model.py
+  - archledger/record_types.py
+  - archledger/mutations.py
   - archledger/templates/records/
   - tests/test_frontmatter.py
+  - tests/test_mutation_cli.py
 kind: block
-version: 1
+version: 2
 ---
 
-This interface defines the record-file contract used by source fragments under `.archledger/records/`.
+This interface defines canonical record files under `.archledger/records/` and
+section files under the active profile. Each document contains YAML front matter
+plus a Markdown or AsciiDoc body.
 
-- **Provider**: storage/front matter parser/writer and repository record creation flows.
-- **Consumers**: check/read/build pipelines, migration flows, and tooling that edits architecture records directly.
-- **Protocol**: record files contain YAML front matter plus a body in the configured dialect (`body_format`) with required metadata fields validated by schema and checks.
+The contract includes stable record identity, kind and type, lifecycle status,
+section and order, body format, and a monotonically increasing version. The
+Record Type Registry adds per-type metadata shapes. Repository checks validate
+identity, filenames, typed metadata, source and test references, and
+cross-record links.
 
-The contract preserves deterministic parsing, explicit status/lifecycle metadata, and compatibility with source-schema v2 validation.
+Storage parses and writes the document. The Record Mutation Service preserves ID
+and kind, ignores externally supplied version changes, increments once for a
+logical change, and supports rollback after failed validation.

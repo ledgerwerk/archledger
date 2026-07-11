@@ -8,9 +8,15 @@ body_format: markdown
 order: 80
 status: accepted
 kind: content
-version: 1
+version: 2
 ---
 
-Four cross-cutting concepts pervade the architecture: the record lifecycle (draft, proposed, accepted, deprecated, superseded) which controls visibility and validation behavior, the config discovery mechanism which resolves project paths from the workspace directory upward, the dialect abstraction which ensures format-neutral rendering for both Markdown and AsciiDoc sources, and the multi-type diagram record system which supports text, ascii, unicode, svgbob, and mermaid diagram types with type-appropriate validation and templating.
+Cross-cutting concepts include record lifecycle and archival, project config and
+path discovery, dual-source dialect rendering, typed metadata contracts,
+versioned mutation with rollback, record and link identity, multi-type diagram
+validation, and source tracking with impact analysis. Focused context and trace
+queries make those contracts consumable by coding agents without expanding
+Archledger into a behavior-specification or workflow orchestrator.
 
-A fourth cross-cutting concern is source tracking and change impact analysis, which is visualized in the [Source Tracking Flow diagram](#diagram-al_diagram_0076).
+The [Source Tracking Flow diagram](#diagram-al_diagram_0076) visualizes baseline
+comparison and record impact resolution.

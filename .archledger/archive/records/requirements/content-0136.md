@@ -3,7 +3,7 @@ schema_version: 4
 id: content-0136
 type: requirement
 title: SDD profile enforces specification traceability contracts
-status: proposed
+status: archived
 section: introduction_and_goals
 order: 110
 source: SDD profile implementation and CLI tests
@@ -30,7 +30,9 @@ acceptance_criteria:
       command: pytest -q tests/test_sdd_cli.py tests/test_sdd_pr_cli.py
       expected: passes
 kind: content
-version: 1
+version: 2
+archived_reason: Removed SDD orchestration belongs to an external organizer, not Archledger.
+archived_from: records/requirements/content-0136.md
 ---
 
 ## Requirement

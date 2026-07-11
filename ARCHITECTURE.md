@@ -1,7 +1,7 @@
 ---
 title: "archledger Architecture Documentation"
-version: 1
-generator: "archledger 0.3.1.dev6+g5c58990ed"
+version: 2
+generator: "archledger 0.3.2.dev1+g505ad5c4c"
 arc42_template_version: "9.0-EN"
 ---
 
@@ -11,23 +11,32 @@ Generated from archledger records. Do not edit this generated file directly.
 
 # Introduction and Goals
 
-archledger is a dual-source architecture documentation ledger for arc42-style documents. Both Markdown and AsciiDoc are first-class source formats. The tool keeps project-local configuration (`archledger.toml`) in the source workspace and stores human-editable architecture records as individual files with YAML front matter. The primary output is a rendered document assembled from these records, with optional exports to HTML, PDF, DOCX, RST, and Textile via pandoc or asciidoctor.
+archledger is a source-first architecture documentation ledger for arc42-style
+documents. Markdown and AsciiDoc are first-class source formats. Project-local
+configuration selects the storage paths, while human-editable architecture
+records use YAML front matter and versioned bodies. Native builds assemble these
+records directly; optional converters produce HTML, PDF, DOCX, RST, or Textile.
 
-The tool targets three stakeholders: developers who document alongside code, architects who maintain the structural vision, and coding agents that automate documentation workflows via the CLI.
+The tool targets developers, architects, and coding agents. Its scope is
+architecture records, links, and source evidence. Behavior specifications are
+maintained by SpecMason, and lifecycle or cross-ledger orchestration remains
+outside Archledger.
 
 ## How to update this architecture
 
 Use the source-first maintenance loop:
 
 ```bash
-archledger source changed --json
-archledger read --json --body
-archledger new <type> "<title>" --status accepted
-archledger check --strict
-archledger build
+archledger --json source changed
+archledger --json context --changed
+archledger record export RECORD_ID --output /tmp/record.md
+# edit /tmp/record.md
+archledger record apply RECORD_ID --from-file /tmp/record.md
+archledger --json check --strict
+archledger --json source snapshot --reason after-archledger-update
 ```
 
-Detailed agent guidance lives in `docs/agent-workflow.rst`.
+Detailed agent guidance lives in `docs/agent-workflow.md`.
 
 ## Requirements Overview
 
@@ -43,9 +52,7 @@ Detailed agent guidance lives in `docs/agent-workflow.rst`.
 | Path safety prevents writes outside allowed roots                    | must     | archledger CLI behavior and repository implementation |              |               |
 | CLI provides stable machine-readable JSON output                     | must     | archledger CLI behavior and repository implementation |              |               |
 | Local-first operation requires no network services                   | must     | archledger CLI behavior and repository implementation |              |               |
-| SDD profile enforces specification traceability contracts            | must     | SDD profile implementation and CLI tests              |              |               |
 | Agent context and trace queries return focused architecture evidence | must     | Agent context and trace implementation                |              |               |
-| BDD metadata imports and exports supported Gherkin scenarios         | must     | BDD metadata import and export implementation         |              |               |
 
 ## Quality Goals
 
@@ -57,11 +64,11 @@ Detailed agent guidance lives in `docs/agent-workflow.rst`.
 
 ## Stakeholders
 
-| Title        | Contact | Expectations                                                                                                                                                                                                                                     |
-| ------------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Coding Agent | None    | JSON CLI output for machine parsing, Deterministic builds for CI pipelines, Seed preset for quick bootstrap, Skill file (SKILL.md) for agent protocol                                                                                            |
-| Developer    | None    | Simple installation via pip, Clear CLI commands for init, new, check, build, Human-readable Markdown records easy to edit in any text editor                                                                                                     |
-| Architect    | None    | Structured arc42 sections with deterministic ordering, ADR records with Context/Decision/Consequences validation, Quality scenarios with measurable response measures, Cross-references between building blocks, ADRs, risks, and glossary terms |
+| Title        | Contact                              | Expectations                                                                                                                                                                                                                                     |
+| ------------ | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Coding Agent | Project repository and agent harness | JSON CLI output for machine parsing, Deterministic builds for CI pipelines, Seed preset for quick bootstrap, Skill file (SKILL.md) for agent protocol                                                                                            |
+| Developer    | Project repository                   | Simple installation via pip, Clear CLI commands for init, new, check, build, Human-readable Markdown records easy to edit in any text editor                                                                                                     |
+| Architect    | Project repository                   | Structured arc42 sections with deterministic ordering, ADR records with Context/Decision/Consequences validation, Quality scenarios with measurable response measures, Cross-references between building blocks, ADRs, risks, and glossary terms |
 
 # Architecture Constraints
 
@@ -82,12 +89,35 @@ archledger operates under several technical constraints that shape its architect
 - **No external database dependency**
   - Impact: Storage is limited to the local filesystem. No server process, database engine, or cloud service is required.
   - Notes: archledger stores all state as flat files on the local filesystem. The configuration is a TOML file at the project root, records are Markdown files in subdirectories, and metadata is a YAML file. This keeps the dependency footprint small (Typer, PyYAML, Jinja2) and avoids operational complexity.
+- **Archledger remains an isolated architecture ledger**
+  - Impact: Archledger stores only architecture records, links, and source evidence; behavior specifications and cross-ledger workflow policy remain external.
+  - Notes: Archledger is the source-first ledger for architecture records, arc42 sections,
+    record links, and source or test evidence. It does not own behavior-specification
+    artifacts, execute BDD workflows, enforce software-development lifecycle policy,
+    or interpret relationships between independent ledgers.
+
+External artifacts may be referenced through opaque links or source references.
+Semantic coordination belongs to an external organizer. Behavior specifications
+in this repository are maintained by SpecMason and remain outside the
+Archledger record model.
+
+This boundary keeps architecture validation deterministic and prevents
+Archledger from becoming a general workflow orchestrator.
 
 # Context and Scope
 
-archledger interacts with three external partners: the source repository (reads config and records, writes build output), coding agents (CLI invocations with JSON output), and CI pipelines (exit codes and build artifacts). Optional external converters (pandoc, asciidoctor, asciidoctor-pdf) are invoked as subprocesses for multi-format exports. All communication is local filesystem access, process I/O, or subprocess invocation.
+Archledger interacts with the source repository, developers and coding agents,
+CI pipelines, and optional document converters. All communication uses local
+filesystem access, process I/O, or converter subprocesses. The CLI returns human
+text or stable JSON envelopes for automation.
 
-See the [System Context diagram](#diagram-al_diagram_0035) for a visual overview of actors and system boundaries.
+Behavior specifications and other ledgers are external systems. Archledger may
+preserve opaque links or source references to their artifacts, but it does not
+execute their workflows or interpret cross-ledger semantics. SpecMason owns the
+repository's behavior specifications.
+
+See the [System Context diagram](#diagram-al_diagram_0035) for a visual overview
+of actors and system boundaries.
 
 ## System Context
 
@@ -135,11 +165,22 @@ archledger operates as a local CLI tool. External actors interact through shell 
 
 # Solution Strategy
 
-The fundamental approach is a file-based pipeline: human-editable Markdown or AsciiDoc records with YAML front matter are stored in a configurable directory, validated by a check command, assembled into a single arc42-style document by a Jinja2-based render step, and optionally converted to other formats (HTML, PDF, DOCX, RST, Textile) via pandoc or asciidoctor. A dialect abstraction (`dialects.py`) ensures that rendering logic works identically for both source formats. The CLI provides the sole interface. No server, database, or GUI is involved.
+The fundamental approach is a file-based pipeline: human-editable Markdown or
+AsciiDoc records with YAML front matter are validated, assembled into an arc42
+document with Jinja2, and optionally converted through pandoc or asciidoctor. A
+dialect abstraction keeps rendering independent of the source format. The CLI
+is the sole product interface; there is no server, database, or GUI.
 
-A source tracking subsystem (`source snapshot`/`source changed`) allows agents to detect which source files changed since the last baseline and which architecture records are impacted via `source_refs` linkage.
+A typed record registry describes per-record metadata shapes. Existing records
+are changed through version-aware mutation commands. Complete-document apply
+operations validate identity and kind, increment versions only for real changes,
+and roll back the target when repository validation fails.
 
-The build pipeline is visualized in the [Build Pipeline Flow diagram](#diagram-al_diagram_0059) in the runtime view.
+Source tracking compares the workspace with an explicit snapshot and maps
+changed files to architecture records through `source_refs`. Focused context and
+trace queries expose bounded architecture evidence without requiring a build.
+Archledger deliberately remains isolated from behavior-specification and
+cross-ledger workflow semantics.
 
 ## Strategy Items
 
@@ -160,46 +201,49 @@ The core approach is a four-stage pipeline: author (create/edit Markdown or Asci
 
 # Building Block View
 
-The system is decomposed into fifteen black boxes within a single white box. The CLI Layer receives user input and delegates output formatting, the Config Layer parses and renders project configuration, the Repository Layer orchestrates business logic, the Model Layer defines core data structures and validation, the Record Type Registry maps record types to templates and defaults, the Check Layer validates record content per type, the Source Ref Validation layer normalizes traceability links, the Storage Layer handles file I/O, the Assembly Layer renders the document via Jinja2 templates, the Dialect Layer abstracts format-specific markup, the Section Rendering Layer handles per-record-type output, the Render Layer orchestrates the build pipeline, the Converter Layer handles multi-format export, the Source Tracking Layer detects changes and impacts, and the Migration Layer converts between source dialects.
+The system is one white box composed of focused services. The CLI layer parses
+commands and presents human or JSON results. Config and Storage resolve project
+paths and persist front-matter records. Repository and Model load records and
+enforce structural, metadata-shape, and cross-reference rules. The Record Type
+Registry supplies type-specific metadata contracts and templates. The Record
+Mutation Service performs versioned, validated writes with rollback.
 
-See the [Building Block Layer Structure diagram](#diagram-al_diagram_0040) for a visual decomposition showing the layer relationships.
+Assembly, Dialect, Section Rendering, Render, and Converter services build native
+or converted documents. Source Tracking reports drift and impact. Context and
+Trace provide bounded architecture evidence. Migration, identity, renumbering,
+ID sequence, and segment services preserve source-model integrity. Diagram,
+source-ref, test-ref, link, scope, and check services validate specialized
+contracts.
+
+See the [Building Block Layer Structure diagram](#diagram-al_diagram_0040) for a
+visual decomposition of the principal layer relationships.
 
 ## Building Block Layer Structure
 
-The system is organized as a layered pipeline. User input flows down from the
-CLI through business logic to storage. Rendering flows upward from storage
-through assembly to the build output.
+The CLI coordinates read paths through the Repository and write paths through
+the Record Mutation Service. Shared model and registry contracts govern both.
+Rendering and evidence-query services consume the same canonical storage.
 
 ```textdiagram
-┌─ Interface ──────────────────────────────────────────────────┐
-│  CLI Layer  (cli.py, cli_formatting.py, cli_payloads.py)    │
+┌─ Interface ───────────────────────────────────────────────────┐
+│ CLI, payload formatting, human formatting                    │
 └────────────────────────────┬─────────────────────────────────┘
                              ▼
-┌─ Business Logic ────────────────────────────────────────────┐
-│  Repository (repo.py)        Model (model.py)               │
-│  Record Types (rec_types)    Checks (checks.py)             │
-│  Source Refs (source_refs.py)                               │
+┌─ Source-model services ───────────────────────────────────────┐
+│ Repository │ Model │ Record Types │ Checks │ Mutations        │
+│ Source refs │ Test refs │ Links │ Scopes │ ID services       │
 └────────────────────────────┬─────────────────────────────────┘
                              ▼
-┌─ Configuration ────────────────────────────────────────────┐
-│  Config Layer (config/)                                    │
-└────────────────────────────┬─────────────────────────────────┘
-                             ▼
-┌─ Rendering ────────────────────────────────────────────────┐
-│  Render (render.py)       Assembly (assembly.py)           │
-│  Dialect (dialects.py)    Section Rendering                │
-│                           (section_rendering.py)            │
-└────────────────────────────┬─────────────────────────────────┘
-                             ▼
-┌─ Export ───────────────────────────────────────────────────┐
-│  Converter (converters, conversion_plan, formats)          │
-│  Migration (migration.py)                                  │
-└────────────────────────────┬─────────────────────────────────┘
-                             ▼
-┌─ Infrastructure ───────────────────────────────────────────┐
-│  Storage (storage/)         Source Tracking                 │
-│                             (source_tracking.py)            │
-└────────────────────────────────────────────────────────────┘
+┌─ Persistence and configuration ───────────────────────────────┐
+│ Config │ Front matter │ Storage │ Archive │ Source state      │
+└───────────────┬─────────────────────────────┬─────────────────┘
+                ▼                             ▼
+┌─ Document pipeline ────────────┐  ┌─ Evidence pipeline ──────┐
+│ Assembly │ Dialects │ Sections │  │ Source Tracking          │
+│ Render │ Diagrams │ Converters │  │ Context │ Trace │ Combo  │
+└───────────────┬────────────────┘  └───────────────────────────┘
+                ▼
+       Native document and optional exports
 ```
 
 **Caption:** Layered decomposition of archledger building blocks
@@ -208,33 +252,37 @@ through assembly to the build output.
 
 ## Motivation
 
-archledger is decomposed into focused black-box building blocks within one white-box system. The current Building Block View includes CLI, Config, Repository, Render, Storage, Model, Assembly, Dialect, Section Rendering, Converter, Source Tracking, Migration, Record Type Registry, Check, Source Ref Validation, ID Utilities, Renumber Service, ID Segment Resolution, and specification and traceability services.
+Archledger is decomposed into focused services within one source-first
+architecture ledger. The package separates CLI presentation, repository and
+model validation, storage, record mutation, rendering, conversion, source
+tracking, and evidence queries. Behavior specifications and cross-ledger
+workflow semantics are explicit external concerns.
 
-## Contained building blocks
+## Principal building blocks
 
-- **CLI Layer** (`cli.py`, `cli_formatting.py`, `cli_payloads.py`, `launcher.py`): Typer-based command-line interface with 14 top-level commands plus the `source` subgroup (`snapshot`, `changed`, `convert`), JSON payload construction, and human-readable output formatting
-- **Config Layer** (`config/`): Project configuration model, TOML parsing, default config rendering
-- **Repository Layer** (`repository.py`): Business logic orchestration for init, create, list/show/read, check, archive, doctor, and status workflows
-- **Model Layer** (`model.py`, `errors.py`): Core data structures, validation constants, record lifecycle
-- **Record Type Registry** (`record_types.py`): Record type specifications, directory/template/section mappings, CLI kind aliases
-- **Check Layer** (`checks.py`): Per-record-type content validation including multi-type diagram validation (text/ascii/unicode/svgbob/mermaid) with dialect-specific block detection and line-length checks
-- **Source Ref Validation** (`source_refs.py`): Traceability link normalization and path validation
-- **Storage Layer** (`storage/`): File system access, front matter parsing, source state persistence
-- **Assembly Layer** (`assembly.py`): Jinja2-based document assembly from records and sections
-- **Dialect Layer** (`dialects.py`): Format-neutral markup abstraction (Markdown, AsciiDoc)
-- **Section Rendering Layer** (`section_rendering.py`): Per-record-type rendering via dialects
-- **Render Layer** (`render.py`): Build pipeline facade
-- **Converter Layer** (`converters.py`, `conversion_plan.py`, `formats.py`): Multi-format export planning and execution via pandoc/asciidoctor
-- **Source Tracking Layer** (`source_tracking.py`, `storage/source_state.py`): Change detection and impact analysis
-- **Migration Layer** (`migration.py`): Source dialect conversion (Markdown to AsciiDoc)
-- **ID Utilities** (`ids.py`): ID parsing and formatting helpers for ledger-prefixed IDs
-- **Renumber Service** (`renumber.py`): ID migration planning and apply operations across records and links
-- **ID Segment Resolution** (`id_segments.py`): Segment-aware ID routing and section scoping logic
-- **Specification and Traceability Services** (`sdd.py`, `context.py`, `trace.py`, `mutations.py`, `bdd/`): SDD policy enforcement, bounded agent context, record trace traversal, validated record mutation, and Gherkin/pytest traceability interop
+- **CLI and payload formatting**: Typer commands, human output, and stable JSON
+  envelopes.
+- **Config, Storage, Repository, and Model**: path resolution, front-matter I/O,
+  orchestration, record loading, typed metadata validation, and references.
+- **Record Type Registry and Record Mutation Service**: type-specific metadata
+  contracts, templates, versioned writes, complete-document apply, and rollback.
+- **Check, source-ref, test-ref, link, and scope services**: specialized source
+  model validation and traceability.
+- **Assembly, Dialect, Section Rendering, Render, Diagram, and Converter
+  services**: native document construction and optional external conversion.
+- **Source Tracking, Context, Trace, and combo trace**: drift detection, bounded
+  record selection, and evidence traversal.
+- **Migration, identity, ledger sequence, ID segment, and Renumber services**:
+  safe evolution of source format and record identity.
 
 ## Important interfaces
 
-The primary interface is the CLI (`archledger` console script). The CLI delegates to `cli_payloads.py` for JSON output construction and `cli_formatting.py` for human-readable messages. Internally, the Repository exposes source-model operations used by the CLI and specification services, and delegates persistence to Storage. Config parsing is handled by the Config Layer independently from Storage. The Render Layer delegates to Assembly and Converters. Source Tracking feeds `source changed`, focused context queries, and the SDD pull-request gate. SDD, context, trace, mutation, and BDD modules remain domain services; the CLI owns command gating and presentation.
+The `archledger` CLI is the product interface. It delegates reads and checks to
+the repository, writes to the Record Mutation Service, and rendering to the
+assembly and converter path. Config parsing and storage remain independent of
+presentation. Source Tracking feeds changed-file context queries. Context and
+Trace return architecture evidence only; they do not coordinate behavior specs
+or external ledgers.
 
 ### Level 1
 
@@ -244,15 +292,23 @@ The primary interface is the CLI (`archledger` console script). The CLI delegate
 **Interfaces:** archledger console script (stdin/stdout)
 **Location:** archledger/cli.py, archledger/cli_formatting.py, archledger/cli_payloads.py, archledger/launcher.py
 
-The Typer-based CLI exposes top-level commands: `init`, `status`, `paths`, `schema`, `new`, `seed`, `list`, `show`, `read`, `check`, `archive`, `doctor`, `renumber`, `build`, and the `source` subgroup. The `source` subgroup contains `snapshot`, `changed`, and `convert` for source tracking and dialect migration. `archive` preserves obsolete records without reusing ledger numbers, and `doctor` validates or repairs ledger numbering invariants. Each command resolves the project config, constructs a Repository, and delegates to it. Two output modes are supported: human-readable text (default) and structured JSON (`--json` flag). Error handling maps domain exceptions (`ArchledgerError` subclasses) to appropriate exit codes and error output.
+The Typer-based CLI exposes project setup and inspection (`init`, `status`,
+`paths`, `schema`, `list`, `show`, `read`), lifecycle and integrity operations
+(`new`, `seed`, `check`, `archive`, `doctor`, `renumber`), document builds,
+focused `context` and `trace`, and grouped commands for source tracking,
+migration, profiles, record mutations, references, links, acceptance criteria,
+and scopes.
 
-Output is split across three modules: `cli.py` defines Typer commands and dispatches to the Repository, `cli_payloads.py` constructs structured JSON dictionaries from domain result types, and `cli_formatting.py` renders human-readable messages from those payloads. This separation keeps the command definitions thin and testable.
+Commands resolve project configuration, invoke domain services, and return
+human-readable output or a stable JSON envelope selected by the root `--json`
+option. `cli_payloads.py` shapes reusable payloads and `cli_formatting.py`
+formats human output.
 
-The `init` command accepts comprehensive CLI options covering all configuration domains: build defaults (`--build-default-format`, `--build-converter`, `--build-pdf-engine`, etc.), diagrams (`--diagrams`, `--diagram-renderer`, `--diagram-default-type`), arc42 metadata (`--arc42-title`, `--arc42-language`, `--arc42-template-version`), source tracking (`--tracking/--no-tracking`, `--tracking-scanner`, `--tracking-include`, `--tracking-exclude`), and ID format (`--id-prefix`, `--id-width`, `--id-segment-mode`). Options are validated against shared constants from `config/model.py` before config generation.
-
-The `renumber` command delegates to the Renumber Service (`renumber.py`) to replan and optionally apply ID format changes. It is dry-run by default; `--apply` is required to execute mutations. It accepts `--id-prefix`, `--id-width`, and `--id-segment-mode` to specify the target format.
-
-The `source snapshot` and `source changed` commands integrate the source tracking subsystem. The `source convert` command delegates to the migration module for Markdown-to-AsciiDoc source conversion.
+Record mutation commands accept typed metadata through positional compatibility,
+`--json-value`, `--string-value`, or `--from-file`. `record export` and `record apply` support complete-document editing. Every target mutation snapshots the
+original text, validates the result through the Repository, and restores the
+original on failure. Source migration and ID renumbering retain explicit dry-run
+or apply boundaries for destructive changes.
 
 #### Repository Layer
 
@@ -283,10 +339,23 @@ The storage subpackage handles all file system I/O. `paths.py` discovers the pro
 #### Model Layer
 
 **Parent:** block-0041
-**Interfaces:** ArchitectureRecord dataclass, SourceRef dataclass, validate_record(), filename_for(), record_sort_key(), normalize_kind()
+**Interfaces:** ArchitectureRecord dataclass, SourceRef dataclass, validate_record(), validate_record_metadata_shape(), filename_for(), record_sort_key(), normalize_kind()
 **Location:** archledger/model.py, archledger/errors.py
 
-The model module defines the core data structures and validation rules. `ArchitectureRecord` is a frozen dataclass holding id, type, title, status, section, order, path, metadata, body, and source_refs. `SourceRef` holds path, symbols, and reason for traceability linking. `validate_record()` checks field types, status values, and ID/filename consistency. Constants for valid formats, status values, and file extension mappings remain in `model.py`. Record type to directory/template/section mappings have been extracted to the Record Type Registry (`record_types.py`). Source ref validation and normalization have been extracted to the Source Ref Validation layer (`source_refs.py`). The `errors.py` module defines the exception hierarchy: `ArchledgerError` base with `ConfigError`, `StorageError`, `FrontMatterError`, `ValidationError`, and `RenderError` subclasses.
+The Model Layer defines immutable architecture records, normalized source
+references, validation constants, and core record invariants. `validate_record()`
+checks field types, lifecycle status, identifier and filename consistency, and
+segment expectations.
+
+Metadata-shape validation obtains field specifications from the Record Type
+Registry and verifies strings, integers, booleans, string lists, objects, and
+object lists. Diagnostics identify the record and field, report the observed
+shape, and provide a typed `record meta set` repair example. Archive tombstones
+and section records use their dedicated contracts.
+
+Specialized source-reference validation remains in `source_refs.py`; record type
+definitions remain in `record_types.py`; domain exceptions remain in
+`errors.py`.
 
 #### Assembly Layer
 
@@ -359,14 +428,22 @@ The `[ids]` section (config version 7+) configures the ledger ID format: `prefix
 #### Record Type Registry
 
 **Parent:** block-0041
-**Interfaces:** RECORD_TYPES registry, CLI_KIND_ALIASES, RecordTypeSpec dataclass
+**Interfaces:** RECORD_TYPES registry, CLI_KIND_ALIASES, RecordTypeSpec dataclass, MetadataFieldSpec dataclass, metadata_field_specs_for_record_type()
 **Location:** archledger/record_types.py
 
-The `record_types.py` module is the central registry for all arc42 record types. It defines `RecordTypeSpec`, a frozen dataclass mapping each record kind to its directory name, filename prefix, default section, template basename, CLI aliases, default status/level, and a context factory function. The `RECORD_TYPES` dictionary provides the authoritative lookup. `CLI_KIND_ALIASES` maps alternative names (e.g., `qg` for `quality_goal`) for the CLI.
+`record_types.py` is the authoritative registry for arc42 record kinds. Each
+`RecordTypeSpec` maps a kind to its directory, filename prefix, section,
+template, aliases, default status and level, context factory, and typed metadata
+fields.
 
-The diagram context factory defaults `diagram_type` to `"text"` (previously `"mermaid"`). Supported diagram types are `text`, `ascii`, `unicode`, `svgbob`, and `mermaid`. The default can be overridden per-project via the `[diagrams].default_type` config key, which the Repository Layer passes through when creating diagram records.
+`MetadataFieldSpec` describes supported value shapes and nullability. Shared
+fields such as `applies_to`, `level`, and `parent` combine with per-type fields
+for requirements, stakeholders, runtime scenarios, diagrams, interfaces, and
+other records. The Model Layer consumes this contract during validation, while
+CLI metadata mutation accepts explicit JSON, raw strings, or YAML/JSON files.
 
-This module was extracted from `model.py` to keep the model focused on data structures while record type configuration lives in one discoverable location.
+Diagram records default to text and support text, ascii, unicode, svgbob, and
+mermaid content with type-specific scaffolding and checks.
 
 #### Check Layer
 
@@ -436,30 +513,27 @@ Three entry points serve different callers: `id_segment_for_metadata()` for raw 
 
 This module is intentionally thin — it isolates the resolution policy so that `renumber.py` and `repository.py` share the same logic without coupling to each other.
 
-#### Specification and traceability services
+#### Record Mutation Service
 
 **Parent:** block-0041
-**Interfaces:**
-**Location:**
-**Fulfilled requirements:** content-0136, content-0137, content-0138
+**Interfaces:** export_record_document(), apply_record_document(), set_record_meta(), replace_record_body(), add_source_ref(), add_test_ref(), add_link(), add_acceptance_criterion()
+**Location:** archledger/mutations.py, archledger/storage/frontmatter.py
+**Fulfilled requirements:** content-0017
 
-This logical subsystem turns architecture records into enforceable,
-agent-consumable specifications.
+The Record Mutation Service provides the supported write path for existing
+architecture records. It updates status, typed metadata, bodies, source and test
+references, links, and inline acceptance criteria while preserving record
+identity and incrementing the record version once per logical mutation.
 
-- **SDD policy evaluator** checks accepted requirements, ADRs, quality
-  scenarios, references, validation evidence, waivers, and BDD metadata.
-- **Context service** selects bounded record sets from a file, record, or source
-  drift query.
-- **Trace service** traverses links and evidence around a record.
-- **BDD service** parses a constrained Gherkin subset, imports or exports
-  behavior metadata, links SpecWeave-owned feature files through `source_refs`,
-  links plain pytest enforcement through `test_refs`, and never executes test
-  runners.
-- **Mutation service** updates status, metadata, bodies, links, references, and
-  acceptance criteria while reusing repository validation.
+`record export` emits a complete editable record document. `record apply`
+validates the candidate identity and kind, ignores a caller-supplied version,
+and increments from the stored version only when content changed. CLI mutation
+commands snapshot the original text, run repository validation after the write,
+and restore the original record if the target becomes invalid.
 
-The CLI layer owns presentation and command gating; these services own the
-domain behavior and return structured payloads.
+The service owns mutation mechanics only. Repository validation owns record and
+cross-reference rules, while the CLI owns argument parsing, typed value input,
+and human or JSON presentation.
 
 ## Interfaces
 
@@ -479,21 +553,32 @@ The contract guarantees machine-readable top-level fields (`ok`, `command`, and 
 ### Front matter record file contract
 
 **Providers:** Storage layer, Repository layer
-**Consumers:** Check/read/build pipelines, Migration flows
+**Consumers:** Check/read/build pipelines, Record Mutation Service, Migration flows
 **Protocol:** YAML front matter + Markdown/AsciiDoc body
-This interface defines the record-file contract used by source fragments under `.archledger/records/`.
+This interface defines canonical record files under `.archledger/records/` and
+section files under the active profile. Each document contains YAML front matter
+plus a Markdown or AsciiDoc body.
 
-- **Provider**: storage/front matter parser/writer and repository record creation flows.
-- **Consumers**: check/read/build pipelines, migration flows, and tooling that edits architecture records directly.
-- **Protocol**: record files contain YAML front matter plus a body in the configured dialect (`body_format`) with required metadata fields validated by schema and checks.
+The contract includes stable record identity, kind and type, lifecycle status,
+section and order, body format, and a monotonically increasing version. The
+Record Type Registry adds per-type metadata shapes. Repository checks validate
+identity, filenames, typed metadata, source and test references, and
+cross-record links.
 
-The contract preserves deterministic parsing, explicit status/lifecycle metadata, and compatibility with source-schema v2 validation.
+Storage parses and writes the document. The Record Mutation Service preserves ID
+and kind, ignores externally supplied version changes, increments once for a
+logical change, and supports rollback after failed validation.
 
 # Runtime View
 
-Key runtime scenarios: initializing a new project (scaffolding directories and section files), creating and rendering records (the primary authoring flow), validating records with check (ensuring consistency and completeness), building multi-format output (assembly plus optional conversion), taking source snapshots and detecting changes (source tracking), and converting source dialects (Markdown to AsciiDoc migration).
+Key runtime scenarios cover project initialization, record creation, strict
+validation, safe complete-record replacement with rollback, document assembly
+and conversion, source snapshot and impact detection, focused context and trace
+queries, source dialect conversion, and ledger ID renumbering.
 
-See the [Build Pipeline Flow diagram](#diagram-al_diagram_0059) for a visual overview of the four-stage pipeline.
+See the [Build Pipeline Flow diagram](#diagram-al_diagram_0059) for the document
+assembly path. The safe mutation scenario describes the supported edit and
+apply path for existing records.
 
 ## Build Pipeline Flow
 
@@ -540,14 +625,18 @@ delegate to pandoc or asciidoctor.
 
 ## Validate records with check
 
-1. CLI resolves the project config.
-2. Repository iterates over all Markdown files in sections/ and records/.
-3. For each file, Storage parses front matter. Repository validates required fields, types, and ID/filename consistency.
-4. Repository checks cross-references: parent IDs must exist, duplicate IDs are flagged.
-5. Repository detects placeholder text in record bodies.
-6. Repository emits type-specific warnings (ADR without deciders, risk without mitigation, glossary without definition, etc.).
-7. If `--strict`, warnings are treated as errors.
-8. Results are emitted as JSON or human-readable summary.
+1. The CLI resolves project configuration and constructs the Repository.
+2. Storage parses sections and live record files with their configured dialect.
+3. Core validation checks required fields, lifecycle values, ID and filename
+   consistency, segment expectations, and body format.
+4. The Model obtains per-record metadata field specifications from the Record
+   Type Registry and validates scalar, list, and object shapes.
+5. Repository checks duplicate IDs, parents, links, source and test references,
+   and archive invariants.
+6. Specialized checks report placeholders and type-specific completeness issues.
+7. Normal mode fails on errors. Strict mode also promotes warnings to a failing
+   result.
+8. The CLI emits the same result through human formatting or a JSON envelope.
 
 ## Initialize a new project
 
@@ -593,155 +682,21 @@ delegate to pandoc or asciidoctor.
 8. With `--apply`: rewrites file contents, renames files via two-phase temp strategy, updates `archledger.toml`, and recomputes `storage.yaml`.
 9. CLI outputs the summary of renamed files and rewritten references.
 
-## Agent tries to implement before approval
+## Safely replace an architecture record
 
-Describe the runtime scenario.
-
-## Scenario
-
-Rule: Implementation requires an accepted plan
-
-Example: Agent tries to implement before approval
-
-Given a task has a proposed plan
-Given the plan has not been approved by the user
-When the agent starts implementation
-Then implementation is blocked
-And the task remains in planning or review state
-
-## Agent implements after approval
-
-Describe the runtime scenario.
-
-## Scenario
-
-Rule: Implementation requires an accepted plan
-
-Example: Agent implements after approval
-
-Given a task has an approved plan
-When the agent starts implementation
-Then implementation proceeds normally
-
-## Agent tries to implement before approval
-
-Describe the runtime scenario.
-
-## Scenario
-
-Rule: Implementation requires an accepted plan
-
-Example: Agent tries to implement before approval
-
-Given a task has a proposed plan
-Given the plan has not been approved by the user
-When the agent starts implementation
-Then implementation is blocked
-And the task remains in planning or review state
-
-## Agent implements after approval
-
-Describe the runtime scenario.
-
-## Scenario
-
-Rule: Implementation requires an accepted plan
-
-Example: Agent implements after approval
-
-Given a task has an approved plan
-When the agent starts implementation
-Then implementation proceeds normally
-
-## Agent tries to implement before approval
-
-Describe the runtime scenario.
-
-## Scenario
-
-Rule: Implementation requires an accepted plan
-
-Example: Agent tries to implement before approval
-
-Given a task has a proposed plan
-Given the plan has not been approved by the user
-When the agent starts implementation
-Then implementation is blocked
-And the task remains in planning or review state
-
-## Agent implements after approval
-
-Describe the runtime scenario.
-
-## Scenario
-
-Rule: Implementation requires an accepted plan
-
-Example: Agent implements after approval
-
-Given a task has an approved plan
-When the agent starts implementation
-Then implementation proceeds normally
-
-## Agent tries to implement before approval
-
-Describe the runtime scenario.
-
-## Scenario
-
-Rule: Implementation requires an accepted plan
-
-Example: Agent tries to implement before approval
-
-Given a task has a proposed plan
-Given the plan has not been approved by the user
-When the agent starts implementation
-Then implementation is blocked
-And the task remains in planning or review state
-
-## Agent implements after approval
-
-Describe the runtime scenario.
-
-## Scenario
-
-Rule: Implementation requires an accepted plan
-
-Example: Agent implements after approval
-
-Given a task has an approved plan
-When the agent starts implementation
-Then implementation proceeds normally
-
-## Agent tries to implement before approval
-
-Describe the runtime scenario.
-
-## Scenario
-
-Rule: Implementation requires an accepted plan
-
-Example: Agent tries to implement before approval
-
-Given a task has a proposed plan
-And the plan has not been approved by the user
-When the agent starts implementation
-Then implementation is blocked
-And the task remains in planning or review state
-
-## Agent implements after approval
-
-Describe the runtime scenario.
-
-## Scenario
-
-Rule: Implementation requires an accepted plan
-
-Example: Agent implements after approval
-
-Given a task has an approved plan
-When the agent starts implementation
-Then implementation proceeds normally
+1. The user invokes `archledger record export RECORD_ID --output FILE`.
+2. The CLI resolves the record and the mutation service verifies its identity
+   before exporting the complete front-matter document.
+3. The user edits metadata and body content in the exported file.
+4. The user invokes `archledger record apply RECORD_ID --from-file FILE`.
+5. The mutation service parses the candidate, verifies that ID and kind match
+   the stored record, and compares normalized metadata and body content.
+6. If unchanged, the command reports no change and preserves the version.
+7. If changed, the service writes the candidate with exactly one version
+   increment, regardless of the version supplied in the candidate.
+8. The Repository checks the resulting target record and relevant contracts.
+9. On validation failure, the CLI atomically restores the original text and
+   returns an error. Otherwise it reports the applied change.
 
 # Deployment View
 
@@ -818,9 +773,15 @@ CI release validation runs unit tests, package build checks, version consistency
 
 # Cross-cutting Concepts
 
-Four cross-cutting concepts pervade the architecture: the record lifecycle (draft, proposed, accepted, deprecated, superseded) which controls visibility and validation behavior, the config discovery mechanism which resolves project paths from the workspace directory upward, the dialect abstraction which ensures format-neutral rendering for both Markdown and AsciiDoc sources, and the multi-type diagram record system which supports text, ascii, unicode, svgbob, and mermaid diagram types with type-appropriate validation and templating.
+Cross-cutting concepts include record lifecycle and archival, project config and
+path discovery, dual-source dialect rendering, typed metadata contracts,
+versioned mutation with rollback, record and link identity, multi-type diagram
+validation, and source tracking with impact analysis. Focused context and trace
+queries make those contracts consumable by coding agents without expanding
+Archledger into a behavior-specification or workflow orchestrator.
 
-A fourth cross-cutting concern is source tracking and change impact analysis, which is visualized in the [Source Tracking Flow diagram](#diagram-al_diagram_0076).
+The [Source Tracking Flow diagram](#diagram-al_diagram_0076) visualizes baseline
+comparison and record impact resolution.
 
 ## Source Tracking Flow
 
@@ -866,7 +827,19 @@ sequenceDiagram
 
 ## Record lifecycle and status
 
-Every record has a status field that controls its lifecycle: `draft` (incomplete, excluded from default builds), `proposed` (visible but not formally confirmed), `accepted` (confirmed, included by default), `deprecated` (visible but no longer preferred), and `superseded` (hidden unless explicitly included). The `check` command warns about draft records and empty sections. The `build` command only includes records with visible statuses by default; `--include-draft` and `--include-superseded` flags override this.
+Every live record has a status: `draft`, `proposed`, `accepted`, `deprecated`, or
+`superseded`. Status controls default visibility in reads and builds. Draft and
+incomplete live records produce validation findings; explicit include options
+can expose hidden lifecycle states.
+
+Archiving is separate from status. `archledger archive` moves an obsolete record
+to the archive, preserves its ledger number, and leaves a tombstone so identity
+is never reused. Archived records are historical evidence and are not mutated to
+silence live-content warnings.
+
+All supported live-record mutations increment the version once when content
+changes. No-op complete-document apply preserves the version, and failed target
+validation restores the original text.
 
 ## Config discovery and path resolution
 
@@ -927,7 +900,7 @@ Key architectural decisions: dual-source support (Markdown and AsciiDoc as first
 
 ## Use Markdown/AsciiDoc records with YAML front matter
 
-**Document version:** 1
+**Document version:** 2
 
 ## Context
 
@@ -953,7 +926,7 @@ Negative: no referential integrity enforced at write time (only at check time). 
 
 ## Typer CLI over argparse or Click
 
-**Document version:** 1
+**Document version:** 2
 
 ## Context
 
@@ -977,7 +950,7 @@ Negative: Typer adds a dependency. Some advanced CLI patterns require working ar
 
 ## Jinja2 for document rendering
 
-**Document version:** 1
+**Document version:** 2
 
 ## Context
 
@@ -1001,7 +974,7 @@ Negative: complex rendering logic is split between the template and Python helpe
 
 ## Use SHA-256-only source-state file entries plus directory hashes
 
-**Document version:** 1
+**Document version:** 2
 
 ## Context
 
@@ -1021,7 +994,7 @@ Improves determinism and avoids unstable file-size/mtime dependence; requires co
 
 ## Config v7 and source schema v2 are the release baseline
 
-**Document version:** 1
+**Document version:** 2
 
 ## Context
 
@@ -1042,7 +1015,7 @@ Strict checks are consistent; migration effort is required for older local recor
 
 ## Native builds require no external tools
 
-**Document version:** 1
+**Document version:** 2
 
 ## Context
 
@@ -1062,7 +1035,7 @@ Improves portability; non-native formats remain optional.
 
 ## Non-native exports delegate to pandoc or asciidoctor
 
-**Document version:** 1
+**Document version:** 2
 
 ## Context
 
@@ -1082,7 +1055,7 @@ Clear dependency errors are required when tools are missing.
 
 ## Output path resolution remains bounded to configured roots
 
-**Document version:** 1
+**Document version:** 2
 
 ## Context
 
@@ -1102,7 +1075,7 @@ Safer defaults; invalid paths fail early with explicit diagnostics.
 
 ## Source refs use relative POSIX paths without parent traversal
 
-**Document version:** 1
+**Document version:** 2
 
 ## Context
 
@@ -1122,7 +1095,7 @@ Traceability links stay portable and secure; invalid refs are rejected.
 
 ## Storage counters are metadata and can be recomputed
 
-**Document version:** 1
+**Document version:** 2
 
 ## Context
 
@@ -1142,7 +1115,7 @@ Repair/recount operations can restore consistency without data loss.
 
 ## Multi-type diagram support with text as default
 
-**Document version:** 1
+**Document version:** 2
 
 ## Context
 
@@ -1164,7 +1137,7 @@ Text diagrams are immediately readable in source, Git diffs, terminal output, an
 
 ## Config v7 adds configurable ID prefix, width, and segment mode
 
-**Document version:** 1
+**Document version:** 2
 
 ## Context
 
@@ -1198,7 +1171,7 @@ The `init` command accepts `--id-prefix`, `--id-width`, and `--id-segment-mode` 
 
 ## Renumber command is dry-run by default
 
-**Document version:** 1
+**Document version:** 2
 
 ## Context
 
@@ -1229,7 +1202,7 @@ When `--apply` is used, the renumber service:
 
 ## Segmented IDs embed type-derived tokens in the ID string
 
-**Document version:** 1
+**Document version:** 2
 
 ## Context
 

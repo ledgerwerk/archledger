@@ -25,46 +25,37 @@ related_records:
   - block-0054
   - block-0055
   - block-0056
+  - block-0141
 tags:
   - building-block
   - layers
 body_format: markdown
 kind: diagram
-version: 1
+version: 2
 ---
 
-The system is organized as a layered pipeline. User input flows down from the
-CLI through business logic to storage. Rendering flows upward from storage
-through assembly to the build output.
+The CLI coordinates read paths through the Repository and write paths through
+the Record Mutation Service. Shared model and registry contracts govern both.
+Rendering and evidence-query services consume the same canonical storage.
 
 ```textdiagram
-┌─ Interface ──────────────────────────────────────────────────┐
-│  CLI Layer  (cli.py, cli_formatting.py, cli_payloads.py)    │
+┌─ Interface ───────────────────────────────────────────────────┐
+│ CLI, payload formatting, human formatting                    │
 └────────────────────────────┬─────────────────────────────────┘
                              ▼
-┌─ Business Logic ────────────────────────────────────────────┐
-│  Repository (repo.py)        Model (model.py)               │
-│  Record Types (rec_types)    Checks (checks.py)             │
-│  Source Refs (source_refs.py)                               │
+┌─ Source-model services ───────────────────────────────────────┐
+│ Repository │ Model │ Record Types │ Checks │ Mutations        │
+│ Source refs │ Test refs │ Links │ Scopes │ ID services       │
 └────────────────────────────┬─────────────────────────────────┘
                              ▼
-┌─ Configuration ────────────────────────────────────────────┐
-│  Config Layer (config/)                                    │
-└────────────────────────────┬─────────────────────────────────┘
-                             ▼
-┌─ Rendering ────────────────────────────────────────────────┐
-│  Render (render.py)       Assembly (assembly.py)           │
-│  Dialect (dialects.py)    Section Rendering                │
-│                           (section_rendering.py)            │
-└────────────────────────────┬─────────────────────────────────┘
-                             ▼
-┌─ Export ───────────────────────────────────────────────────┐
-│  Converter (converters, conversion_plan, formats)          │
-│  Migration (migration.py)                                  │
-└────────────────────────────┬─────────────────────────────────┘
-                             ▼
-┌─ Infrastructure ───────────────────────────────────────────┐
-│  Storage (storage/)         Source Tracking                 │
-│                             (source_tracking.py)            │
-└────────────────────────────────────────────────────────────┘
+┌─ Persistence and configuration ───────────────────────────────┐
+│ Config │ Front matter │ Storage │ Archive │ Source state      │
+└───────────────┬─────────────────────────────┬─────────────────┘
+                ▼                             ▼
+┌─ Document pipeline ────────────┐  ┌─ Evidence pipeline ──────┐
+│ Assembly │ Dialects │ Sections │  │ Source Tracking          │
+│ Render │ Diagrams │ Converters │  │ Context │ Trace │ Combo  │
+└───────────────┬────────────────┘  └───────────────────────────┘
+                ▼
+       Native document and optional exports
 ```

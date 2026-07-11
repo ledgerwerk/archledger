@@ -1,11 +1,11 @@
 ---
 schema_version: 4
-id: runtime-0127
+id: runtime-0135
 type: runtime_scenario
 title: Agent implements after approval
-status: proposed
+status: archived
 section: runtime_view
-order: 100
+order: 180
 participants: []
 trigger: ""
 result: ""
@@ -30,7 +30,11 @@ source_refs:
     role: documents
     reason: Imported Gherkin scenario source.
 kind: runtime
-version: 1
+version: 2
+archived_reason:
+  Obsolete imported Taskledger lifecycle scenario outside the Archledger
+  boundary.
+archived_from: records/runtime/runtime-0135.md
 ---
 
 Describe the runtime scenario.

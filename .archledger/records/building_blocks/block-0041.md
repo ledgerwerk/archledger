@@ -16,35 +16,39 @@ source_refs:
   - path: archledger/
     reason: All source code under the archledger package
 kind: block
-version: 1
+version: 2
 ---
 
 ## Motivation
 
-archledger is decomposed into focused black-box building blocks within one white-box system. The current Building Block View includes CLI, Config, Repository, Render, Storage, Model, Assembly, Dialect, Section Rendering, Converter, Source Tracking, Migration, Record Type Registry, Check, Source Ref Validation, ID Utilities, Renumber Service, ID Segment Resolution, and specification and traceability services.
+Archledger is decomposed into focused services within one source-first
+architecture ledger. The package separates CLI presentation, repository and
+model validation, storage, record mutation, rendering, conversion, source
+tracking, and evidence queries. Behavior specifications and cross-ledger
+workflow semantics are explicit external concerns.
 
-## Contained building blocks
+## Principal building blocks
 
-- **CLI Layer** (`cli.py`, `cli_formatting.py`, `cli_payloads.py`, `launcher.py`): Typer-based command-line interface with 14 top-level commands plus the `source` subgroup (`snapshot`, `changed`, `convert`), JSON payload construction, and human-readable output formatting
-- **Config Layer** (`config/`): Project configuration model, TOML parsing, default config rendering
-- **Repository Layer** (`repository.py`): Business logic orchestration for init, create, list/show/read, check, archive, doctor, and status workflows
-- **Model Layer** (`model.py`, `errors.py`): Core data structures, validation constants, record lifecycle
-- **Record Type Registry** (`record_types.py`): Record type specifications, directory/template/section mappings, CLI kind aliases
-- **Check Layer** (`checks.py`): Per-record-type content validation including multi-type diagram validation (text/ascii/unicode/svgbob/mermaid) with dialect-specific block detection and line-length checks
-- **Source Ref Validation** (`source_refs.py`): Traceability link normalization and path validation
-- **Storage Layer** (`storage/`): File system access, front matter parsing, source state persistence
-- **Assembly Layer** (`assembly.py`): Jinja2-based document assembly from records and sections
-- **Dialect Layer** (`dialects.py`): Format-neutral markup abstraction (Markdown, AsciiDoc)
-- **Section Rendering Layer** (`section_rendering.py`): Per-record-type rendering via dialects
-- **Render Layer** (`render.py`): Build pipeline facade
-- **Converter Layer** (`converters.py`, `conversion_plan.py`, `formats.py`): Multi-format export planning and execution via pandoc/asciidoctor
-- **Source Tracking Layer** (`source_tracking.py`, `storage/source_state.py`): Change detection and impact analysis
-- **Migration Layer** (`migration.py`): Source dialect conversion (Markdown to AsciiDoc)
-- **ID Utilities** (`ids.py`): ID parsing and formatting helpers for ledger-prefixed IDs
-- **Renumber Service** (`renumber.py`): ID migration planning and apply operations across records and links
-- **ID Segment Resolution** (`id_segments.py`): Segment-aware ID routing and section scoping logic
-- **Specification and Traceability Services** (`sdd.py`, `context.py`, `trace.py`, `mutations.py`, `bdd/`): SDD policy enforcement, bounded agent context, record trace traversal, validated record mutation, and Gherkin/pytest traceability interop
+- **CLI and payload formatting**: Typer commands, human output, and stable JSON
+  envelopes.
+- **Config, Storage, Repository, and Model**: path resolution, front-matter I/O,
+  orchestration, record loading, typed metadata validation, and references.
+- **Record Type Registry and Record Mutation Service**: type-specific metadata
+  contracts, templates, versioned writes, complete-document apply, and rollback.
+- **Check, source-ref, test-ref, link, and scope services**: specialized source
+  model validation and traceability.
+- **Assembly, Dialect, Section Rendering, Render, Diagram, and Converter
+  services**: native document construction and optional external conversion.
+- **Source Tracking, Context, Trace, and combo trace**: drift detection, bounded
+  record selection, and evidence traversal.
+- **Migration, identity, ledger sequence, ID segment, and Renumber services**:
+  safe evolution of source format and record identity.
 
 ## Important interfaces
 
-The primary interface is the CLI (`archledger` console script). The CLI delegates to `cli_payloads.py` for JSON output construction and `cli_formatting.py` for human-readable messages. Internally, the Repository exposes source-model operations used by the CLI and specification services, and delegates persistence to Storage. Config parsing is handled by the Config Layer independently from Storage. The Render Layer delegates to Assembly and Converters. Source Tracking feeds `source changed`, focused context queries, and the SDD pull-request gate. SDD, context, trace, mutation, and BDD modules remain domain services; the CLI owns command gating and presentation.
+The `archledger` CLI is the product interface. It delegates reads and checks to
+the repository, writes to the Record Mutation Service, and rendering to the
+assembly and converter path. Config parsing and storage remain independent of
+presentation. Source Tracking feeds changed-file context queries. Context and
+Trace return architecture evidence only; they do not coordinate behavior specs
+or external ledgers.

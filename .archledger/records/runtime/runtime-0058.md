@@ -12,19 +12,28 @@ participants:
   - Repository Layer
   - Storage Layer
 trigger: User invokes archledger check or archledger check --strict
-result: A list of errors and warnings is reported. Exit code 0 if clean, 1 if errors.
+result:
+  Errors and warnings are reported in human or JSON form; strict mode exits
+  non-zero for either category.
 source_refs:
   - archledger/cli.py
+  - archledger/repository.py
+  - archledger/model.py
+  - archledger/record_types.py
   - tests/test_repository_cli.py
 kind: runtime
-version: 1
+version: 2
 ---
 
-1. CLI resolves the project config.
-2. Repository iterates over all Markdown files in sections/ and records/.
-3. For each file, Storage parses front matter. Repository validates required fields, types, and ID/filename consistency.
-4. Repository checks cross-references: parent IDs must exist, duplicate IDs are flagged.
-5. Repository detects placeholder text in record bodies.
-6. Repository emits type-specific warnings (ADR without deciders, risk without mitigation, glossary without definition, etc.).
-7. If `--strict`, warnings are treated as errors.
-8. Results are emitted as JSON or human-readable summary.
+1. The CLI resolves project configuration and constructs the Repository.
+2. Storage parses sections and live record files with their configured dialect.
+3. Core validation checks required fields, lifecycle values, ID and filename
+   consistency, segment expectations, and body format.
+4. The Model obtains per-record metadata field specifications from the Record
+   Type Registry and validates scalar, list, and object shapes.
+5. Repository checks duplicate IDs, parents, links, source and test references,
+   and archive invariants.
+6. Specialized checks report placeholders and type-specific completeness issues.
+7. Normal mode fails on errors. Strict mode also promotes warnings to a failing
+   result.
+8. The CLI emits the same result through human formatting or a JSON envelope.

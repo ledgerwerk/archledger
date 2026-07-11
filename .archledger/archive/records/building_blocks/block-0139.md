@@ -3,7 +3,7 @@ schema_version: 4
 id: block-0139
 type: black_box
 title: Specification and traceability services
-status: proposed
+status: archived
 section: building_block_view
 level: 1
 parent: block-0041
@@ -34,7 +34,11 @@ source_refs:
     role: implements
     reason: Safe record mutation operations used by specification workflows.
 kind: block
-version: 1
+version: 2
+archived_reason:
+  Mixed SDD and BDD subsystem was removed; current context and trace
+  services are documented separately.
+archived_from: records/building_blocks/block-0139.md
 ---
 
 This logical subsystem turns architecture records into enforceable,
