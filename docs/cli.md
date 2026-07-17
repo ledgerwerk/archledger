@@ -19,10 +19,9 @@ integration scaffolds and refuses overwrites unless `--force` is supplied.
 
 ## `init` — Initialize a workspace
 
-Creates `archledger.toml`, the state directory, section stubs, record-type
-subdirectories, and `storage.yaml` in one step.
+Creates `.ledger/ledger.toml`, `.ledger/arch/config.toml`, canonical repository data, section stubs, record-type subdirectories, and `storage.yaml` in one step.
 
-Fails if a config file already exists in the target workspace.
+Legacy layouts fail with migration instructions. A valid canonical project is idempotent.
 
 ### Synopsis
 
@@ -44,19 +43,13 @@ archledger init --source-format asciidoc
 
 Running `init` produces:
 
-- `archledger.toml` — project configuration (see {doc}`configuration`)
-- `<archledger-dir>/` — state directory (default `.archledger`)
-- `<archledger-dir>/sections/` — 12 arc42 section stubs (default `al_0001` through `al_0012`)
-- `<archledger-dir>/records/` — typed subdirectories:
-
-  `building_blocks`, `concepts`, `constraints`, `contexts`,
-  `decisions`, `deployment`, `diagrams`, `glossary`,
-  `quality_goals`, `quality_requirements`, `quality_scenarios`,
-  `requirements`, `risks`, `runtime`, `stakeholders`, `strategy`
-
-- `<archledger-dir>/archive/` — for archived records
-- `<archledger-dir>/build/` — default build output directory
-- `<archledger-dir>/storage.yaml` — ledger counter state
+- `.ledger/ledger.toml` - shared project identity and ledger topology
+- `.ledger/arch/config.toml` - stable Archledger settings
+- `.ledger/arch/archledger/` - authoritative repository data
+- `.ledger/arch/archledger/profiles/arc42/sections/` - section stubs
+- `.ledger/arch/archledger/records/` - typed record directories
+- `.ledger/arch/archledger/archive/` - archived records
+- `.ledger/arch/archledger/storage.yaml` - ledger counter state
 
 Section files are numbered by configured `[ids]` format (default `al_0001` through `al_0012`) matching the 12
 major arc42 sections:
@@ -89,12 +82,10 @@ Determines file extensions, default build output name, and template
 rendering for all generated section stubs.
 
 `--archledger-dir PATH`
-State directory to create, relative to the config path unless absolute.
-Default: `.archledger`.
-Use an absolute path to store state outside the project tree.
+Deprecated and rejected. Canonical storage is fixed at `.ledger/arch/archledger`; use `archledger migrate project` for legacy paths.
 
 `--project-name TEXT`
-Stable project identity stored in `archledger.toml`.
+Stable project identity stored in `.ledger/ledger.toml`.
 Defaults to the workspace directory basename (slug-normalized).
 
 `--project-uuid TEXT`
@@ -334,3 +325,19 @@ archledger build --format markdown
 archledger build --format asciidoc
 archledger build --format html --format markdown
 ```
+
+## Project storage migration
+
+Inspect legacy layout without writes:
+
+```bash
+archledger --json migrate project
+```
+
+Apply with mandatory backup, staging, verification, and a preserved source:
+
+```bash
+archledger migrate project --apply
+```
+
+Use `--backup-dir PATH` to select a backup location or `--retire-source` to timestamp-rename the verified legacy source.

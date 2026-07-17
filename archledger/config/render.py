@@ -182,7 +182,7 @@ def build_default_project_config(
     )
 
     return ProjectConfig(
-        config_version=10,
+        config_version=11,
         archledger_dir=archledger_dir,
         project_uuid=normalized_uuid,
         project_name=normalized_project_name,
@@ -201,7 +201,7 @@ def build_default_project_config(
         record_extension=default_extension,
         build_default_output=resolved_default_output,
         build_default_format=resolved_default_format,
-        build_output_dir=build_default_output_dir or "build",
+        build_output_dir=build_default_output_dir or ".",
         build_include_draft=build_include_draft,
         build_include_superseded=build_include_superseded,
         build_strict=build_strict,
@@ -279,24 +279,33 @@ def _render_table_from_spec(
 
 def render_project_config(config: ProjectConfig) -> str:
     lines = [
-        "# Project-local archledger configuration.",
-        "# This file lives in the source project root.",
+        "# Stable Archledger configuration.",
+        "# Paths are resolved from the project root and canonical data mount.",
         f"config_version = {config.config_version}",
-        f"archledger_dir = {_toml_string(config.archledger_dir)}",
-        "",
-        "# Stable project identity. Commit this with your source tree.",
-        f"project_uuid = {_toml_string(config.project_uuid)}",
-        f"project_name = {_toml_string(config.project_name)}",
-        "",
-        "[ledger]",
-        f"code = {_toml_string(config.ledger_code)}",
-        f"name = {_toml_string(config.ledger_name)}",
-        "",
-        "[ids]",
-        f"width = {config.id_width}",
-        "",
-        "[ids.kind_map]",
     ]
+    if config.config_version < 11:
+        lines.extend(
+            [
+                f"archledger_dir = {_toml_string(config.archledger_dir)}",
+                "",
+                "# Legacy project identity.",
+                f"project_uuid = {_toml_string(config.project_uuid)}",
+                f"project_name = {_toml_string(config.project_name)}",
+            ]
+        )
+    lines.extend(
+        [
+            "",
+            "[ledger]",
+            f"code = {_toml_string(config.ledger_code)}",
+            f"name = {_toml_string(config.ledger_name)}",
+            "",
+            "[ids]",
+            f"width = {config.id_width}",
+            "",
+            "[ids.kind_map]",
+        ]
+    )
     lines.extend(
         f"{segment_key} = {_toml_string(config.id_kind_map[segment_key])}"
         for segment_key in sorted(config.id_kind_map)
@@ -314,8 +323,7 @@ def render_project_config(config: ProjectConfig) -> str:
             "[build]",
             f"default_output = {_toml_string(config.build_default_output)}",
             f"default_format = {_toml_string(config.build_default_format)}",
-            "# [build].default_output_dir is relative to the directory containing",
-            "# archledger.toml or .archledger.toml.",
+            "# [build].default_output_dir is relative to the project root.",
             f"default_output_dir = {_toml_string(config.build_output_dir)}",
             f"include_draft = {_toml_bool(config.build_include_draft)}",
             f"include_superseded = {_toml_bool(config.build_include_superseded)}",

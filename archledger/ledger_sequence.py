@@ -41,6 +41,50 @@ class SequenceFindings:
     highest_seen: int
 
 
+@dataclass(frozen=True, slots=True)
+class SequenceInventory:
+    """Authoritative numbered-file inventory used by checks and migration."""
+
+    numbered_paths: tuple[NumberedSourcePath, ...]
+    highest_seen: int
+    stored_next_number: int
+    derived_next_number: int
+    missing_numbers: tuple[int, ...]
+    duplicate_numbers: tuple[int, ...]
+
+
+def inspect_sequence_inventory(
+    paths: ProjectPaths,
+    config: ProjectConfig,
+    source_extensions: tuple[str, ...],
+) -> SequenceInventory:
+    numbered_paths = tuple(
+        collect_numbered_source_paths(
+            paths, config, source_extensions, include_archive=True
+        )
+    )
+    meta = read_storage_meta(paths.storage_meta_path)
+    by_number: dict[int, list[NumberedSourcePath]] = {}
+    for item in numbered_paths:
+        by_number.setdefault(item.number, []).append(item)
+    highest_seen = max(by_number, default=0)
+    upper_bound = max(highest_seen, meta.next_number - 1)
+    missing_numbers = tuple(
+        number for number in range(1, upper_bound + 1) if number not in by_number
+    )
+    duplicate_numbers = tuple(
+        number for number, items in sorted(by_number.items()) if len(items) > 1
+    )
+    return SequenceInventory(
+        numbered_paths=numbered_paths,
+        highest_seen=highest_seen,
+        stored_next_number=meta.next_number,
+        derived_next_number=highest_seen + 1,
+        missing_numbers=missing_numbers,
+        duplicate_numbers=duplicate_numbers,
+    )
+
+
 def collect_numbered_source_paths(
     paths: ProjectPaths,
     config: ProjectConfig,

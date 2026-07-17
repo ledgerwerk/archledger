@@ -2,7 +2,7 @@
 
 ## Canonical source
 
-The source of truth is the fragment tree under `archledger_dir`:
+The source of truth is the fragment tree under `.ledger/arch/archledger`:
 
 - `sections/` for the major arc42 chapter skeleton
 - `records/` for individual architecture facts

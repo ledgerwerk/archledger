@@ -90,7 +90,7 @@ def assemble_document(
         sections=sections.values(),
     )
     document_version = resolve_document_version(
-        repo.paths.archledger_dir / "document-state.json",
+        repo.paths.document_state_path,
         logical_key=build_document_state_key(
             profile="arc42",
             source_format=resolved_source_format,

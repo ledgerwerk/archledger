@@ -22,7 +22,7 @@ arc42-style architecture documents on demand.
 
 `archledger` is intentionally small:
 
-- project-local config discovery from `archledger.toml` or `.archledger.toml`
+- project-local configuration through Ledgercore at `.ledger/ledger.toml` and `.ledger/arch/config.toml`
 - canonical source fragments in Markdown or AsciiDoc
 - a compact Typer CLI for init, read, record creation, validation, source drift tracking, migration, and builds
 - deterministic native document assembly with optional converter-backed exports
@@ -115,7 +115,7 @@ archledger build --format asciidoc
 
 ### Workspace config
 
-By default, `archledger init` writes `archledger.toml` at the workspace root and stores state under `.archledger/`. Relative `archledger_dir` values are resolved from the config file location, and `[build].default_output_dir` is resolved relative to that same config directory / workspace root.
+Archledger uses the Ledgercore canonical repository layout. `archledger init` creates or updates `.ledger/ledger.toml`, stores stable settings in `.ledger/arch/config.toml`, and stores authoritative data at `.ledger/arch/archledger` through one unscoped repository mount. Legacy root-level configs and arbitrary `archledger_dir` values require `archledger migrate project`. `[build].default_output_dir` remains relative to the project root.
 
 ### Source fragments
 
@@ -192,11 +192,10 @@ Generated build outputs are derived artifacts and should not be edited as source
 
 For a project that uses `archledger`, commit the canonical source and config:
 
-- `archledger.toml`
-- `.archledger/sections/**`
-- `.archledger/records/**`
-- optionally `.archledger/storage.yaml` if you want deterministic id allocation across machines
-- optionally `.archledger/source-state.json` if your team wants a shared drift baseline
+- `.ledger/ledger.toml`
+- `.ledger/arch/config.toml`
+- `.ledger/arch/archledger/**`
+- the configured build output when it is intentionally versioned
 
 Do **not** treat generated build output as canonical source. Determine its location from `[build].default_output_dir` (or `archledger --json paths`). Generated build output and converter intermediates are disposable unless you are intentionally debugging an export issue.
 
@@ -248,7 +247,7 @@ archledger --json read --kind adr --body
 archledger --json source snapshot --reason after-archledger-update
 ```
 
-`snapshot` writes `.archledger/source-state.json` by default. Source-state payloads store SHA-256 content hashes only for files, do not persist mtimes or file sizes, and include a derived directory hash map. If `[tracking].enabled = false`, `snapshot` and `changed` fail explicitly instead of silently creating misleading tracking state.
+`snapshot` writes `.ledger/arch/archledger/source-state.json` by default. Source-state payloads store SHA-256 content hashes only for files, do not persist mtimes or file sizes, and include a derived directory hash map. If `[tracking].enabled = false`, `snapshot` and `changed` fail explicitly instead of silently creating misleading tracking state.
 
 ### Changed files
 
@@ -385,44 +384,31 @@ Use this escape hatch only when you explicitly accept a manual cleanup step. Run
 
 ## Configuration reference
 
-Example config v6:
+Example stable config v11:
 
 ```toml
-config_version = 6
-archledger_dir = ".archledger"
-project_uuid = "..."
-project_name = "my-project"
+config_version = 11
+
+[ledger]
+code = "al"
+name = "archledger"
 
 [ids]
-prefix = "al"
 width = 4
 
 [source]
-format = "markdown"       # markdown | asciidoc
-front_matter = "yaml"
-section_extension = ".md" # .md or .adoc
-record_extension = ".md"
-schema_version = 2
+format = "markdown"
 
 [build]
 default_output = "architecture.md"
-default_format = "markdown"
 default_output_dir = "build"
-include_draft = false
-include_superseded = false
-strict = false
-keep_intermediate = false
-converter = "auto"        # auto | pandoc | asciidoctor
-pdf_engine = ""
-reference_docx = ""
 
 [tracking]
 enabled = true
 state_file = "source-state.json"
-scanner = "auto"          # auto | git | filesystem
 ```
 
-`[build].default_output_dir` is relative to the directory containing `archledger.toml` or `.archledger.toml`.
+`[build].default_output_dir` is relative to the project root.
 
 `source-state.json` stores SHA-256 content hashes only for files. It does not persist mtimes or file sizes. Directory hashes are derived from file hashes.
 
@@ -433,7 +419,7 @@ For coding agents, prefer this loop:
 1. Run `archledger --json paths`, `archledger --json status`, and `archledger --json check` independently instead of chaining them with `&&`.
 2. If `check` reports legacy IDs or legacy timestamp metadata, review `archledger --json migrate ids --to ledgercore` and `archledger --json migrate metadata --to versioned` dry runs before applying them.
 3. Run `archledger --json source changed` and then `archledger --json read --body --include-drafts` for broad refreshes, or use narrower `context`, `trace`, `read --section`, or `read --kind` commands when possible.
-4. Edit only source fragments under `archledger_dir/sections` and `archledger_dir/records`.
+4. Edit only source fragments under `.ledger/arch/archledger/profiles/arc42/sections` and `.ledger/arch/archledger/records`.
 5. For list or object metadata, use `archledger record meta set RECORD_ID KEY --json-value '["item"]'`. For option-like string values, use `--string-value`.
 6. Never predict record IDs; capture the returned `result.id` from `archledger --json new ...`.
 7. Run `archledger --json check --strict`.
@@ -449,7 +435,7 @@ Do not delete numbered source fragments. Use:
 archledger archive content-0022 --reason "obsolete after content-0041"
 ```
 
-Archived records move to `.archledger/archive/` and keep their original ID. They are excluded from default read/list/build flows but still reserve their ledger number.
+Archived records move to `.ledger/arch/archledger/archive/` and keep their original ID. They are excluded from default read/list/build flows but still reserve their ledger number.
 
 Use:
 
@@ -491,7 +477,7 @@ For the full maintainer checklist, see `docs/release-process.md`.
 
 | Symptom                                           | Cause                                                                 | Fix                                                                                                         |
 | ------------------------------------------------- | --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `No archledger.toml found`                        | Command ran outside a configured workspace.                           | Run from the project tree or pass `--root`.                                                                 |
+| `No Ledgercore project found`                     | Command ran outside a configured workspace.                           | Run from the project tree or pass `--root`.                                                                 |
 | Draft records missing from builds                 | Drafts are excluded by default.                                       | Use `--include-drafts` or promote the record status.                                                        |
 | Build blocked by warnings                         | `--strict` treats warnings as failures.                               | Fix the warnings or build without `--strict`.                                                               |
 | Converter executable not found                    | Requested output needs `pandoc`, `asciidoctor`, or `asciidoctor-pdf`. | Install the required tool or change the per-output converter config.                                        |

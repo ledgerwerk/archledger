@@ -281,20 +281,39 @@ def load_project_config(path: Path) -> ProjectConfig:
         8,
         9,
         10,
+        11,
     }:
-        raise ConfigError("config_version must be 1, 2, 3, 4, 5, 6, 7, 8, 9, or 10.")
-
-    archledger_dir = raw_data.get("archledger_dir")
-    if not isinstance(archledger_dir, str) or not archledger_dir.strip():
+        raise ConfigError("config_version must be 1 through 11.")
+    canonical_config = config_version == 11
+    prohibited_canonical_keys = {
+        "archledger_dir",
+        "project_uuid",
+        "project_name",
+    }
+    if canonical_config and prohibited_canonical_keys.intersection(raw_data):
+        raise ConfigError(
+            "Canonical config_version 11 must not contain identity or storage "
+            "keys: "
+            + ", ".join(sorted(prohibited_canonical_keys.intersection(raw_data)))
+        )
+    archledger_dir_value = raw_data.get("archledger_dir", "")
+    if not isinstance(archledger_dir_value, str):
+        raise ConfigError("archledger_dir must be a string.")
+    if not canonical_config and not archledger_dir_value.strip():
         raise ConfigError("archledger_dir must be a non-empty string.")
-
-    project_uuid = raw_data.get("project_uuid")
-    if not isinstance(project_uuid, str):
+    archledger_dir = archledger_dir_value
+    project_uuid_value = raw_data.get("project_uuid", "")
+    project_name_value = raw_data.get("project_name", "")
+    if not isinstance(project_uuid_value, str):
         raise ConfigError("project_uuid must be a string.")
-
-    project_name = raw_data.get("project_name")
-    if not isinstance(project_name, str):
+    if not isinstance(project_name_value, str):
         raise ConfigError("project_name must be a string.")
+    if not canonical_config and (not project_uuid_value or not project_name_value):
+        raise ConfigError("Legacy config must define project_uuid and project_name.")
+    project_uuid = validate_uuid(project_uuid_value) if project_uuid_value else ""
+    project_name = (
+        normalize_project_name(project_name_value) if project_name_value else ""
+    )
 
     (
         source_format,
@@ -356,8 +375,8 @@ def load_project_config(path: Path) -> ProjectConfig:
     return ProjectConfig(
         config_version=cast(int, config_version),
         archledger_dir=archledger_dir,
-        project_uuid=validate_uuid(project_uuid),
-        project_name=normalize_project_name(project_name),
+        project_uuid=project_uuid,
+        project_name=project_name,
         ledger_code=ledger_code,
         ledger_name=ledger_name,
         id_prefix=id_prefix,
@@ -770,11 +789,14 @@ def _parse_profiles_config(
     """
     has_profiles_table = bool(profiles_data)
     if not has_profiles_table:
-        # Legacy project: keep sections at the old <archledger_dir>/sections location.
-        legacy_sections_dir = archledger_dir.rstrip("/") + "/sections"
+        sections_dir = (
+            DEFAULT_ARC42_SECTIONS_DIR
+            if config_version >= 11
+            else archledger_dir.rstrip("/") + "/sections"
+        )
         return ProjectProfilesConfig(
             profiles=ProfilesConfig(enabled=("arc42",), default="arc42"),
-            arc42=Arc42ProfileConfig(sections_dir=legacy_sections_dir),
+            arc42=Arc42ProfileConfig(sections_dir=sections_dir),
         )
 
     enabled_raw = profiles_data.get("enabled", ["arc42"])

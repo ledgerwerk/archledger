@@ -140,3 +140,22 @@ archledger --json source snapshot --reason after-archledger-update
 - If raw source editing is unavoidable, increment `version` exactly once for the logical change and run strict validation.
 - Keep Archledger isolated from behavior-spec and organizer semantics.
 - Do not auto-snapshot unresolved drift.
+
+## Canonical repository storage
+
+Current Archledger projects use only the Ledgercore repository mount:
+
+```text
+shared identity and topology: .ledger/ledger.toml
+stable settings:              .ledger/arch/config.toml
+authoritative data:            .ledger/arch/archledger
+```
+
+Do not use `archledger.toml`, `.archledger.toml`, `.archledger/`, `archledger_dir`, sibling-ledger storage, or arbitrary external roots as normal runtime configuration. Legacy layouts require explicit inspection and apply:
+
+```bash
+archledger --json migrate project
+archledger --json migrate project --apply
+```
+
+Migration inspection is read-only. Apply backs up before writes, stages below `.ledger/arch`, verifies before activation, preserves the source by default, and never invokes Git.

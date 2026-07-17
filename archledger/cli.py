@@ -134,6 +134,13 @@ from archledger.metadata_migration import (
 )
 from archledger.migration import convert_sources
 from archledger.model import ArchitectureRecord, known_source_extensions
+from archledger.project_init import initialize_project
+from archledger.project_migration import (
+    apply_project_migration,
+    inspect_project_migration,
+    inspection_payload,
+    migration_result_payload,
+)
 from archledger.render import build_document
 from archledger.renumber import renumber_project
 from archledger.repository import (
@@ -148,15 +155,11 @@ from archledger.source_tracking import (
 )
 from archledger.storage.common import write_text_atomic
 from archledger.storage.paths import (
-    CANONICAL_PROJECT_CONFIG_FILENAME,
-    DEFAULT_ARCHLEDGER_DIR_NAME,
-    HIDDEN_PROJECT_CONFIG_FILENAME,
     ProjectPaths,
     resolve_project_paths,
 )
 from archledger.storage.project_config import (
     ProjectConfig,
-    build_default_project_config,
 )
 from archledger.storage.source_state import read_source_state, write_source_state
 
@@ -267,20 +270,17 @@ def main(
 def init(
     ctx: typer.Context,
     archledger_dir: Annotated[
-        str,
+        str | None,
         typer.Option(
             "--archledger-dir",
-            help=(
-                "State directory to create, relative to the config path unless "
-                "absolute."
-            ),
+            help="Deprecated: canonical storage is fixed below .ledger/arch.",
         ),
-    ] = DEFAULT_ARCHLEDGER_DIR_NAME,
+    ] = None,
     project_name: Annotated[
         str | None,
         typer.Option(
             "--project-name",
-            help="Stable project identity stored in archledger.toml.",
+            help="Stable project identity stored in .ledger/ledger.toml.",
         ),
     ] = None,
     project_uuid: Annotated[
@@ -476,23 +476,31 @@ def init(
 
     state = _state(ctx)
     workspace_root = state.root.resolve()
-    config_path = workspace_root / CANONICAL_PROJECT_CONFIG_FILENAME
-    hidden_config_path = workspace_root / HIDDEN_PROJECT_CONFIG_FILENAME
-    existing_configs = [
-        path for path in (config_path, hidden_config_path) if path.exists()
-    ]
-    if existing_configs:
+    if archledger_dir is not None:
         _emit_error(
             state,
             "init",
             ArchledgerError(
-                "Config file already exists: "
-                + ", ".join(str(path) for path in existing_configs)
+                "--archledger-dir is no longer supported; use .ledger/arch/archledger."
+            ),
+        )
+    legacy = [
+        workspace_root / "archledger.toml",
+        workspace_root / ".archledger.toml",
+        workspace_root / ".archledger",
+    ]
+    if any(path.exists() for path in legacy):
+        _emit_error(
+            state,
+            "init",
+            ArchledgerError(
+                "Legacy Archledger layout found. Run: archledger migrate project",
+                details={"code": "ARCHLEDGER_MIGRATION_REQUIRED"},
             ),
         )
     try:
         opts = InitOptions(
-            archledger_dir=archledger_dir,
+            archledger_dir=archledger_dir or "arch/archledger",
             project_name=project_name,
             project_uuid=project_uuid,
             source_format=source_format,
@@ -535,57 +543,13 @@ def init(
                 exclude=tuple(tracking_exclude) if tracking_exclude else (),
             ),
         )
-        config = build_default_project_config(
-            workspace_root,
-            archledger_dir=opts.archledger_dir,
-            source_format=opts.source_format,
-            id_prefix=opts.id_prefix,
-            id_width=opts.id_width,
-            id_segment_mode=opts.id_segment_mode,
-            profile=opts.profile,
-            extra_profiles=opts.extra_profiles,
-            project_name=opts.project_name,
-            project_uuid=opts.project_uuid,
-            build_default_format=opts.build.default_format,
-            build_default_output=opts.build.default_output,
-            build_default_output_dir=opts.build.default_output_dir,
-            build_include_draft=opts.build.include_draft,
-            build_include_superseded=opts.build.include_superseded,
-            build_strict=opts.build.strict,
-            build_keep_intermediate=opts.build.keep_intermediate,
-            build_converter=opts.build.converter,
-            build_pdf_engine=opts.build.pdf_engine,
-            build_reference_docx=opts.build.reference_docx,
-            diagram_enabled=opts.diagrams.enabled,
-            diagram_renderer=opts.diagrams.renderer,
-            diagram_default_type=opts.diagrams.default_type,
-            diagram_output_dir=opts.diagrams.output_dir,
-            diagram_image_format=opts.diagrams.image_format,
-            diagram_kroki_url=opts.diagrams.kroki_url,
-            arc42_title=opts.arc42.title,
-            arc42_language=opts.arc42.language,
-            arc42_template_version=opts.arc42.template_version,
-            arc42_include_help=opts.arc42.include_help,
-            tracking_enabled=opts.tracking.enabled,
-            tracking_scanner=opts.tracking.scanner,
-            tracking_state_file=opts.tracking.state_file,
-            tracking_max_file_bytes=opts.tracking.max_file_bytes,
-            tracking_include=opts.tracking.include or None,
-            tracking_exclude=opts.tracking.exclude or None,
-        )
-        from archledger.config.render import render_project_config as _render
-
-        config_text = _render(config)
-        write_text_atomic(config_path, config_text)
-        paths, resolved_config, warnings = resolve_project_paths(workspace_root)
-        repo = ArchitectureRepository(paths, resolved_config)
-        result = repo.init()
+        result = initialize_project(workspace_root, opts)
         payload = _init_payload(result)
         _emit_success(
             state,
             command="init",
             result=payload,
-            warnings=warnings,
+            warnings=[],
             human_message=_format_init_message(payload),
         )
     except ArchledgerError as exc:
@@ -1156,6 +1120,39 @@ def migrate_metadata_command(
         )
 
     _run_configured_command(state, "migrate metadata", _build_result, _format)
+
+
+@migrate_app.command("project")
+def migrate_project(
+    ctx: typer.Context,
+    apply: Annotated[bool, typer.Option("--apply")] = False,
+    source_config: Annotated[Path | None, typer.Option("--source-config")] = None,
+    backup_dir: Annotated[Path | None, typer.Option("--backup-dir")] = None,
+    retire_source: Annotated[bool, typer.Option("--retire-source")] = False,
+) -> None:
+    state = _state(ctx)
+    try:
+        inspection = inspect_project_migration(state.root, source_config=source_config)
+        payload = (
+            migration_result_payload(
+                apply_project_migration(
+                    inspection, backup_dir=backup_dir, retire_source=retire_source
+                )
+            )
+            if apply
+            else inspection_payload(inspection)
+        )
+        _emit_success(
+            state,
+            command="migrate project",
+            result=payload,
+            warnings=[],
+            human_message="Project migration ready."
+            if not apply
+            else "Project migration applied.",
+        )
+    except ArchledgerError as exc:
+        _emit_error(state, "migrate project", exc)
 
 
 @source_app.command("snapshot")

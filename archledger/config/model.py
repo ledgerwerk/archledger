@@ -52,6 +52,7 @@ DEFAULT_TRACKING_EXCLUDE = tuple(
             ".ruff_cache/**",
             "dist/**",
             "build/**",
+            ".ledger/**",
         )
     )
 )

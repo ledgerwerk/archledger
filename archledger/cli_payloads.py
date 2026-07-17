@@ -101,9 +101,17 @@ def _findings_payload(
 
 def init_result_payload(result: InitResult) -> dict[str, object]:
     return {
+        "project_root": str(result.workspace_root),
         "workspace_root": str(result.workspace_root),
         "config_path": str(result.config_path),
+        "data_root": str(result.archledger_dir),
         "archledger_dir": str(result.archledger_dir),
+        "mount": {
+            "name": "data",
+            "storage": "repository",
+            "scope": None,
+            "source": "repository",
+        },
         "created_paths": [str(path) for path in result.created_paths],
     }
 
@@ -115,11 +123,24 @@ def status_payload(
 ) -> dict[str, object]:
     status_result: StatusResult = repo.status()
     return {
+        "project_root": str(status_result.workspace_root),
         "workspace_root": str(status_result.workspace_root),
+        "config_root": str(paths.config_root),
+        "manifest_path": str(paths.manifest_path),
+        "local_config_path": str(paths.local_config_path),
         "config_path": str(status_result.config_path),
+        "data_root": str(status_result.archledger_dir),
         "archledger_dir": str(status_result.archledger_dir),
+        "mount": {
+            "name": paths.mount_name,
+            "storage": paths.mount_storage,
+            "scope": paths.mount_scope,
+            "source": paths.mount_source,
+        },
         "archive_dir": str(status_result.archive_dir),
         "storage_meta_path": str(status_result.storage_meta_path),
+        "source_state_path": str(paths.source_state_path),
+        "document_state_path": str(paths.document_state_path),
         "build_dir": str(status_result.build_dir),
         "sections_count": status_result.sections_count,
         "record_directories_count": status_result.record_directories_count,
@@ -135,15 +156,27 @@ def where_payload(
 ) -> dict[str, object]:
     del repo, config
     return {
+        "project_root": str(paths.workspace_root),
         "workspace_root": str(paths.workspace_root),
+        "config_root": str(paths.config_root),
+        "manifest_path": str(paths.manifest_path),
+        "local_config_path": str(paths.local_config_path),
         "config_path": str(paths.config_path),
+        "data_root": str(paths.archledger_dir),
         "archledger_dir": str(paths.archledger_dir),
+        "mount": {
+            "name": paths.mount_name,
+            "storage": paths.mount_storage,
+            "scope": paths.mount_scope,
+            "source": paths.mount_source,
+        },
         "sections_dir": str(paths.sections_dir),
         "records_dir": str(paths.records_dir),
         "archive_dir": str(paths.archive_dir),
         "build_dir": str(paths.build_dir),
         "storage_meta_path": str(paths.storage_meta_path),
         "source_state_path": str(paths.source_state_path),
+        "document_state_path": str(paths.document_state_path),
     }
 
 

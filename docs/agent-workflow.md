@@ -51,7 +51,7 @@ Prefer narrower reads when possible:
 
 ## Mutation rules
 
-- Edit only source fragments under `archledger_dir/sections` and `archledger_dir/records`.
+- Edit only source fragments under `.ledger/arch/archledger/profiles/arc42/sections` and `.ledger/arch/archledger/records`.
 - Prefer Archledger mutation commands so record versions stay consistent.
 - Use `archledger record body set RECORD_ID --from-file /tmp/body.md` for substantial body updates.
 - For list or object metadata, use `--json-value`.

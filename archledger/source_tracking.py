@@ -360,6 +360,8 @@ def _should_skip_path(
     config: ProjectConfig,
 ) -> bool:
     resolved = path.resolve()
+    if _is_relative_to(resolved, paths.config_root):
+        return True
     if _is_relative_to(resolved, paths.archledger_dir):
         return True
     if paths.build_dir != paths.workspace_root and _is_relative_to(

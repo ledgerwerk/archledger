@@ -65,3 +65,5 @@ In practice:
 2. Run `changed` to see what moved since the last accepted baseline.
 3. Update only the impacted fragments and validate them with `check --strict`.
 4. Record a fresh snapshot only after the documentation update is complete and all validation passes.
+
+Canonical source tracking scans the project root and excludes the complete `.ledger/**` tree, including `.ledger/arch/archledger/source-state.json`. Tracking state is stored relative to the Archledger data mount, not relative to the nested stable configuration file.

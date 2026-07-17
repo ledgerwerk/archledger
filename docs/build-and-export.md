@@ -7,9 +7,7 @@ archledger build --format markdown
 archledger build --format asciidoc
 ```
 
-`[build].default_output_dir` is relative to the directory containing
-`archledger.toml` or `.archledger.toml`. New projects default to `build/`
-under the workspace root, and projects may override this path.
+`[build].default_output_dir` is relative to the project root. Stable settings are stored in `.ledger/arch/config.toml`, while profile sections and state are relative to `.ledger/arch/archledger`.
 
 ## Converter-backed exports
 
