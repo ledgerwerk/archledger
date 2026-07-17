@@ -9,7 +9,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Literal
 
-from ledgercore.layout import parse_ledger_project_manifest
 from ledgercore.refs import parse_local_ref
 
 from archledger.config.model import (
@@ -20,6 +19,7 @@ from archledger.config.model import (
 from archledger.config.parse import load_project_config
 from archledger.config.render import render_project_config
 from archledger.errors import ConfigError, StorageError
+from archledger.ledgercore_backend import parse_ledger_project_manifest
 from archledger.project_context import (
     ARCHLEDGER_CONFIG_PATH,
     classify_project_state,

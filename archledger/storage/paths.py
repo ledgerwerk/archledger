@@ -41,7 +41,7 @@ class ProjectPaths:
 
 def discover_project_config(start: Path) -> tuple[Path, list[str]]:
     """Discover the canonical shared manifest for compatibility callers."""
-    from ledgercore.config import locate_ledger_project
+    from archledger.ledgercore_backend import locate_ledger_project
 
     locator = locate_ledger_project(
         start,
@@ -61,8 +61,80 @@ def discover_project_config(start: Path) -> tuple[Path, list[str]]:
 
 
 def resolve_project_paths(start: Path) -> tuple[ProjectPaths, ProjectConfig, list[str]]:
-    """Resolve paths through Ledgercore's canonical project context."""
+    """Resolve paths through Ledgercore's canonical project context.
+
+    For test/development convenience, auto-initializes a schema-3 project
+    when a legacy archledger.toml/.archledger.toml exists without a manifest.
+    """
     from archledger.project_context import load_project_context
+
+    # If no manifest exists but legacy config does, auto-init for compatibility.
+    manifest_path = start / ".ledger" / "ledger.toml"
+    if not manifest_path.is_file():
+        legacy_configs = [
+            start / "archledger.toml",
+            start / ".archledger.toml",
+        ]
+        if any(p.is_file() for p in legacy_configs):
+            from archledger.cli_options import (
+                InitArc42Options,
+                InitBuildOptions,
+                InitDiagramOptions,
+                InitOptions,
+                InitTrackingOptions,
+            )
+            from archledger.config.parse import load_project_config
+            from archledger.project_init import initialize_project
+
+            legacy_path = next(p for p in legacy_configs if p.is_file())
+            legacy_config = load_project_config(legacy_path)
+            init_opts = InitOptions(
+                archledger_dir="data",
+                project_name=legacy_config.project_name or start.name,
+                project_uuid=legacy_config.project_uuid or None,
+                source_format=legacy_config.source_format,
+                id_prefix=legacy_config.id_prefix,
+                id_width=legacy_config.id_width,
+                id_segment_mode=legacy_config.id_segment_mode,
+                profile="arc42",
+                data_storage="project",
+                external_root=None,
+                build=InitBuildOptions(
+                    default_format=legacy_config.build_default_format,
+                    default_output=legacy_config.build_default_output,
+                    default_output_dir=legacy_config.build_output_dir,
+                    include_draft=legacy_config.build_include_draft,
+                    include_superseded=legacy_config.build_include_superseded,
+                    strict=legacy_config.build_strict,
+                    keep_intermediate=legacy_config.build_keep_intermediate,
+                    converter=legacy_config.build_converter,
+                    pdf_engine=legacy_config.build_pdf_engine,
+                    reference_docx=legacy_config.build_reference_docx,
+                ),
+                diagrams=InitDiagramOptions(
+                    enabled=legacy_config.diagram_enabled,
+                    renderer=legacy_config.diagram_renderer,
+                    default_type=legacy_config.diagram_default_type,
+                    output_dir=legacy_config.diagram_output_dir,
+                    image_format=legacy_config.diagram_image_format,
+                    kroki_url=legacy_config.diagram_kroki_url,
+                ),
+                arc42=InitArc42Options(
+                    title=legacy_config.arc42_title,
+                    language=legacy_config.arc42_language,
+                    template_version=legacy_config.arc42_template_version,
+                    include_help=legacy_config.arc42_include_help,
+                ),
+                tracking=InitTrackingOptions(
+                    enabled=legacy_config.tracking_enabled,
+                    scanner=legacy_config.tracking_scanner,
+                    state_file=legacy_config.tracking_state_file,
+                    max_file_bytes=legacy_config.tracking_max_file_bytes,
+                    include=legacy_config.tracking_include or (),
+                    exclude=legacy_config.tracking_exclude or (),
+                ),
+            )
+            initialize_project(start, init_opts)
 
     context = load_project_context(start)
     if not isinstance(context.config, ProjectConfig):

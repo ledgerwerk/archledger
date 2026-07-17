@@ -15,6 +15,7 @@ from archledger.ids import (
     global_ref_for,
     ref_for,
 )
+from archledger.ledgercore_backend import ArchledgerLedgerLayout
 from archledger.migration import MigrationResult
 from archledger.model import (
     MAJOR_SECTION_SPECS,
@@ -652,3 +653,39 @@ def profile_list_payload(summary: dict[str, object]) -> dict[str, object]:
         "schema": "archledger.profile-list.v1",
         **summary,
     }
+
+
+def storage_where_payload(
+    layout: ArchledgerLedgerLayout,
+) -> dict[str, object]:
+    """Canonical schema-3 storage payload from ArchledgerLedgerLayout."""
+    ctx = layout
+    return {
+        "schema": "archledger.storage.v1",
+        "project_root": str(ctx.project_root),
+        "project_uuid": ctx.project_uuid,
+        "project_name": ctx.project_name,
+        "manifest_path": str(ctx.manifest_path),
+        "local_config_path": str(ctx.local_config_path),
+        "tool_config_path": str(ctx.tool_config_path),
+        "data_root": str(ctx.data_root),
+        "data_storage": ctx.data_storage,
+        "data_source": ctx.data_source,
+        "external_root": str(ctx.external_root) if ctx.external_root else None,
+        "config_binding_valid": _binding_valid(ctx.config_binding_path),
+        "data_binding_valid": _binding_valid(ctx.data_binding_path),
+        # Deprecated compatibility aliases
+        "workspace_root": str(ctx.project_root),
+        "config_path": str(ctx.tool_config_path),
+        "archledger_dir": str(ctx.data_root),
+    }
+
+
+def _binding_valid(path: Path) -> bool:
+    try:
+        from archledger.ledgercore_backend import read_storage_binding
+
+        read_storage_binding(path)
+        return True
+    except Exception:
+        return False

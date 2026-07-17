@@ -1,0 +1,45 @@
+---
+schema_version: 4
+id: content-0020
+type: requirement
+title: Record creation enforces schema and unique ids
+status: accepted
+section: introduction_and_goals
+order: 30
+source: archledger CLI behavior and repository implementation
+priority: must
+stakeholders: []
+quality_goals: []
+body_format: markdown
+source_refs:
+  - archledger/cli.py
+  - archledger/repository.py
+  - archledger/ids.py
+  - archledger/id_segments.py
+  - tests/test_read_cli.py
+  - path: archledger/ledger_sequence.py
+    role: implements
+    reason: Allocates the global ledger sequence used by record creation.
+acceptance_criteria:
+  - id: AC-001
+    statement:
+      Creating supported record types allocates a unique globally sequenced
+      ID in the configured segmented or unsegmented format and emits schema-valid front
+      matter.
+    validation:
+      command: pytest -q tests/test_ids.py tests/test_repository_cli.py
+      expected: passes
+test_refs:
+  - tests/test_ids.py
+  - tests/test_repository_cli.py
+kind: content
+version: 1
+---
+
+## Requirement
+
+`archledger new` must allocate stable IDs using the configured `LedgerIdFormat` (prefix, width, and segment mode), resolve the segment token when in segmented mode, choose the correct filename/template, and write schema-compliant front matter for each supported record type.
+
+## Rationale
+
+Record creation needs to be safe for both humans and coding agents. IDs must be unique, globally sequential, and formatted according to project configuration.

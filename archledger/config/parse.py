@@ -282,9 +282,10 @@ def load_project_config(path: Path) -> ProjectConfig:
         9,
         10,
         11,
+        12,
     }:
-        raise ConfigError("config_version must be 1 through 11.")
-    canonical_config = config_version == 11
+        raise ConfigError("config_version must be 1 through 12.")
+    canonical_config = config_version >= 11
     prohibited_canonical_keys = {
         "archledger_dir",
         "project_uuid",
@@ -292,7 +293,7 @@ def load_project_config(path: Path) -> ProjectConfig:
     }
     if canonical_config and prohibited_canonical_keys.intersection(raw_data):
         raise ConfigError(
-            "Canonical config_version 11 must not contain identity or storage "
+            "Canonical config_version >= 11 must not contain identity or storage "
             "keys: "
             + ", ".join(sorted(prohibited_canonical_keys.intersection(raw_data)))
         )
@@ -378,7 +379,6 @@ def load_project_config(path: Path) -> ProjectConfig:
         project_uuid=project_uuid,
         project_name=project_name,
         ledger_code=ledger_code,
-        ledger_name=ledger_name,
         id_prefix=id_prefix,
         id_width=id_width,
         id_segment_mode=id_segment_mode,

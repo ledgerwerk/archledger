@@ -321,3 +321,26 @@ def format_profile_migration_message(payload: dict[str, object]) -> str:
             if isinstance(step, dict):
                 lines.append(f"- {step.get('action')}: {step.get('message')}")
     return "\n".join(lines)
+
+
+def format_storage_where_message(payload: dict[str, object]) -> str:
+    """Human-readable storage where output."""
+    lines = [
+        f"Project root:      {payload.get('project_root', '')}",
+        f"Project UUID:      {payload.get('project_uuid', '')}",
+        f"Project name:      {payload.get('project_name', '')}",
+        f"Manifest:          {payload.get('manifest_path', '')}",
+        f"Local override:    {payload.get('local_config_path', '')}",
+        f"Tool config:       {payload.get('tool_config_path', '')}",
+        f"Data root:         {payload.get('data_root', '')}",
+        f"Data storage:      {payload.get('data_storage', '')}",
+        f"Data source:       {payload.get('data_source', '')}",
+    ]
+    ext = payload.get("external_root")
+    if ext:
+        lines.append(f"External root:     {ext}")
+    binding = "valid" if payload.get("config_binding_valid") else "invalid"
+    lines.append(f"Config binding:    {binding}")
+    binding = "valid" if payload.get("data_binding_valid") else "invalid"
+    lines.append(f"Data binding:      {binding}")
+    return "\n".join(lines)

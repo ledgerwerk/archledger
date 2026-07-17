@@ -1,45 +1,35 @@
 from __future__ import annotations
 
-import os
-import sys
 from collections.abc import Mapping
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal
-
-from ledgercore.config import LedgerProjectLocator, locate_ledger_project
-from ledgercore.errors import LedgerCoreError
-from ledgercore.layout import (
-    LedgerLocalConfig,
-    LedgerProjectManifest,
-    ResolvedLedgerLayout,
-    ResolvedMount,
-    parse_ledger_local_config,
-    parse_ledger_project_manifest,
-    resolve_ledger_layout,
-)
+from typing import Any, Literal
 
 from archledger.config.model import ProjectConfig
 from archledger.config.parse import load_project_config
 from archledger.errors import ConfigError, StorageError
-from archledger.storage.common import read_text
+from archledger.ledgercore_backend import (
+    DataStorage,
+    StorageValidationReport,
+    load_archledger_layout,
+    validate_archledger_layout,
+)
 from archledger.storage.meta import read_storage_meta
 from archledger.storage.paths import ProjectPaths
 
-if sys.version_info >= (3, 11):
-    import tomllib
-else:  # pragma: no cover
-    import tomli as tomllib  # type: ignore[import-not-found, unused-ignore]
-
-ProjectStateKind = Literal["uninitialized", "legacy", "canonical", "partial", "invalid"]
+# Schema-3 paths — derived by Ledgercore.
 MANIFEST_PATH = Path(".ledger/ledger.toml")
 LOCAL_CONFIG_PATH = Path(".ledger/ledger.local.toml")
-ARCHLEDGER_CONFIG_PATH = Path(".ledger/arch/config.toml")
-ARCHLEDGER_DATA_PATH = Path(".ledger/arch/archledger")
+ARCHLEDGER_CONFIG_PATH = Path(".ledger/archledger/config.toml")
+ARCHLEDGER_DATA_PATH = Path(".ledger/archledger/data")
+
+ProjectStateKind = Literal["uninitialized", "legacy", "canonical", "partial", "invalid"]
 
 
 @dataclass(frozen=True, slots=True)
 class ArchledgerProjectContext:
+    """Runtime authority for Archledger identity and resolved paths."""
+
     project_root: Path
     config_root: Path
     manifest_path: Path
@@ -56,13 +46,14 @@ class ArchledgerProjectContext:
     document_state_path: Path
     project_uuid: str
     project_name: str | None
-    active_mount_name: Literal["data"] = "data"
-    mount_storage: Literal["repository"] = "repository"
-    mount_scope: None = None
-    mount_source: Literal["repository"] = "repository"
+    data_storage: DataStorage = "project"
+    data_source: str = "manifest"
+    external_root: Path | None = None
     config: ProjectConfig | None = None
-    layout: ResolvedLedgerLayout | None = None
+    layout: Any = None
+    storage_validation: StorageValidationReport | None = None
 
+    # Deprecated compatibility properties for one release.
     @property
     def workspace_root(self) -> Path:
         return self.project_root
@@ -70,6 +61,22 @@ class ArchledgerProjectContext:
     @property
     def archledger_dir(self) -> Path:
         return self.data_root
+
+    @property
+    def active_mount_name(self) -> str:
+        return "data"
+
+    @property
+    def mount_storage(self) -> str:
+        return self.data_storage
+
+    @property
+    def mount_scope(self) -> None:
+        return None
+
+    @property
+    def mount_source(self) -> str:
+        return self.data_source
 
     def project_paths(self) -> ProjectPaths:
         if self.config is None:
@@ -88,76 +95,15 @@ class ArchledgerProjectContext:
             storage_meta_path=self.storage_meta_path,
             source_state_path=self.source_state_path,
             document_state_path=self.document_state_path,
-            mount_name=self.active_mount_name,
-            mount_storage=self.mount_storage,
-            mount_scope=self.mount_scope,
-            mount_source=self.mount_source,
+            mount_name="data",
+            mount_storage=self.data_storage,
+            mount_scope=None,
+            mount_source=self.data_source,
         )
 
 
 def _error(message: str, code: str) -> ConfigError:
     return ConfigError(message, details={"code": code})
-
-
-def _load_toml(path: Path) -> dict[str, object]:
-    try:
-        value = tomllib.loads(read_text(path))
-    except (OSError, tomllib.TOMLDecodeError) as exc:
-        raise _error(
-            f"Failed to parse {path}: {exc}", "ARCHLEDGER_MANIFEST_INVALID"
-        ) from exc
-    if not isinstance(value, dict):
-        raise _error(
-            f"{path} did not parse to a TOML table.", "ARCHLEDGER_MANIFEST_INVALID"
-        )
-    return value
-
-
-def _manifest_registration(
-    manifest: LedgerProjectManifest,
-) -> tuple[object, ResolvedMount | object]:
-    registration = manifest.ledgers.get("archledger")
-    if registration is None:
-        raise _error(
-            "The shared manifest has no Archledger registration. Run: archledger init",
-            "ARCHLEDGER_REGISTRATION_MISSING",
-        )
-    if registration.config is None or registration.config.path != "arch/config.toml":
-        raise _error(
-            "Archledger must use project config path arch/config.toml.",
-            "ARCHLEDGER_REGISTRATION_CONFLICT",
-        )
-    if set(registration.mounts) != {"data"}:
-        raise _error(
-            "Archledger must define exactly one mount named data.",
-            "ARCHLEDGER_REGISTRATION_CONFLICT",
-        )
-    mount = registration.mounts["data"]
-    if (
-        mount.storage != "repository"
-        or mount.scope is not None
-        or mount.path != "arch/archledger"
-    ):
-        raise _error(
-            "Archledger data must use an unscoped repository mount at arch/archledger.",
-            "ARCHLEDGER_REGISTRATION_CONFLICT",
-        )
-    return registration, mount
-
-
-def _load_local_config(locator: LedgerProjectLocator) -> LedgerLocalConfig | None:
-    path = locator.local_config_path
-    if not path.is_file():
-        return None
-    try:
-        return parse_ledger_local_config(
-            _load_toml(path), project_root=locator.project_root
-        )
-    except LedgerCoreError as exc:
-        raise _error(
-            f"Invalid shared local Ledger configuration: {exc}",
-            "ARCHLEDGER_MANIFEST_INVALID",
-        ) from exc
 
 
 def load_project_context(
@@ -166,119 +112,50 @@ def load_project_context(
     require_initialized: bool = True,
     environ: Mapping[str, str] | None = None,
 ) -> ArchledgerProjectContext:
-    locator = locate_ledger_project(
-        start, legacy_tool_filenames=("archledger.toml", ".archledger.toml")
-    )
-    if locator is None:
-        raise _error(
-            "No .ledger/ledger.toml found. Run: archledger init",
-            "ARCHLEDGER_PROJECT_NOT_FOUND",
-        )
-    if locator.is_legacy:
-        raise _error(
-            "Legacy Archledger layout found. Run: archledger migrate project",
-            "ARCHLEDGER_MIGRATION_REQUIRED",
-        )
-    try:
-        manifest = parse_ledger_project_manifest(_load_toml(locator.manifest_path))
-        _manifest_registration(manifest)
-        local_config = _load_local_config(locator)
-        layout = resolve_ledger_layout(
-            locator,
-            manifest,
-            "archledger",
-            local_config=local_config,
-            environ=os.environ if environ is None else environ,
-        )
-    except LedgerCoreError as exc:
-        code = (
-            "ARCHLEDGER_REGISTRATION_CONFLICT"
-            if "registration" in str(exc).lower()
-            else "ARCHLEDGER_MANIFEST_INVALID"
-        )
-        raise _error(f"Invalid Archledger project layout: {exc}", code) from exc
+    """Load the schema-3 Archledger project context through Ledgercore.
 
-    mount = layout.mounts.get("data")
-    expected_data = (locator.project_root / ARCHLEDGER_DATA_PATH).resolve(strict=False)
-    if (
-        mount is None
-        or mount.storage != "repository"
-        or mount.source != "repository"
-        or mount.path != expected_data
-    ):
-        raise _error(
-            "Ledgercore resolved Archledger data outside .ledger/arch/archledger.",
-            "ARCHLEDGER_DATA_ROOT_CONFLICT",
-        )
-    config_path = layout.tool_config_path
-    expected_config = (locator.project_root / ARCHLEDGER_CONFIG_PATH).resolve(
-        strict=False
+    Raises ConfigError with stable codes when the project is missing,
+    unregistered, misconfigured, or requires migration.
+    """
+    ledger_layout = load_archledger_layout(
+        start,
+        require_registration=True,
+        environ=environ,
     )
-    if config_path is None or config_path.resolve(strict=False) != expected_config:
+
+    # Validate Archledger-specific semantics.
+    arch_validation = validate_archledger_layout(
+        ledger_layout,
+        require_initialized=require_initialized,
+    )
+    if not arch_validation.valid:
+        issues = "; ".join(arch_validation.errors)
         raise _error(
-            "Ledgercore resolved an unexpected Archledger config path.",
-            "ARCHLEDGER_REGISTRATION_CONFLICT",
+            f"Archledger storage validation failed: {issues}",
+            "ARCHLEDGER_CONFIG_BINDING_INVALID",
         )
+
+    # Load tool config.
+    config_path = ledger_layout.tool_config_path
     try:
         config = load_project_config(config_path)
     except ConfigError as exc:
         raise _error(str(exc), "ARCHLEDGER_CONFIG_INVALID") from exc
-    if config.config_version != 11:
+    if config.config_version < 11:
         raise _error(
-            "Archledger stable configuration must use config_version 11.",
+            "Archledger stable configuration must use config_version 11 or 12.",
             "ARCHLEDGER_CONFIG_INVALID",
         )
-    config = replace(
-        config,
-        archledger_dir=str(mount.path),
-        project_uuid=manifest.project_uuid,
-        project_name=manifest.project_name or locator.project_root.name,
-    )
-    paths = _resolve_paths(locator.project_root, config_path, mount, config)
-    if require_initialized:
-        if not paths.archledger_dir.is_dir():
-            raise _error(
-                "Canonical Archledger data root is missing.",
-                "ARCHLEDGER_DATA_ROOT_MISSING",
-            )
-        try:
-            meta = read_storage_meta(paths.storage_meta_path)
-        except (OSError, StorageError) as exc:
-            raise _error(
-                f"Canonical Archledger storage is invalid: {exc}",
-                "ARCHLEDGER_STORAGE_INVALID",
-            ) from exc
-        if meta.project_uuid != manifest.project_uuid:
-            raise _error(
-                "storage.yaml project_uuid does not match the shared manifest.",
-                "ARCHLEDGER_STORAGE_UUID_MISMATCH",
-            )
-    return ArchledgerProjectContext(
-        project_root=locator.project_root.resolve(),
-        config_root=locator.config_root.resolve(),
-        manifest_path=locator.manifest_path.resolve(),
-        local_config_path=locator.local_config_path.resolve(),
-        config_path=config_path.resolve(),
-        data_root=mount.path,
-        sections_dir=paths.sections_dir,
-        records_dir=paths.records_dir,
-        archive_dir=paths.archive_dir,
-        migrations_dir=mount.path / "migrations",
-        build_dir=paths.build_dir,
-        storage_meta_path=paths.storage_meta_path,
-        source_state_path=paths.source_state_path,
-        document_state_path=mount.path / "document-state.json",
-        project_uuid=manifest.project_uuid,
-        project_name=manifest.project_name,
-        config=config,
-        layout=layout,
-    )
 
+    data_root = ledger_layout.data_root
+    project_root = ledger_layout.project_root
 
-def _resolve_paths(
-    project_root: Path, config_path: Path, mount: ResolvedMount, config: ProjectConfig
-) -> ProjectPaths:
-    data_root = mount.path
+    # Derive domain paths below data_root.
+    sections_dir = _inside(
+        data_root,
+        config.profiles.arc42.sections_dir,
+        "profiles.arc42.sections_dir",
+    )
     build_raw = config.build_output_dir
     build_dir = (
         project_root
@@ -287,24 +164,84 @@ def _resolve_paths(
     )
     _inside(build_dir, config.build_default_output, "build.default_output")
     _inside(build_dir, config.diagram_output_dir, "diagrams.output_dir")
-    sections_dir = _inside(
-        data_root, config.profiles.arc42.sections_dir, "profiles.arc42.sections_dir"
-    )
     state_path = _inside(data_root, config.tracking_state_file, "tracking.state_file")
-    return ProjectPaths(
-        workspace_root=project_root,
-        config_root=project_root / ".ledger",
-        manifest_path=project_root / MANIFEST_PATH,
-        local_config_path=project_root / LOCAL_CONFIG_PATH,
-        config_path=config_path,
-        archledger_dir=data_root,
+
+    if require_initialized:
+        if not data_root.is_dir():
+            raise _error(
+                "Canonical Archledger data root is missing.",
+                "ARCHLEDGER_DATA_ROOT_MISSING",
+            )
+        storage_path = data_root / "storage.yaml"
+        try:
+            meta = read_storage_meta(storage_path)
+        except (OSError, StorageError) as exc:
+            raise _error(
+                f"Canonical Archledger storage is invalid: {exc}",
+                "ARCHLEDGER_STORAGE_INVALID",
+            ) from exc
+        if meta.project_uuid != ledger_layout.project_uuid:
+            raise _error(
+                "storage.yaml project_uuid does not match the shared manifest.",
+                "ARCHLEDGER_STORAGE_UUID_MISMATCH",
+            )
+
+    return ArchledgerProjectContext(
+        project_root=project_root.resolve(),
+        config_root=(project_root / ".ledger").resolve(),
+        manifest_path=ledger_layout.manifest_path.resolve(),
+        local_config_path=ledger_layout.local_config_path.resolve(),
+        config_path=config_path.resolve(),
+        data_root=data_root,
         sections_dir=sections_dir,
         records_dir=data_root / "records",
         archive_dir=data_root / "archive",
+        migrations_dir=data_root / "migrations",
         build_dir=build_dir,
         storage_meta_path=data_root / "storage.yaml",
         source_state_path=state_path,
         document_state_path=data_root / "document-state.json",
+        project_uuid=ledger_layout.project_uuid,
+        project_name=ledger_layout.project_name,
+        data_storage=ledger_layout.data_storage,
+        data_source=ledger_layout.data_source,
+        external_root=ledger_layout.external_root,
+        config=config,
+        layout=ledger_layout.raw_layout,
+        storage_validation=ledger_layout.storage_validation,
+    )
+
+
+def classify_project_state(start: Path) -> ProjectStateKind:
+    """Classify the project state for CLI presentation."""
+    try:
+        locator = _safe_locate(start)
+    except Exception:
+        return "invalid"
+
+    if locator is None:
+        return "uninitialized"
+    if getattr(locator, "is_legacy", False):
+        return "legacy"
+    try:
+        load_project_context(start)
+    except ConfigError as exc:
+        code = exc.details.get("code", "") if exc.details else ""
+        if code in {
+            "ARCHLEDGER_DATA_ROOT_MISSING",
+            "ARCHLEDGER_CONFIG_MISSING",
+            "ARCHLEDGER_STORAGE_INVALID",
+        }:
+            return "partial"
+        return "invalid"
+    return "canonical"
+
+
+def _safe_locate(start: Path) -> Any | None:
+    from archledger.ledgercore_backend import locate_ledger_project
+
+    return locate_ledger_project(
+        start, legacy_tool_filenames=("archledger.toml", ".archledger.toml")
     )
 
 
@@ -317,33 +254,10 @@ def _inside(base: Path, value: str, field_name: str) -> Path:
         resolved.relative_to(base.resolve(strict=False))
     except ValueError as exc:
         raise _error(
-            f"{field_name} must stay inside {base}.", "ARCHLEDGER_CONFIG_INVALID"
+            f"{field_name} must stay inside {base}.",
+            "ARCHLEDGER_CONFIG_INVALID",
         ) from exc
     return resolved
-
-
-def classify_project_state(start: Path) -> ProjectStateKind:
-    locator = locate_ledger_project(
-        start, legacy_tool_filenames=("archledger.toml", ".archledger.toml")
-    )
-    if locator is None:
-        return "uninitialized"
-    if locator.is_legacy:
-        return "legacy"
-    try:
-        load_project_context(start)
-    except ConfigError as exc:
-        return (
-            "partial"
-            if exc.details.get("code")
-            in {
-                "ARCHLEDGER_DATA_ROOT_MISSING",
-                "ARCHLEDGER_CONFIG_MISSING",
-                "ARCHLEDGER_STORAGE_INVALID",
-            }
-            else "invalid"
-        )
-    return "canonical"
 
 
 __all__ = [

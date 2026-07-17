@@ -200,12 +200,18 @@ class DiagramConfig:
 
 @dataclass(frozen=True, slots=True)
 class ProjectConfig:
+    """Archledger tool configuration (currently version 11, migrating to 12).
+
+    Runtime identity fields (archledger_dir, project_uuid, project_name) are
+    removed from serialized config in version 12 and supplied by the project
+    context at runtime. They default to empty strings for backward compat.
+    """
+
     config_version: int
-    archledger_dir: str
-    project_uuid: str
-    project_name: str
+    archledger_dir: str = ""
+    project_uuid: str = ""
+    project_name: str = ""
     ledger_code: str = DEFAULT_LEDGER_CODE
-    ledger_name: str = DEFAULT_LEDGER_NAME
     id_width: int = DEFAULT_ID_WIDTH
     id_default_kind: str = DEFAULT_ID_KIND
     id_kind_map: dict[str, str] = field(
@@ -255,11 +261,13 @@ class ProjectConfig:
     diagram_image_format: str = "svg"
     diagram_kroki_url: str = ""
     profiles: ProjectProfilesConfig = field(default_factory=ProjectProfilesConfig)
-    # True when the parsed config file explicitly contained a [profiles] table.
-    # Used to distinguish legacy projects (config_version < 8) from migrated/new ones.
     profiles_present: bool = False
-    # Hard-deprecation control for legacy arc42-only projects.
     legacy_sections_warned: bool = False
+
+    @property
+    def ledger_name(self) -> str:
+        """Deprecated: use project_name from context instead."""
+        return self.project_name or DEFAULT_LEDGER_NAME
 
     @property
     def profile(self) -> str:

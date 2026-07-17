@@ -1,0 +1,35 @@
+---
+id: runtime-0057
+type: runtime_scenario
+title: Create and render a new architecture record
+schema_version: 4
+body_format: markdown
+status: accepted
+section: runtime_view
+order: 10
+participants:
+  - CLI Layer
+  - Repository Layer
+  - Storage Layer
+  - Render Layer
+trigger: User invokes archledger new with kind, title, and status arguments
+result:
+  A new Markdown record file is created and the architecture document can be
+  rebuilt.
+source_refs:
+  - archledger/cli.py
+  - tests/test_repository_cli.py
+kind: runtime
+version: 1
+---
+
+1. CLI parses the `new` command arguments (kind, title, status, parent, section).
+2. CLI resolves the project config via Storage paths.
+3. CLI constructs an ArchitectureRepository instance.
+4. Repository normalizes the kind alias to a canonical record type.
+5. Repository recomputes next-number counters from existing files.
+6. Repository renders a Jinja2 template with the new record's context.
+7. Repository writes the rendered Markdown file to the appropriate records subdirectory.
+8. Repository updates the storage metadata counters.
+9. User then invokes `archledger build` to reassemble the full document.
+10. Render layer loads all records, sorts by section and order, and produces the final Markdown.

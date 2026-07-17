@@ -1,28 +1,23 @@
+"""Archledger schema-3 project initialization.
+
+Creates or updates: .ledger/ledger.toml, .ledger/archledger/config.toml,
+bindings, storage.yaml, and profile sections.
+"""
+
 from __future__ import annotations
 
-import sys
 from dataclasses import replace
 from pathlib import Path
 from uuid import uuid4
 
-if sys.version_info >= (3, 11):
-    import tomllib
-else:  # pragma: no cover
-    import tomli as tomllib
-from ledgercore.layout import parse_ledger_project_manifest
-
 from archledger.cli_options import InitOptions
 from archledger.config.render import build_default_project_config, render_project_config
 from archledger.errors import ArchledgerError
-from archledger.project_context import load_project_context
-from archledger.project_manifest import (
+from archledger.ledgercore_backend import (
     ensure_archledger_registration,
-    ensure_project_identity,
-    load_manifest,
-    manifest_text,
-    new_manifest,
-    write_manifest,
+    initialize_archledger_bindings,
 )
+from archledger.project_context import load_project_context
 from archledger.repository import ArchitectureRepository, InitResult
 from archledger.storage.common import ensure_dir, write_text_atomic
 from archledger.storage.paths import ProjectPaths
@@ -31,39 +26,45 @@ from archledger.storage.paths import ProjectPaths
 def initialize_project(root: Path, options: InitOptions) -> InitResult:
     root = root.resolve()
     manifest_path = root / ".ledger/ledger.toml"
-    config_path = root / ".ledger/arch/config.toml"
+    tool_config_path = root / ".ledger/archledger/config.toml"
 
-    if manifest_path.exists():
-        manifest = load_manifest(manifest_path)
-        raw = tomllib.loads(manifest_text(manifest))
-        if (
-            "ledgers" in raw
-            and isinstance(raw["ledgers"], dict)
-            and "archledger" in raw["ledgers"]
-        ):
-            parse_ledger_project_manifest(raw)
-    else:
-        manifest = new_manifest(
-            project_uuid=options.project_uuid or str(uuid4()),
-            project_name=options.project_name or root.name,
-        )
-    uuid, name = ensure_project_identity(
-        manifest,
-        project_uuid=options.project_uuid,
-        project_name=options.project_name,
-        default_name=root.name,
+    # Resolve project identity.
+    project_uuid = options.project_uuid
+    project_name = options.project_name or root.name
+
+    # Ensure schema-3 manifest registration through Ledgercore.
+    # When the manifest already exists, ensure_archledger_registration preserves
+    # the existing UUID. Read back to capture the effective identity.
+    data_storage = options.data_storage or "project"
+    external_root = options.external_root
+    ensure_archledger_registration(
+        manifest_path,
+        project_uuid=project_uuid or str(uuid4()),
+        project_name=project_name,
+        data_storage=data_storage,  # type: ignore[arg-type]
+        external_root=external_root,
     )
-    ensure_archledger_registration(manifest)
+
+    # Re-read the manifest to get the effective UUID (existing or newly generated).
+    from ledgercore import read_ledger_manifest
+
+    effective_manifest = read_ledger_manifest(manifest_path)
+    project_uuid = getattr(effective_manifest, "project_uuid", project_uuid) or str(
+        uuid4()
+    )
+    project_name = getattr(effective_manifest, "project_name", None) or project_name
+
+    # Build Archledger tool config.
     config = build_default_project_config(
         root,
-        archledger_dir="arch/archledger",
+        archledger_dir="data",  # relative to data mount
         source_format=options.source_format,
         id_prefix=options.id_prefix,
         id_width=options.id_width,
         id_segment_mode=options.id_segment_mode,
         profile=options.profile,
-        project_name=name,
-        project_uuid=uuid,
+        project_name=project_name,
+        project_uuid=project_uuid,
         build_default_format=options.build.default_format,
         build_default_output=options.build.default_output,
         build_default_output_dir=options.build.default_output_dir,
@@ -91,21 +92,29 @@ def initialize_project(root: Path, options: InitOptions) -> InitResult:
         tracking_include=options.tracking.include or None,
         tracking_exclude=options.tracking.exclude or None,
     )
-    if config_path.exists() and manifest_path.exists():
-        context = load_project_context(root)
-        return ArchitectureRepository(
-            context.project_paths(), context.config or config
-        ).init()
 
-    staging_root = root / ".ledger/arch" / f".archledger-init-{uuid4().hex}"
-    staging_data = staging_root / "archledger"
+    # If already initialized (config exists and context loads), run init idempotently.
+    if tool_config_path.exists() and manifest_path.exists():
+        try:
+            context = load_project_context(root)
+        except Exception:
+            pass
+        else:
+            return ArchitectureRepository(
+                context.project_paths(), context.config or config
+            ).init()
+
+    # Stage data under .ledger/archledger/.
+    data_root = root / ".ledger/archledger/data"
+    staging_root = root / ".ledger/archledger" / f".archledger-init-{uuid4().hex}"
+    staging_data = staging_root / "data"
     ensure_dir(staging_root)
     paths = ProjectPaths(
         workspace_root=root,
         config_root=root / ".ledger",
         manifest_path=manifest_path,
         local_config_path=root / ".ledger/ledger.local.toml",
-        config_path=config_path,
+        config_path=tool_config_path,
         archledger_dir=staging_data,
         sections_dir=staging_data / "profiles/arc42/sections",
         records_dir=staging_data / "records",
@@ -116,27 +125,41 @@ def initialize_project(root: Path, options: InitOptions) -> InitResult:
         document_state_path=staging_data / "document-state.json",
     )
     result = ArchitectureRepository(paths, config).init()
-    target_data = root / ".ledger/arch/archledger"
-    if target_data.exists():
-        if any(target_data.iterdir()):
+
+    # Move staged data into target.
+    if data_root.exists():
+        if any(data_root.iterdir()):
             raise ArchledgerError(
-                f"Canonical data target is not empty: {target_data}",
+                f"Canonical data target is not empty: {data_root}",
                 details={"code": "ARCHLEDGER_DATA_ROOT_CONFLICT"},
             )
-        target_data.rmdir()
-    target_data.parent.mkdir(parents=True, exist_ok=True)
-    staging_data.rename(target_data)
-    write_text_atomic(config_path, render_project_config(config))
-    write_manifest(manifest_path, manifest)
+        data_root.rmdir()
+    data_root.parent.mkdir(parents=True, exist_ok=True)
+    staging_data.rename(data_root)
+
+    # Write tool config.
+    write_text_atomic(tool_config_path, render_project_config(config))
+
+    # Initialize Ledgercore bindings.
+    initialize_archledger_bindings(
+        root,
+        project_uuid=project_uuid,
+        project_name=project_name,
+        data_storage=data_storage,  # type: ignore[arg-type]
+        external_root=external_root,
+    )
+
+    # Validate the result loads.
     load_project_context(root)
+
     created = tuple(
-        target_data / path.relative_to(staging_data)
+        data_root / path.relative_to(staging_data)
         for path in result.created_paths
         if path != staging_data and path.is_relative_to(staging_data)
-    ) + (config_path, manifest_path)
+    ) + (tool_config_path, manifest_path)
     return replace(
         result,
-        config_path=config_path,
-        archledger_dir=target_data,
+        config_path=tool_config_path,
+        archledger_dir=data_root,
         created_paths=created,
     )

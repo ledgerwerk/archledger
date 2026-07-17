@@ -1,0 +1,59 @@
+---
+schema_version: 4
+id: diagram-0076
+type: diagram
+title: Source Tracking Flow
+status: accepted
+section: cross_cutting_concepts
+order: 50
+diagram_type: mermaid
+caption: How source tracking detects changes and maps them to impacted records
+related_records:
+  - concept-0074
+  - block-0051
+  - runtime-0062
+tags:
+  - source-tracking
+  - change-detection
+body_format: markdown
+kind: diagram
+version: 1
+---
+
+Source tracking compares a saved baseline against the current workspace state. It uses SHA-256 file hashes and matches changed paths against record `source_refs` to report impacted architecture records.
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant CLI as archledger CLI
+    participant Tracking as Source Tracking
+    participant Storage as Storage Layer
+    participant Records as Architecture Records
+
+    User->>CLI: archledger source snapshot
+    CLI->>Storage: scan workspace files
+    Storage-->>Tracking: file list + SHA-256 hashes
+    Tracking->>Storage: persist source-state.json
+    Tracking-->>CLI: snapshot confirmed
+
+    Note over User,Records: Later, after code changes...
+
+    User->>CLI: archledger source changed
+    CLI->>Storage: load source-state.json
+    Storage-->>Tracking: baseline hashes
+    CLI->>Storage: scan workspace files
+    Storage-->>Tracking: current hashes
+    Tracking->>Tracking: diff baseline vs current
+    Note right of Tracking: added / modified / deleted\npossible renames
+    CLI->>Records: load all records with source_refs
+    Records-->>Tracking: source_refs per record
+    Tracking->>Tracking: match changed paths to refs
+    Note right of Tracking: impacted records\nimpacted sections\nunlinked changed files
+    Tracking-->>CLI: ChangeSet + impacts
+    CLI-->>User: JSON report
+
+    style CLI fill:#4a9eff,color:#fff
+    style Tracking fill:#6c5ce7,color:#fff
+    style Storage fill:#dfe6e9
+    style Records fill:#00b894,color:#fff
+```

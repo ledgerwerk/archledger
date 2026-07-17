@@ -1,0 +1,12 @@
+schema_version = 3
+
+[project]
+uuid = "bf999c8f-4e9e-46d6-9275-892c24d19f85"
+name = "archledger"
+
+[ledgers.taskledger.mounts.data]
+storage = "external"
+root = "../ledger"
+
+[ledgers.taskledger.mounts.indexes]
+storage = "cache"

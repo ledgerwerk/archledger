@@ -1,16 +1,25 @@
+"""Thin semantic wrapper over Ledgercore manifest and local-config APIs.
+
+Deprecated: new code should call ledgercore_backend directly.
+This module exists for backward compatibility with existing callers.
+"""
+
 from __future__ import annotations
 
-from collections.abc import Mapping
 from pathlib import Path
-from typing import Any, cast
-from uuid import UUID, uuid4
-
-from tomlkit import dumps, parse, table
-from tomlkit.toml_document import TOMLDocument
+from uuid import UUID
 
 from archledger.config.model import normalize_project_name
 from archledger.errors import ConfigError
-from archledger.storage.common import write_text_atomic
+from archledger.ledgercore_backend import (
+    clear_archledger_data_override as _backend_clear_override,
+)
+from archledger.ledgercore_backend import (
+    ensure_archledger_registration as _backend_ensure_registration,
+)
+from archledger.ledgercore_backend import (
+    set_archledger_data_override as _backend_set_override,
+)
 
 
 def _error(message: str, code: str) -> ConfigError:
@@ -22,31 +31,77 @@ def _normalize_uuid(value: str) -> str:
         return str(UUID(value))
     except ValueError as exc:
         raise _error(
-            "Project UUID must be a valid UUID.", "ARCHLEDGER_MANIFEST_INVALID"
+            "Project UUID must be a valid UUID.",
+            "ARCHLEDGER_MANIFEST_INVALID",
         ) from exc
 
 
-def new_manifest(*, project_uuid: str, project_name: str) -> TOMLDocument:
-    document = TOMLDocument()
-    document.add("schema_version", 2)
-    project = table()
-    project.add("uuid", _normalize_uuid(project_uuid))
-    project.add("name", normalize_project_name(project_name))
-    document.add("project", project)
-    workspace = table()
-    workspace.add("default_provider", "user-data")
-    workspace.add("namespace", "ledgerwerk")
-    cache = table()
-    cache.add("default_provider", "user-cache")
-    cache.add("namespace", "ledgerwerk")
-    storage = table()
-    storage.add("workspace", workspace)
-    storage.add("cache", cache)
-    document.add("storage", storage)
-    return ensure_archledger_registration(document)
+def ensure_archledger_manifest(
+    manifest_path: Path,
+    *,
+    project_uuid: str,
+    project_name: str | None = None,
+    data_storage: str = "project",
+    external_root: str | None = None,
+) -> None:
+    """Ensure the shared manifest has a schema-3 Archledger registration."""
+    _backend_ensure_registration(
+        manifest_path,
+        project_uuid=project_uuid,
+        project_name=project_name,
+        data_storage=data_storage,  # type: ignore[arg-type]
+        external_root=external_root,
+    )
+
+
+def set_data_storage_override(
+    local_config_path: Path,
+    *,
+    data_storage: str | None = None,
+    external_root: str | None = None,
+) -> None:
+    """Set a local override for the Archledger data mount."""
+    _backend_set_override(
+        local_config_path,
+        data_storage=data_storage,  # type: ignore[arg-type]
+        external_root=external_root,
+    )
+
+
+def clear_data_storage_override(local_config_path: Path) -> None:
+    """Remove the local data mount override."""
+    _backend_clear_override(local_config_path)
+
+
+__all__ = [
+    "clear_data_storage_override",
+    "ensure_archledger_manifest",
+    "set_data_storage_override",
+]
+
+
+# ---------------------------------------------------------------------------
+# Deprecated compatibility wrappers (migration-only)
+# ---------------------------------------------------------------------------
+
+import sys  # noqa: E402
+from collections.abc import Mapping  # noqa: E402
+from typing import Any, cast  # noqa: E402
+from uuid import uuid4  # noqa: E402
+
+from tomlkit import dumps, parse, table  # noqa: E402
+from tomlkit.toml_document import TOMLDocument  # noqa: E402
+
+from archledger.storage.common import write_text_atomic  # noqa: E402
+
+if sys.version_info >= (3, 11):
+    pass
+else:
+    pass
 
 
 def load_manifest(path: Path) -> TOMLDocument:
+    """Deprecated: use ledgercore_backend for manifest access."""
     try:
         return parse(path.read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:
@@ -56,6 +111,52 @@ def load_manifest(path: Path) -> TOMLDocument:
         ) from exc
 
 
+def manifest_text(document: TOMLDocument) -> str:
+    """Deprecated."""
+    return dumps(document)
+
+
+def new_manifest(*, project_uuid: str, project_name: str) -> TOMLDocument:
+    """Deprecated: creates schema-3 through the adapter instead."""
+    document = TOMLDocument()
+    document.add("schema_version", 3)
+    project = table()
+    project.add("uuid", _normalize_uuid(project_uuid))
+    project.add("name", normalize_project_name(project_name))
+    document.add("project", project)
+    return ensure_archledger_registration(document)
+
+
+def ensure_archledger_registration(document: TOMLDocument) -> TOMLDocument:
+    """Deprecated: use ledgercore_backend.ensure_archledger_registration."""
+    ledgers = document.get("ledgers")
+    if not isinstance(ledgers, Mapping):
+        if ledgers is not None:
+            raise _error(
+                "Manifest ledgers must be a table.",
+                "ARCHLEDGER_MANIFEST_INVALID",
+            )
+        ledgers = table()
+        document.add("ledgers", ledgers)
+    ledgers = cast(Any, ledgers)
+    registration = ledgers.get("archledger")
+    if registration is not None and not isinstance(registration, Mapping):
+        raise _error(
+            "Archledger registration must be a table.",
+            "ARCHLEDGER_REGISTRATION_CONFLICT",
+        )
+    if registration is None:
+        registration = table()
+        ledgers.add("archledger", registration)
+    registration = cast(Any, registration)
+    mounts = table()
+    data = table()
+    data.add("storage", "project")
+    mounts.add("data", data)
+    registration["mounts"] = mounts
+    return document
+
+
 def ensure_project_identity(
     document: TOMLDocument,
     *,
@@ -63,11 +164,13 @@ def ensure_project_identity(
     project_name: str | None,
     default_name: str,
 ) -> tuple[str, str]:
+    """Deprecated: use ledgercore_backend for identity management."""
     project = document.get("project")
     if not isinstance(project, Mapping):
         if project is not None:
             raise _error(
-                "Manifest project must be a table.", "ARCHLEDGER_MANIFEST_INVALID"
+                "Manifest project must be a table.",
+                "ARCHLEDGER_MANIFEST_INVALID",
             )
         project = table()
         document.add("project", project)
@@ -102,42 +205,6 @@ def ensure_project_identity(
     return resolved_uuid, resolved_name
 
 
-def ensure_archledger_registration(document: TOMLDocument) -> TOMLDocument:
-    ledgers = document.get("ledgers")
-    if not isinstance(ledgers, Mapping):
-        if ledgers is not None:
-            raise _error(
-                "Manifest ledgers must be a table.", "ARCHLEDGER_MANIFEST_INVALID"
-            )
-        ledgers = table()
-        document.add("ledgers", ledgers)
-    ledgers = cast(Any, ledgers)
-    registration = ledgers.get("archledger")
-    if registration is not None and not isinstance(registration, Mapping):
-        raise _error(
-            "Archledger registration must be a table.",
-            "ARCHLEDGER_REGISTRATION_CONFLICT",
-        )
-    if registration is None:
-        registration = table()
-        ledgers.add("archledger", registration)
-    registration = cast(Any, registration)
-    config = table()
-    config.add("location", "project")
-    config.add("path", "arch/config.toml")
-    data = table()
-    data.add("storage", "repository")
-    data.add("path", "arch/archledger")
-    mounts = table()
-    mounts.add("data", data)
-    registration["config"] = config
-    registration["mounts"] = mounts
-    return document
-
-
 def write_manifest(path: Path, document: TOMLDocument) -> None:
+    """Deprecated: use ledgercore_backend for manifest writes."""
     write_text_atomic(path, dumps(document))
-
-
-def manifest_text(document: TOMLDocument) -> str:
-    return dumps(document)

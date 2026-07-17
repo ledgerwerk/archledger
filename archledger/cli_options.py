@@ -68,6 +68,8 @@ class InitOptions:
     id_segment_mode: str = "none"
     profile: str = "arc42"
     extra_profiles: tuple[str, ...] = ()
+    data_storage: str = "project"
+    external_root: str | None = None
     build: InitBuildOptions = field(default_factory=InitBuildOptions)
     diagrams: InitDiagramOptions = field(default_factory=InitDiagramOptions)
     arc42: InitArc42Options = field(default_factory=InitArc42Options)

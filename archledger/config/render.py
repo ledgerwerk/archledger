@@ -10,7 +10,6 @@ from archledger.config.model import (
     DEFAULT_ID_SEGMENT,
     DEFAULT_ID_SEGMENT_MAP,
     DEFAULT_LEDGER_CODE,
-    DEFAULT_LEDGER_NAME,
     DEFAULT_TRACKING_EXCLUDE,
     DEFAULT_TRACKING_INCLUDE,
     VALID_BUILD_CONVERTERS,
@@ -51,7 +50,6 @@ def build_default_project_config(
     archledger_dir: str,
     source_format: str = "markdown",
     ledger_code: str = DEFAULT_LEDGER_CODE,
-    ledger_name: str = DEFAULT_LEDGER_NAME,
     id_prefix: str = DEFAULT_ID_PREFIX,
     id_width: int = DEFAULT_ID_WIDTH,
     id_segment_mode: str = DEFAULT_ID_SEGMENT_MODE,
@@ -142,8 +140,6 @@ def build_default_project_config(
         validated_ledger_code = normalize_ref_token(ledger_code, label="ledger")
     except Exception as exc:
         raise ConfigError(str(exc)) from exc
-    if not ledger_name.strip():
-        raise ConfigError("ledger_name must be a non-empty string.")
     validated_id_prefix = validate_id_prefix(id_prefix)
     validated_id_width = validate_id_width(id_width)
     validated_id_segment_mode = validate_id_segment_mode(id_segment_mode)
@@ -182,12 +178,11 @@ def build_default_project_config(
     )
 
     return ProjectConfig(
-        config_version=11,
+        config_version=12,
         archledger_dir=archledger_dir,
         project_uuid=normalized_uuid,
         project_name=normalized_project_name,
         ledger_code=validated_ledger_code,
-        ledger_name=ledger_name.strip(),
         id_prefix=validated_id_prefix,
         id_width=validated_id_width,
         id_segment_mode=validated_id_segment_mode,
@@ -283,7 +278,7 @@ def render_project_config(config: ProjectConfig) -> str:
         "# Paths are resolved from the project root and canonical data mount.",
         f"config_version = {config.config_version}",
     ]
-    if config.config_version < 11:
+    if config.config_version < 12:
         lines.extend(
             [
                 f"archledger_dir = {_toml_string(config.archledger_dir)}",
@@ -298,7 +293,6 @@ def render_project_config(config: ProjectConfig) -> str:
             "",
             "[ledger]",
             f"code = {_toml_string(config.ledger_code)}",
-            f"name = {_toml_string(config.ledger_name)}",
             "",
             "[ids]",
             f"width = {config.id_width}",

@@ -38,9 +38,6 @@ from archledger.cli_formatting import (
     format_new_message as _format_new_message,
 )
 from archledger.cli_formatting import (
-    format_paths_message as _format_paths_message,
-)
-from archledger.cli_formatting import (
     format_profile_list_message as _format_profile_list_message,
 )
 from archledger.cli_formatting import (
@@ -121,9 +118,6 @@ from archledger.cli_payloads import (
 from archledger.cli_payloads import (
     status_payload as _status_payload,
 )
-from archledger.cli_payloads import (
-    where_payload as _where_payload,
-)
 from archledger.errors import ArchledgerError, StorageError
 from archledger.id_format_drift import find_id_format_drift
 from archledger.identity_migration import migrate_identity
@@ -196,6 +190,13 @@ ac_app = typer.Typer(add_completion=False, no_args_is_help=True)
 app.add_typer(ac_app, name="ac", help="Manage inline acceptance criteria.")
 scope_app = typer.Typer(add_completion=False, no_args_is_help=True)
 app.add_typer(scope_app, name="scope", help="Inspect record scope metadata.")
+
+storage_app = typer.Typer(add_completion=False, no_args_is_help=True)
+app.add_typer(
+    storage_app,
+    name="storage",
+    help="Inspect and manage Archledger storage topology.",
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -561,9 +562,75 @@ def status(ctx: typer.Context) -> None:
     _run_simple_command(ctx, "status", _status_payload, _format_status_message)
 
 
-@app.command("paths")
+@app.command("paths", deprecated=True)
 def paths(ctx: typer.Context) -> None:
-    _run_simple_command(ctx, "paths", _where_payload, _format_paths_message)
+    """Deprecated: use `archledger storage where` instead."""
+    state = _state(ctx)
+    try:
+        payload, msg = _build_storage_where_output(state.root)
+        _emit_success(
+            state, command="paths", result=payload, warnings=[], human_message=msg
+        )
+    except ArchledgerError as exc:
+        _emit_error(state, "paths", exc)
+
+
+@storage_app.command("where")
+def storage_where(ctx: typer.Context) -> None:
+    """Show resolved project identity and storage paths."""
+    state = _state(ctx)
+    try:
+        payload, msg = _build_storage_where_output(state.root)
+        _emit_success(
+            state,
+            command="storage where",
+            result=payload,
+            warnings=[],
+            human_message=msg,
+        )
+    except ArchledgerError as exc:
+        _emit_error(state, "storage where", exc)
+
+
+@storage_app.command("validate")
+def storage_validate(
+    ctx: typer.Context,
+    strict: Annotated[bool, typer.Option("--strict")] = False,
+) -> None:
+    """Validate Ledgercore layout/bindings and Archledger domain storage."""
+    state = _state(ctx)
+    try:
+        from archledger.ledgercore_backend import (
+            load_archledger_layout,
+            validate_archledger_layout,
+        )
+
+        layout = load_archledger_layout(state.root, require_registration=False)
+        validation = validate_archledger_layout(layout)
+        payload = {
+            "schema": "archledger.storage-validation.v1",
+            "valid": validation.valid,
+            "config_binding_valid": validation.config_binding_valid,
+            "data_binding_valid": validation.data_binding_valid,
+            "errors": list(validation.errors),
+            "warnings": list(validation.warnings),
+        }
+        lines = [f"Storage validation: {'PASSED' if validation.valid else 'FAILED'}"]
+        for err in validation.errors:
+            lines.append(f"  ERROR: {err}")
+        for warn in validation.warnings:
+            lines.append(f"  WARN:  {warn}")
+        _emit_success(
+            state,
+            command="storage validate",
+            result=payload,
+            warnings=[],
+            human_message="\n".join(lines),
+        )
+        if strict and not validation.valid:
+            raise typer.Exit(code=1)
+    except ArchledgerError as exc:
+        _emit_error(state, "storage validate", exc)
 
 
 @app.command("schema")
@@ -2334,6 +2401,18 @@ def _run_configured_command(
         )
     except ArchledgerError as exc:
         _emit_error(state, command, exc)
+
+
+def _build_storage_where_output(root: Path) -> tuple[dict[str, object], str]:
+    """Build storage where payload and human message from the adapter."""
+    from archledger.cli_formatting import format_storage_where_message
+    from archledger.cli_payloads import storage_where_payload
+    from archledger.ledgercore_backend import load_archledger_layout
+
+    layout = load_archledger_layout(root, require_registration=False)
+    payload = storage_where_payload(layout)
+    msg = format_storage_where_message(payload)
+    return payload, msg
 
 
 def _load_tracking_baseline(

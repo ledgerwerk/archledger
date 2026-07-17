@@ -1,0 +1,114 @@
+# Stable Archledger configuration.
+# Paths are resolved from the project root and canonical data mount.
+config_version = 12
+
+[ledger]
+code = "al"
+
+[ids]
+width = 4
+
+[ids.kind_map]
+acceptance_criterion = "ac"
+adr = "adr"
+archive_tombstone = "archive"
+black_box = "block"
+concept = "concept"
+constraint = "constraint"
+context_interface = "context"
+diagram = "diagram"
+glossary_term = "glossary"
+infrastructure = "deploy"
+interface = "block"
+quality_goal = "quality"
+quality_requirement = "quality"
+quality_scenario = "quality"
+requirement = "content"
+risk = "risk"
+runtime_scenario = "runtime"
+section = "content"
+stakeholder = "content"
+strategy_item = "strategy"
+white_box = "block"
+
+[source]
+format = "markdown"
+front_matter = "yaml"
+section_extension = ".md"
+record_extension = ".md"
+schema_version = 4
+
+[build]
+default_output = "ARCHITECTURE.md"
+default_format = "markdown"
+# [build].default_output_dir is relative to the project root.
+default_output_dir = "."
+include_draft = false
+include_superseded = false
+strict = false
+keep_intermediate = false
+converter = "auto"
+pdf_engine = ""
+reference_docx = ""
+
+[profiles]
+enabled = [
+  "arc42",
+]
+default = "arc42"
+
+[profiles.arc42]
+kind = "documentation"
+template = "arc42"
+sections_dir = "profiles/arc42/sections"
+build_template = "arc42_document"
+include_help = false
+
+[diagrams]
+enabled = true
+renderer = "pass-through"
+default_type = "text"
+output_dir = "diagrams"
+image_format = "svg"
+kroki_url = ""
+
+[arc42]
+template_version = "9.0-EN"
+language = "en"
+title = "archledger Architecture Documentation"
+include_help = false
+
+[skill]
+installed = false
+path = "skills/archledger/SKILL.md"
+
+[tracking]
+enabled = true
+# source-state.json stores SHA-256 content hashes only for files.
+# It does not persist mtimes or file sizes. Directory hashes are
+# derived from file hashes after scanning.
+state_file = "source-state.json"
+scanner = "auto"
+include = [
+  "**/*.py",
+  "**/*.toml",
+  "**/*.md",
+  "**/*.rst",
+  "**/*.j2",
+  "**/*.yaml",
+  "**/*.yml",
+  "**/*.json",
+]
+exclude = [
+  ".git/**",
+  ".venv/**",
+  "**/__pycache__/**",
+  ".mypy_cache/**",
+  ".pytest_cache/**",
+  ".ruff_cache/**",
+  "dist/**",
+  "build/**",
+  "archledger/_version.py",
+]
+max_file_bytes = 1000000
+hash_algorithm = "sha256"
