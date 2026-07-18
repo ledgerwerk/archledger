@@ -95,14 +95,22 @@ def test_convert_sources_allow_mixed_body_format_without_pandoc(
 
     assert result.exit_code == 0
     migrated_path = (
-        tmp_path / ".archledger" / "records" / "requirements" / "content-0013.adoc"
+        tmp_path
+        / ".ledger"
+        / "archledger"
+        / "data"
+        / "records"
+        / "requirements"
+        / "content-0013.adoc"
     )
     assert migrated_path.is_file()
     migrated_text = migrated_path.read_text(encoding="utf-8")
     assert "schema_version: 2" in migrated_text
     assert "body_format: markdown" in migrated_text
-    config_text = (tmp_path / "archledger.toml").read_text(encoding="utf-8")
-    assert "config_version = 7" in config_text
+    config_text = (tmp_path / ".ledger" / "archledger" / "config.toml").read_text(
+        encoding="utf-8"
+    )
+    assert "config_version = 12" in config_text
     assert 'format = "asciidoc"' in config_text
     assert "pandoc not found" in result.stdout
 
@@ -152,12 +160,20 @@ def test_convert_sources_uses_pandoc_when_available(
     assert result.exit_code == 0
     assert seen_commands
     migrated_text = (
-        tmp_path / ".archledger" / "records" / "requirements" / "content-0013.adoc"
+        tmp_path
+        / ".ledger"
+        / "archledger"
+        / "data"
+        / "records"
+        / "requirements"
+        / "content-0013.adoc"
     ).read_text(encoding="utf-8")
     assert "body_format: asciidoc" in migrated_text
     assert "Converted body" in migrated_text
-    config_text = (tmp_path / "archledger.toml").read_text(encoding="utf-8")
-    assert "config_version = 7" in config_text
+    config_text = (tmp_path / ".ledger" / "archledger" / "config.toml").read_text(
+        encoding="utf-8"
+    )
+    assert "config_version = 12" in config_text
     assert 'default_format = "asciidoc"' in config_text
 
 
@@ -170,7 +186,7 @@ def test_convert_sources_preserves_v5_tracking_and_build_config(
         ["--root", str(tmp_path), "init", "--source-format", "markdown"],
     )
     assert result.exit_code == 0
-    config_path = tmp_path / "archledger.toml"
+    config_path = tmp_path / ".ledger" / "archledger" / "config.toml"
     config_text = config_path.read_text(encoding="utf-8")
     config_text = config_text.replace(
         'default_output_dir = "build"',
@@ -238,7 +254,7 @@ def test_convert_sources_preserves_v5_tracking_and_build_config(
 
     assert result.exit_code == 0
     migrated_config = config_path.read_text(encoding="utf-8")
-    assert "config_version = 10" in migrated_config
+    assert "config_version = 12" in migrated_config
     assert 'format = "asciidoc"' in migrated_config
     assert 'section_extension = ".adoc"' in migrated_config
     assert 'record_extension = ".adoc"' in migrated_config
@@ -306,10 +322,22 @@ def test_convert_sources_replace_removes_markdown_files(
 
     assert result.exit_code == 0
     assert not (
-        tmp_path / ".archledger" / "records" / "requirements" / "content-0013.md"
+        tmp_path
+        / ".ledger"
+        / "archledger"
+        / "data"
+        / "records"
+        / "requirements"
+        / "content-0013.md"
     ).exists()
     assert (
-        tmp_path / ".archledger" / "records" / "requirements" / "content-0013.adoc"
+        tmp_path
+        / ".ledger"
+        / "archledger"
+        / "data"
+        / "records"
+        / "requirements"
+        / "content-0013.adoc"
     ).is_file()
 
 

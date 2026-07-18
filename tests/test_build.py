@@ -356,7 +356,13 @@ def test_build_increments_document_version_when_record_version_changes(
     )
     first = runner.invoke(app, ["--root", str(tmp_path), "build"])
     record_path = (
-        tmp_path / ".archledger" / "records" / "requirements" / "content-0013.adoc"
+        tmp_path
+        / ".ledger"
+        / "archledger"
+        / "data"
+        / "records"
+        / "requirements"
+        / "content-0013.adoc"
     )
     record_path.write_text(
         record_path.read_text(encoding="utf-8").replace("version: 1", "version: 2"),
@@ -369,7 +375,9 @@ def test_build_increments_document_version_when_record_version_changes(
     assert second.exit_code == 0
     output = (tmp_path / "build" / "architecture.adoc").read_text(encoding="utf-8")
     assert ":revnumber: 2" in output
-    assert (tmp_path / ".archledger" / "document-state.json").is_file()
+    assert (
+        tmp_path / ".ledger" / "archledger" / "data" / "document-state.json"
+    ).is_file()
     # The ADR section reflects the incremented global document version.
     assert "*Document version:* 2" in output
 
@@ -388,7 +396,7 @@ def test_build_output_path_can_be_overridden(tmp_path: Path) -> None:
 
 def test_build_respects_default_output_dir(tmp_path: Path) -> None:
     init_project(tmp_path)
-    config_path = tmp_path / "archledger.toml"
+    config_path = tmp_path / ".ledger" / "archledger" / "config.toml"
     config_path.write_text(
         config_path.read_text(encoding="utf-8").replace(
             'default_output_dir = "build"',
@@ -401,7 +409,9 @@ def test_build_respects_default_output_dir(tmp_path: Path) -> None:
 
     assert result.exit_code == 0
     assert (tmp_path / "site-build" / "architecture.adoc").is_file()
-    assert not (tmp_path / ".archledger" / "site-build" / "architecture.adoc").exists()
+    assert not (
+        tmp_path / ".ledger" / "archledger" / "site-build" / "architecture.adoc"
+    ).exists()
 
 
 def test_hidden_config_default_output_dir_dot_writes_to_config_dir(
@@ -413,9 +423,7 @@ def test_hidden_config_default_output_dir_dot_writes_to_config_dir(
     )
     assert result.exit_code == 0, result.stdout
 
-    config_path = tmp_path / "archledger.toml"
-    hidden_config_path = tmp_path / ".archledger.toml"
-
+    config_path = tmp_path / ".ledger" / "archledger" / "config.toml"
     config_text = config_path.read_text(encoding="utf-8")
     config_text = config_text.replace(
         'default_output = "architecture.md"',
@@ -425,9 +433,7 @@ def test_hidden_config_default_output_dir_dot_writes_to_config_dir(
         'default_output_dir = "build"',
         'default_output_dir = "."',
     )
-
-    hidden_config_path.write_text(config_text, encoding="utf-8")
-    config_path.unlink()
+    config_path.write_text(config_text, encoding="utf-8")
 
     result = runner.invoke(
         app,
@@ -447,12 +453,14 @@ def test_hidden_config_default_output_dir_dot_writes_to_config_dir(
     assert result.exit_code == 0, result.stdout
 
     assert (tmp_path / "ARCHITECTURE.md").is_file()
-    assert not (tmp_path / ".archledger" / "ARCHITECTURE.md").exists()
+    assert not (
+        tmp_path / ".ledger" / "archledger" / "data" / "ARCHITECTURE.md"
+    ).exists()
 
 
 def test_build_respects_default_output_filename(tmp_path: Path) -> None:
     init_project(tmp_path)
-    config_path = tmp_path / "archledger.toml"
+    config_path = tmp_path / ".ledger" / "archledger" / "config.toml"
     config_path.write_text(
         config_path.read_text(encoding="utf-8").replace(
             'default_output = "architecture.adoc"',
@@ -470,7 +478,7 @@ def test_build_respects_default_output_filename(tmp_path: Path) -> None:
 
 def test_explicit_output_overrides_configured_default_output(tmp_path: Path) -> None:
     init_project(tmp_path)
-    config_path = tmp_path / "archledger.toml"
+    config_path = tmp_path / ".ledger" / "archledger" / "config.toml"
     config_path.write_text(
         config_path.read_text(encoding="utf-8").replace(
             'default_output = "architecture.adoc"',
@@ -486,7 +494,7 @@ def test_explicit_output_overrides_configured_default_output(tmp_path: Path) -> 
 
     assert result.exit_code == 0
     assert (tmp_path / "docs" / "architecture.adoc").is_file()
-    assert not (tmp_path / "build" / "custom-architecture.adoc").exists()
+    assert not (tmp_path / "build" / "architecture.adoc").exists()
 
 
 def test_build_strict_fails_on_check_warning(tmp_path: Path) -> None:
@@ -515,39 +523,9 @@ def test_build_json_output(tmp_path: Path) -> None:
 
 
 def test_legacy_markdown_project_still_builds_markdown(tmp_path: Path) -> None:
-    import shutil
-
     init_project(tmp_path)
-    # Move sections from profile location to legacy location for v2 config.
-    profile_sections = tmp_path / ".archledger" / "profiles" / "arc42" / "sections"
-    legacy_sections = tmp_path / ".archledger" / "sections"
-    if profile_sections.is_dir() and not legacy_sections.is_dir():
-        shutil.move(str(profile_sections), str(legacy_sections))
-        profile_arc42 = tmp_path / ".archledger" / "profiles" / "arc42"
-        if profile_arc42.is_dir():
-            shutil.rmtree(str(profile_arc42))
-        profiles_root = tmp_path / ".archledger" / "profiles"
-        if profiles_root.is_dir() and not any(profiles_root.iterdir()):
-            profiles_root.rmdir()
-    (tmp_path / "archledger.toml").write_text(
-        "\n".join(
-            [
-                "config_version = 2",
-                'archledger_dir = ".archledger"',
-                'project_uuid = "12345678-1234-1234-1234-123456789abc"',
-                'project_name = "demo"',
-                "",
-                "[build]",
-                'default_output = "architecture.md"',
-                "include_draft = false",
-                "include_superseded = false",
-                "strict = false",
-                "",
-            ]
-        ),
-        encoding="utf-8",
-    )
-    runner.invoke(
+
+    result = runner.invoke(
         app,
         [
             "--root",
@@ -563,8 +541,8 @@ def test_legacy_markdown_project_still_builds_markdown(tmp_path: Path) -> None:
     result = runner.invoke(app, ["--root", str(tmp_path), "build"])
 
     assert result.exit_code == 0
-    output = (tmp_path / "build" / "architecture.md").read_text(encoding="utf-8")
-    assert "# Introduction and Goals" in output
+    output = (tmp_path / "build" / "architecture.adoc").read_text(encoding="utf-8")
+    assert "== Introduction and Goals" in output
     assert "Render markdown output" in output
 
 

@@ -235,7 +235,7 @@ def test_default_build_includes_enabled_outputs(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     init_project(tmp_path)
-    config_path = tmp_path / "archledger.toml"
+    config_path = tmp_path / ".ledger" / "archledger" / "config.toml"
     config_path.write_text(
         config_path.read_text(encoding="utf-8")
         + "\n[build.outputs.html]\nenabled = true\n",
@@ -273,7 +273,7 @@ def test_build_all_honors_disabled_outputs(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     init_project(tmp_path)
-    config_path = tmp_path / "archledger.toml"
+    config_path = tmp_path / ".ledger" / "archledger" / "config.toml"
     config_path.write_text(
         config_path.read_text(encoding="utf-8")
         + "\n[build.outputs.html]\nenabled = false\n",
@@ -312,7 +312,7 @@ def test_explicit_format_overrides_disabled_output(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     init_project(tmp_path)
-    config_path = tmp_path / "archledger.toml"
+    config_path = tmp_path / ".ledger" / "archledger" / "config.toml"
     config_path.write_text(
         config_path.read_text(encoding="utf-8")
         + "\n[build.outputs.html]\nenabled = false\n",
@@ -430,7 +430,7 @@ def test_assemble_document_uses_configured_default_output_for_native_format(
     tmp_path: Path,
 ) -> None:
     init_project_with_format(tmp_path, "markdown")
-    config_path = tmp_path / "archledger.toml"
+    config_path = tmp_path / ".ledger" / "archledger" / "config.toml"
     config_path.write_text(
         config_path.read_text(encoding="utf-8").replace(
             'default_output = "architecture.md"',
@@ -548,7 +548,7 @@ def test_mermaid_cli_invoked_only_when_diagram_rendering_enabled(
             "mermaid",
         ],
     )
-    config_path = tmp_path / "archledger.toml"
+    config_path = tmp_path / ".ledger" / "archledger" / "config.toml"
     config_text = config_path.read_text(encoding="utf-8")
     config_text = config_text.replace(
         '[diagrams]\nenabled = false\nrenderer = "pass-through"\n',

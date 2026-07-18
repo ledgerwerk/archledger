@@ -143,7 +143,10 @@ def resolve_project_paths(start: Path) -> tuple[ProjectPaths, ProjectConfig, lis
     # Propagate project identity from manifest to config (not in file for v12+).
     if not config.project_uuid and context.project_uuid:
         from dataclasses import replace
-        config = replace(config, project_uuid=context.project_uuid, project_name=context.project_name)
+
+        config = replace(
+            config, project_uuid=context.project_uuid, project_name=context.project_name
+        )
     return context.project_paths(), config, []
 
 

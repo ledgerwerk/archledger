@@ -33,7 +33,15 @@ def test_check_warns_for_diagram_without_markdown_mermaid_block(tmp_path: Path) 
             "mermaid",
         ],
     )
-    diagram_path = tmp_path / ".archledger" / "records" / "diagrams" / "diagram-0013.md"
+    diagram_path = (
+        tmp_path
+        / ".ledger"
+        / "archledger"
+        / "data"
+        / "records"
+        / "diagrams"
+        / "diagram-0013.md"
+    )
     diagram_path.write_text(
         diagram_path.read_text(encoding="utf-8").replace(
             "```mermaid\n"
@@ -72,7 +80,13 @@ def test_check_warns_for_diagram_without_asciidoc_mermaid_block(tmp_path: Path) 
         ],
     )
     diagram_path = (
-        tmp_path / ".archledger" / "records" / "diagrams" / "diagram-0013.adoc"
+        tmp_path
+        / ".ledger"
+        / "archledger"
+        / "data"
+        / "records"
+        / "diagrams"
+        / "diagram-0013.adoc"
     )
     diagram_path.write_text(
         diagram_path.read_text(encoding="utf-8").replace(
@@ -110,7 +124,15 @@ def test_check_warns_for_empty_markdown_mermaid_block(tmp_path: Path) -> None:
             "mermaid",
         ],
     )
-    diagram_path = tmp_path / ".archledger" / "records" / "diagrams" / "diagram-0013.md"
+    diagram_path = (
+        tmp_path
+        / ".ledger"
+        / "archledger"
+        / "data"
+        / "records"
+        / "diagrams"
+        / "diagram-0013.md"
+    )
     diagram_path.write_text(
         diagram_path.read_text(encoding="utf-8").replace(
             "```mermaid\n"
@@ -290,7 +312,15 @@ def test_new_diagram_defaults_to_text_type(tmp_path: Path) -> None:
         app,
         ["--root", str(tmp_path), "new", "diagram", "Architecture overview"],
     )
-    diagram_path = tmp_path / ".archledger" / "records" / "diagrams" / "diagram-0013.md"
+    diagram_path = (
+        tmp_path
+        / ".ledger"
+        / "archledger"
+        / "data"
+        / "records"
+        / "diagrams"
+        / "diagram-0013.md"
+    )
     content = diagram_path.read_text(encoding="utf-8")
     assert 'diagram_type: "text"' in content
     assert "```textdiagram" in content
@@ -298,7 +328,7 @@ def test_new_diagram_defaults_to_text_type(tmp_path: Path) -> None:
 
 def test_new_diagram_uses_configured_default_type(tmp_path: Path) -> None:
     init_project(tmp_path, source_format="markdown")
-    config_path = tmp_path / "archledger.toml"
+    config_path = tmp_path / ".ledger" / "archledger" / "config.toml"
     config_path.write_text(
         config_path.read_text(encoding="utf-8").replace(
             'default_type = "text"', 'default_type = "unicode"'
@@ -309,7 +339,15 @@ def test_new_diagram_uses_configured_default_type(tmp_path: Path) -> None:
         app,
         ["--root", str(tmp_path), "new", "diagram", "Unicode diagram"],
     )
-    diagram_path = tmp_path / ".archledger" / "records" / "diagrams" / "diagram-0013.md"
+    diagram_path = (
+        tmp_path
+        / ".ledger"
+        / "archledger"
+        / "data"
+        / "records"
+        / "diagrams"
+        / "diagram-0013.md"
+    )
     content = diagram_path.read_text(encoding="utf-8")
     assert 'diagram_type: "unicode"' in content
     assert "```textdiagram" in content
@@ -374,7 +412,15 @@ def test_check_warns_for_empty_textdiagram_block(tmp_path: Path) -> None:
         app,
         ["--root", str(tmp_path), "new", "diagram", "Empty text diagram"],
     )
-    diagram_path = tmp_path / ".archledger" / "records" / "diagrams" / "diagram-0013.md"
+    diagram_path = (
+        tmp_path
+        / ".ledger"
+        / "archledger"
+        / "data"
+        / "records"
+        / "diagrams"
+        / "diagram-0013.md"
+    )
     diagram_path.write_text(
         diagram_path.read_text(encoding="utf-8").replace(
             "```textdiagram\n"
@@ -401,7 +447,15 @@ def test_check_warns_for_overwide_textdiagram_line(tmp_path: Path) -> None:
         app,
         ["--root", str(tmp_path), "new", "diagram", "Wide text diagram"],
     )
-    diagram_path = tmp_path / ".archledger" / "records" / "diagrams" / "diagram-0013.md"
+    diagram_path = (
+        tmp_path
+        / ".ledger"
+        / "archledger"
+        / "data"
+        / "records"
+        / "diagrams"
+        / "diagram-0013.md"
+    )
     wide_line = "─" * 130
     diagram_path.write_text(
         diagram_path.read_text(encoding="utf-8").replace(
@@ -439,7 +493,15 @@ def test_mermaid_still_supported_when_requested(tmp_path: Path) -> None:
             "mermaid",
         ],
     )
-    diagram_path = tmp_path / ".archledger" / "records" / "diagrams" / "diagram-0013.md"
+    diagram_path = (
+        tmp_path
+        / ".ledger"
+        / "archledger"
+        / "data"
+        / "records"
+        / "diagrams"
+        / "diagram-0013.md"
+    )
     content = diagram_path.read_text(encoding="utf-8")
     assert 'diagram_type: "mermaid"' in content
     assert "```mermaid" in content

@@ -80,7 +80,9 @@ def test_project_migration_apply_preserves_source_and_writes_receipt(
         tmp_path / ".ledger/archledger/data/profiles/arc42/sections/content-0001.md"
     ).is_file()
     assert (
-        not (tmp_path / ".ledger/archledger/config.toml").read_text().find("archledger_dir")
+        not (tmp_path / ".ledger/archledger/config.toml")
+        .read_text()
+        .find("archledger_dir")
         >= 0
     )
     assert UUID(

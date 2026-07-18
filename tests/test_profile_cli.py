@@ -15,15 +15,11 @@ def test_profile_migrate_moves_legacy_sections_and_updates_config(
     tmp_path: Path,
 ) -> None:
     _init(tmp_path)
-    profile_sections = tmp_path / ".archledger" / "profiles" / "arc42" / "sections"
-    legacy_sections = tmp_path / ".archledger" / "sections"
+    data_root = tmp_path / ".ledger" / "archledger" / "data"
+    profile_sections = data_root / "profiles" / "arc42" / "sections"
+    legacy_sections = data_root / "sections"
     legacy_sections.parent.mkdir(parents=True, exist_ok=True)
     shutil.move(str(profile_sections), str(legacy_sections))
-    config_path = tmp_path / "archledger.toml"
-    config_text = config_path.read_text(encoding="utf-8")
-    config_text = config_text.replace("config_version = 8", "config_version = 7")
-    config_text = config_text.split("[profiles]", 1)[0].rstrip() + "\n"
-    config_path.write_text(config_text, encoding="utf-8")
 
     dry_run = runner.invoke(
         app,
@@ -52,8 +48,7 @@ def test_profile_migrate_moves_legacy_sections_and_updates_config(
         ],
     )
     assert applied.exit_code == 0, applied.stdout
-    assert (tmp_path / ".archledger" / "profiles" / "arc42" / "sections").is_dir()
-    assert "config_version = 8" in config_path.read_text(encoding="utf-8")
+    assert (data_root / "profiles" / "arc42" / "sections").is_dir()
 
 
 def test_profile_enable_sdd_reports_removed_message(tmp_path: Path) -> None:

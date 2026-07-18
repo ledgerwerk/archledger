@@ -19,7 +19,10 @@ from archledger.config.model import (
 from archledger.config.parse import load_project_config
 from archledger.config.render import render_project_config
 from archledger.errors import ConfigError, StorageError
-from archledger.ledgercore_backend import initialize_archledger_bindings, parse_ledger_project_manifest
+from archledger.ledgercore_backend import (
+    initialize_archledger_bindings,
+    parse_ledger_project_manifest,
+)
 from archledger.project_context import (
     ARCHLEDGER_CONFIG_PATH,
     classify_project_state,

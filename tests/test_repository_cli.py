@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import shutil
 from pathlib import Path
 
 from typer.testing import CliRunner
@@ -11,6 +10,7 @@ from archledger.storage.paths import resolve_project_paths
 from archledger.storage.source_state import read_source_state
 
 runner = CliRunner()
+
 
 def test_canonical_config_wins_when_both_exist_and_check_warns(tmp_path: Path) -> None:
     """Check still succeeds with legacy config files present."""
@@ -22,6 +22,7 @@ def test_canonical_config_wins_when_both_exist_and_check_warns(tmp_path: Path) -
     result = runner.invoke(app, ["--root", str(tmp_path), "check"])
 
     assert result.exit_code == 0
+
 
 def test_snapshot_writes_source_state_json(tmp_path: Path) -> None:
     init_project(tmp_path)
@@ -73,7 +74,9 @@ def test_snapshot_respects_tracking_disabled(tmp_path: Path) -> None:
     payload = json.loads(result.stdout)
     assert payload["ok"] is False
     assert "tracking is disabled" in payload["error"]["message"].lower()
-    assert not (tmp_path / ".ledger" / "archledger" / "data" / "source-state.json").exists()
+    assert not (
+        tmp_path / ".ledger" / "archledger" / "data" / "source-state.json"
+    ).exists()
 
 
 def test_changed_json_is_stable_without_baseline(tmp_path: Path) -> None:
@@ -133,7 +136,13 @@ def test_changed_json_reports_modified_file_and_impacted_record(tmp_path: Path) 
         ],
     )
     record_path = (
-        tmp_path / ".ledger" / "archledger" / "data" / "records" / "building_blocks" / "block-0013.adoc"
+        tmp_path
+        / ".ledger"
+        / "archledger"
+        / "data"
+        / "records"
+        / "building_blocks"
+        / "block-0013.adoc"
     )
     record_path.write_text(
         record_path.read_text(encoding="utf-8").replace(
@@ -186,7 +195,13 @@ def test_new_black_box_creates_black_box_0001(tmp_path: Path) -> None:
 
     assert result.exit_code == 0
     assert (
-        tmp_path / ".ledger" / "archledger" / "data" / "records" / "building_blocks" / "block-0013.adoc"
+        tmp_path
+        / ".ledger"
+        / "archledger"
+        / "data"
+        / "records"
+        / "building_blocks"
+        / "block-0013.adoc"
     ).is_file()
 
 
@@ -200,10 +215,22 @@ def test_new_requirement_creates_requirement_0001(tmp_path: Path) -> None:
 
     assert result.exit_code == 0
     assert (
-        tmp_path / ".ledger" / "archledger" / "data" / "records" / "requirements" / "content-0013.adoc"
+        tmp_path
+        / ".ledger"
+        / "archledger"
+        / "data"
+        / "records"
+        / "requirements"
+        / "content-0013.adoc"
     ).is_file()
     created = (
-        tmp_path / ".ledger" / "archledger" / "data" / "records" / "requirements" / "content-0013.adoc"
+        tmp_path
+        / ".ledger"
+        / "archledger"
+        / "data"
+        / "records"
+        / "requirements"
+        / "content-0013.adoc"
     ).read_text(encoding="utf-8")
     assert "body_format: asciidoc" in created
     assert "[discrete]\n=== Requirement" in created
@@ -342,16 +369,18 @@ def test_new_requirement_increments_with_custom_record_extension(
         )
         assert result.exit_code == 0, result.stdout
 
-    record_dir = tmp_path / ".ledger" / "archledger" / "data" / "records" / "requirements"
+    record_dir = (
+        tmp_path / ".ledger" / "archledger" / "data" / "records" / "requirements"
+    )
     assert sorted(path.name for path in record_dir.iterdir()) == [
         "content-0013.mk",
         "content-0014.mk",
         "content-0015.mk",
     ]
     assert 'title: "C"' in (record_dir / "content-0015.mk").read_text(encoding="utf-8")
-    assert "next_number: 16" in (tmp_path / ".ledger" / "archledger" / "data" / "storage.yaml").read_text(
-        encoding="utf-8"
-    )
+    assert "next_number: 16" in (
+        tmp_path / ".ledger" / "archledger" / "data" / "storage.yaml"
+    ).read_text(encoding="utf-8")
 
 
 def test_new_strategy_item_creates_strategy_item_0001(tmp_path: Path) -> None:
@@ -370,7 +399,13 @@ def test_new_strategy_item_creates_strategy_item_0001(tmp_path: Path) -> None:
 
     assert result.exit_code == 0
     assert (
-        tmp_path / ".ledger" / "archledger" / "data" / "records" / "strategy" / "strategy-0013.adoc"
+        tmp_path
+        / ".ledger"
+        / "archledger"
+        / "data"
+        / "records"
+        / "strategy"
+        / "strategy-0013.adoc"
     ).is_file()
 
 
@@ -393,7 +428,9 @@ def test_new_quality_requirement_creates_quality_requirement_0001(
     assert result.exit_code == 0
     assert (
         tmp_path
-        / ".ledger" / "archledger" / "data"
+        / ".ledger"
+        / "archledger"
+        / "data"
         / "records"
         / "quality_requirements"
         / "quality-0013.adoc"
@@ -420,7 +457,13 @@ def test_new_context_interface_accepts_context_kind_and_partner(tmp_path: Path) 
 
     assert result.exit_code == 0
     created = (
-        tmp_path / ".ledger" / "archledger" / "data" / "records" / "contexts" / "context-0013.adoc"
+        tmp_path
+        / ".ledger"
+        / "archledger"
+        / "data"
+        / "records"
+        / "contexts"
+        / "context-0013.adoc"
     ).read_text(encoding="utf-8")
     assert 'context_kind: "business"' in created
     assert 'partner: "GitHub"' in created
@@ -444,7 +487,13 @@ def test_new_infrastructure_accepts_environment(tmp_path: Path) -> None:
 
     assert result.exit_code == 0
     created = (
-        tmp_path / ".ledger" / "archledger" / "data" / "records" / "deployment" / "deploy-0013.adoc"
+        tmp_path
+        / ".ledger"
+        / "archledger"
+        / "data"
+        / "records"
+        / "deployment"
+        / "deploy-0013.adoc"
     ).read_text(encoding="utf-8")
     assert 'environment: "development"' in created
 
@@ -469,7 +518,13 @@ def test_new_quality_scenario_accepts_quality_and_environment(tmp_path: Path) ->
 
     assert result.exit_code == 0
     created = (
-        tmp_path / ".ledger" / "archledger" / "data" / "records" / "quality_scenarios" / "quality-0013.adoc"
+        tmp_path
+        / ".ledger"
+        / "archledger"
+        / "data"
+        / "records"
+        / "quality_scenarios"
+        / "quality-0013.adoc"
     ).read_text(encoding="utf-8")
     assert 'quality: "reproducibility"' in created
     assert 'environment: "ci"' in created
@@ -501,7 +556,13 @@ def test_new_diagram_accepts_diagram_options(tmp_path: Path) -> None:
 
     assert result.exit_code == 0
     created = (
-        tmp_path / ".ledger" / "archledger" / "data" / "records" / "diagrams" / "diagram-0013.adoc"
+        tmp_path
+        / ".ledger"
+        / "archledger"
+        / "data"
+        / "records"
+        / "diagrams"
+        / "diagram-0013.adoc"
     ).read_text(encoding="utf-8")
     assert 'diagram_type: "mermaid"' in created
     assert 'caption: "Runtime login flow"' in created
@@ -518,16 +579,40 @@ def test_seed_arc42_minimal_creates_starter_records(tmp_path: Path) -> None:
 
     assert result.exit_code == 0
     assert (
-        tmp_path / ".ledger" / "archledger" / "data" / "records" / "building_blocks" / "block-0013.adoc"
+        tmp_path
+        / ".ledger"
+        / "archledger"
+        / "data"
+        / "records"
+        / "building_blocks"
+        / "block-0013.adoc"
     ).is_file()
     assert (
-        tmp_path / ".ledger" / "archledger" / "data" / "records" / "quality_goals" / "quality-0016.adoc"
+        tmp_path
+        / ".ledger"
+        / "archledger"
+        / "data"
+        / "records"
+        / "quality_goals"
+        / "quality-0016.adoc"
     ).is_file()
     assert (
-        tmp_path / ".ledger" / "archledger" / "data" / "records" / "decisions" / "adr-0021.adoc"
+        tmp_path
+        / ".ledger"
+        / "archledger"
+        / "data"
+        / "records"
+        / "decisions"
+        / "adr-0021.adoc"
     ).is_file()
     assert (
-        tmp_path / ".ledger" / "archledger" / "data" / "records" / "glossary" / "glossary-0023.adoc"
+        tmp_path
+        / ".ledger"
+        / "archledger"
+        / "data"
+        / "records"
+        / "glossary"
+        / "glossary-0023.adoc"
     ).is_file()
 
 
@@ -541,7 +626,13 @@ def test_new_white_box_creates_white_box_0001(tmp_path: Path) -> None:
 
     assert result.exit_code == 0
     assert (
-        tmp_path / ".ledger" / "archledger" / "data" / "records" / "building_blocks" / "block-0013.adoc"
+        tmp_path
+        / ".ledger"
+        / "archledger"
+        / "data"
+        / "records"
+        / "building_blocks"
+        / "block-0013.adoc"
     ).is_file()
 
 
@@ -555,7 +646,13 @@ def test_new_adr_creates_adr0001(tmp_path: Path) -> None:
 
     assert result.exit_code == 0
     assert (
-        tmp_path / ".ledger" / "archledger" / "data" / "records" / "decisions" / "adr-0013.adoc"
+        tmp_path
+        / ".ledger"
+        / "archledger"
+        / "data"
+        / "records"
+        / "decisions"
+        / "adr-0013.adoc"
     ).is_file()
 
 
@@ -566,7 +663,13 @@ def test_filename_id_must_match(tmp_path: Path) -> None:
         ["--root", str(tmp_path), "new", "black-box", "CLI"],
     )
     source = (
-        tmp_path / ".ledger" / "archledger" / "data" / "records" / "building_blocks" / "block-0013.adoc"
+        tmp_path
+        / ".ledger"
+        / "archledger"
+        / "data"
+        / "records"
+        / "building_blocks"
+        / "block-0013.adoc"
     )
     renamed = source.with_name("al_9999.adoc")
     source.rename(renamed)
@@ -586,9 +689,23 @@ def test_duplicate_id_check_fails(tmp_path: Path) -> None:
         ["--root", str(tmp_path), "new", "black-box", "CLI"],
     )
     original = (
-        tmp_path / ".ledger" / "archledger" / "data" / "records" / "building_blocks" / "block-0013.adoc"
+        tmp_path
+        / ".ledger"
+        / "archledger"
+        / "data"
+        / "records"
+        / "building_blocks"
+        / "block-0013.adoc"
     )
-    duplicate = tmp_path / ".ledger" / "archledger" / "data" / "records" / "concepts" / "concept_0001.adoc"
+    duplicate = (
+        tmp_path
+        / ".ledger"
+        / "archledger"
+        / "data"
+        / "records"
+        / "concepts"
+        / "concept_0001.adoc"
+    )
     duplicate.write_text(
         original.read_text(encoding="utf-8").replace(
             "type: black_box",
@@ -679,7 +796,15 @@ def test_check_warns_for_incomplete_content_metadata(tmp_path: Path) -> None:
 def test_check_reports_type_specific_metadata_errors(tmp_path: Path) -> None:
     init_project(tmp_path)
     runner.invoke(app, ["--root", str(tmp_path), "new", "runtime", "CLI execution"])
-    record_path = tmp_path / ".ledger" / "archledger" / "data" / "records" / "runtime" / "runtime-0013.adoc"
+    record_path = (
+        tmp_path
+        / ".ledger"
+        / "archledger"
+        / "data"
+        / "records"
+        / "runtime"
+        / "runtime-0013.adoc"
+    )
     record_path.write_text(
         record_path.read_text(encoding="utf-8").replace(
             "participants: []",
@@ -722,7 +847,15 @@ def test_check_fails_for_archived_record_outside_archive_storage(
 ) -> None:
     init_project(tmp_path)
     runner.invoke(app, ["--root", str(tmp_path), "new", "runtime", "CLI execution"])
-    record_path = tmp_path / ".ledger" / "archledger" / "data" / "records" / "runtime" / "runtime-0013.adoc"
+    record_path = (
+        tmp_path
+        / ".ledger"
+        / "archledger"
+        / "data"
+        / "records"
+        / "runtime"
+        / "runtime-0013.adoc"
+    )
     record_path.write_text(
         record_path.read_text(encoding="utf-8").replace(
             "status: draft",
@@ -751,7 +884,9 @@ def test_check_fails_for_non_archived_record_inside_archive_storage(
     assert archive_result.exit_code == 0, archive_result.stdout
     archived_path = (
         tmp_path
-        / ".ledger" / "archledger" / "data"
+        / ".ledger"
+        / "archledger"
+        / "data"
         / "archive"
         / "records"
         / "runtime"
@@ -799,7 +934,15 @@ def test_check_warns_for_invalid_risk_levels_and_unmeasurable_quality_scenario(
             "reproducibility",
         ],
     )
-    risk_path = tmp_path / ".ledger" / "archledger" / "data" / "records" / "risks" / "risk-0013.adoc"
+    risk_path = (
+        tmp_path
+        / ".ledger"
+        / "archledger"
+        / "data"
+        / "records"
+        / "risks"
+        / "risk-0013.adoc"
+    )
     risk_path.write_text(
         risk_path.read_text(encoding="utf-8")
         .replace("severity: medium", "severity: critical")
@@ -807,7 +950,13 @@ def test_check_warns_for_invalid_risk_levels_and_unmeasurable_quality_scenario(
         encoding="utf-8",
     )
     quality_path = (
-        tmp_path / ".ledger" / "archledger" / "data" / "records" / "quality_scenarios" / "quality-0014.adoc"
+        tmp_path
+        / ".ledger"
+        / "archledger"
+        / "data"
+        / "records"
+        / "quality_scenarios"
+        / "quality-0014.adoc"
     )
     quality_path.write_text(
         quality_path.read_text(encoding="utf-8").replace(
@@ -855,7 +1004,13 @@ def test_check_warns_for_invalid_source_ref_path_traversal(tmp_path: Path) -> No
         ["--root", str(tmp_path), "new", "white-box", "Tracking layer"],
     )
     record_path = (
-        tmp_path / ".ledger" / "archledger" / "data" / "records" / "building_blocks" / "block-0013.adoc"
+        tmp_path
+        / ".ledger"
+        / "archledger"
+        / "data"
+        / "records"
+        / "building_blocks"
+        / "block-0013.adoc"
     )
     record_path.write_text(
         record_path.read_text(encoding="utf-8").replace(
@@ -884,7 +1039,13 @@ def test_check_warns_for_missing_directory_source_ref(tmp_path: Path) -> None:
         ["--root", str(tmp_path), "new", "white-box", "Tracking layer"],
     )
     record_path = (
-        tmp_path / ".ledger" / "archledger" / "data" / "records" / "building_blocks" / "block-0013.adoc"
+        tmp_path
+        / ".ledger"
+        / "archledger"
+        / "data"
+        / "records"
+        / "building_blocks"
+        / "block-0013.adoc"
     )
     record_path.write_text(
         record_path.read_text(encoding="utf-8").replace(
@@ -915,7 +1076,13 @@ def test_check_warns_for_backslash_source_ref_path(tmp_path: Path) -> None:
         ["--root", str(tmp_path), "new", "white-box", "Tracking layer"],
     )
     record_path = (
-        tmp_path / ".ledger" / "archledger" / "data" / "records" / "building_blocks" / "block-0013.adoc"
+        tmp_path
+        / ".ledger"
+        / "archledger"
+        / "data"
+        / "records"
+        / "building_blocks"
+        / "block-0013.adoc"
     )
     record_path.write_text(
         record_path.read_text(encoding="utf-8").replace(
@@ -1104,7 +1271,13 @@ def test_new_record_uses_source_format_template(tmp_path: Path) -> None:
 
     assert result.exit_code == 0
     created = (
-        tmp_path / ".ledger" / "archledger" / "data" / "records" / "requirements" / "content-0013.adoc"
+        tmp_path
+        / ".ledger"
+        / "archledger"
+        / "data"
+        / "records"
+        / "requirements"
+        / "content-0013.adoc"
     ).read_text(encoding="utf-8")
     assert "body_format: asciidoc" in created
     assert "schema_version: 4" in created
@@ -1145,12 +1318,20 @@ def test_archive_moves_record_to_archive_and_excludes_from_list(tmp_path: Path) 
 
     assert result.exit_code == 0
     active_record = (
-        tmp_path / ".ledger" / "archledger" / "data" / "records" / "requirements" / "content-0013.adoc"
+        tmp_path
+        / ".ledger"
+        / "archledger"
+        / "data"
+        / "records"
+        / "requirements"
+        / "content-0013.adoc"
     )
     assert not active_record.exists()
     archived = (
         tmp_path
-        / ".ledger" / "archledger" / "data"
+        / ".ledger"
+        / "archledger"
+        / "data"
         / "archive"
         / "records"
         / "requirements"
@@ -1175,7 +1356,13 @@ def test_new_record_does_not_reuse_archived_number(tmp_path: Path) -> None:
     runner.invoke(app, ["--root", str(tmp_path), "new", "requirement", "New"])
 
     new_record_path = (
-        tmp_path / ".ledger" / "archledger" / "data" / "records" / "requirements" / "content-0014.adoc"
+        tmp_path
+        / ".ledger"
+        / "archledger"
+        / "data"
+        / "records"
+        / "requirements"
+        / "content-0014.adoc"
     )
     assert new_record_path.is_file()
 
@@ -1186,7 +1373,13 @@ def test_check_fails_when_ledger_number_is_missing(tmp_path: Path) -> None:
     runner.invoke(app, ["--root", str(tmp_path), "new", "requirement", "B"])
 
     (
-        tmp_path / ".ledger" / "archledger" / "data" / "records" / "requirements" / "content-0013.adoc"
+        tmp_path
+        / ".ledger"
+        / "archledger"
+        / "data"
+        / "records"
+        / "requirements"
+        / "content-0013.adoc"
     ).unlink()
 
     result = runner.invoke(app, ["--root", str(tmp_path), "--json", "check"])
@@ -1203,7 +1396,13 @@ def test_doctor_repair_creates_tombstone_for_missing_record_number(
     init_project(tmp_path)
     runner.invoke(app, ["--root", str(tmp_path), "new", "requirement", "A"])
     missing = (
-        tmp_path / ".ledger" / "archledger" / "data" / "records" / "requirements" / "content-0013.adoc"
+        tmp_path
+        / ".ledger"
+        / "archledger"
+        / "data"
+        / "records"
+        / "requirements"
+        / "content-0013.adoc"
     )
     missing.unlink()
 
@@ -1214,7 +1413,13 @@ def test_doctor_repair_creates_tombstone_for_missing_record_number(
 
     assert result.exit_code == 0
     tombstone = (
-        tmp_path / ".ledger" / "archledger" / "data" / "archive" / "tombstones" / "archive-0013.adoc"
+        tmp_path
+        / ".ledger"
+        / "archledger"
+        / "data"
+        / "archive"
+        / "tombstones"
+        / "archive-0013.adoc"
     )
     assert tombstone.is_file()
     payload = json.loads(result.stdout)
@@ -1226,11 +1431,19 @@ def test_doctor_repair_refuses_duplicate_ids(tmp_path: Path) -> None:
     init_project(tmp_path)
     runner.invoke(app, ["--root", str(tmp_path), "new", "requirement", "A"])
     original = (
-        tmp_path / ".ledger" / "archledger" / "data" / "records" / "requirements" / "content-0013.adoc"
+        tmp_path
+        / ".ledger"
+        / "archledger"
+        / "data"
+        / "records"
+        / "requirements"
+        / "content-0013.adoc"
     )
     duplicate = (
         tmp_path
-        / ".ledger" / "archledger" / "data"
+        / ".ledger"
+        / "archledger"
+        / "data"
         / "archive"
         / "records"
         / "requirements"
@@ -1257,7 +1470,15 @@ def test_new_refuses_to_allocate_when_storage_counter_proves_missing_number(
 ) -> None:
     init_project(tmp_path)
     runner.invoke(app, ["--root", str(tmp_path), "new", "requirement", "A"])
-    path = tmp_path / ".ledger" / "archledger" / "data" / "records" / "requirements" / "content-0013.adoc"
+    path = (
+        tmp_path
+        / ".ledger"
+        / "archledger"
+        / "data"
+        / "records"
+        / "requirements"
+        / "content-0013.adoc"
+    )
     path.unlink()
 
     result = runner.invoke(app, ["--root", str(tmp_path), "new", "requirement", "B"])
@@ -1270,7 +1491,9 @@ def test_doctor_repair_recreates_missing_required_section(tmp_path: Path) -> Non
     init_project(tmp_path)
     section = (
         tmp_path
-        / ".ledger" / "archledger" / "data"
+        / ".ledger"
+        / "archledger"
+        / "data"
         / "profiles"
         / "arc42"
         / "sections"
@@ -1283,7 +1506,13 @@ def test_doctor_repair_recreates_missing_required_section(tmp_path: Path) -> Non
     assert result.exit_code == 0
     assert section.is_file()
     tombstone = (
-        tmp_path / ".ledger" / "archledger" / "data" / "archive" / "tombstones" / "content-0002.adoc"
+        tmp_path
+        / ".ledger"
+        / "archledger"
+        / "data"
+        / "archive"
+        / "tombstones"
+        / "content-0002.adoc"
     )
     assert not tombstone.exists()
 
@@ -1299,7 +1528,9 @@ def test_doctor_repair_refuses_legacy_ids_before_migration(tmp_path: Path) -> No
     init_project(tmp_path)
 
     # Remove current local-ID files and replace one with legacy form.
-    sections_dir = tmp_path / ".ledger" / "archledger" / "data" / "profiles" / "arc42" / "sections"
+    sections_dir = (
+        tmp_path / ".ledger" / "archledger" / "data" / "profiles" / "arc42" / "sections"
+    )
     for path in sections_dir.glob("*.adoc"):
         path.unlink()
     legacy = sections_dir / "al_0001.adoc"
@@ -1328,7 +1559,9 @@ def test_doctor_repair_refuses_legacy_ids_before_migration(tmp_path: Path) -> No
     assert any("migrate ids --to ledgercore --apply" in message for message in messages)
 
     assert not list(
-        (tmp_path / ".ledger" / "archledger" / "data" / "archive" / "tombstones").glob("*.adoc")
+        (tmp_path / ".ledger" / "archledger" / "data" / "archive" / "tombstones").glob(
+            "*.adoc"
+        )
     )
 
 

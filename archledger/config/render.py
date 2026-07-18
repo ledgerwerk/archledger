@@ -196,7 +196,7 @@ def build_default_project_config(
         record_extension=default_extension,
         build_default_output=resolved_default_output,
         build_default_format=resolved_default_format,
-        build_output_dir=build_default_output_dir or ".",
+        build_output_dir=build_default_output_dir or "build",
         build_include_draft=build_include_draft,
         build_include_superseded=build_include_superseded,
         build_strict=build_strict,

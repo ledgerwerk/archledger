@@ -4,9 +4,13 @@ from pathlib import Path
 from uuid import uuid4
 
 import pytest
+
 from archledger.config.render import build_default_project_config, render_project_config
 from archledger.errors import ConfigError
-from archledger.ledgercore_backend import ensure_archledger_registration, initialize_archledger_bindings
+from archledger.ledgercore_backend import (
+    ensure_archledger_registration,
+    initialize_archledger_bindings,
+)
 from archledger.project_context import load_project_context
 
 
@@ -20,7 +24,9 @@ def _write_project(root: Path) -> str:
         data_storage="project",
     )
     # Write tool config.
-    config = build_default_project_config(root, archledger_dir="data", project_uuid=project_uuid)
+    config = build_default_project_config(
+        root, archledger_dir="data", project_uuid=project_uuid
+    )
     config_path = root / ".ledger/archledger/config.toml"
     config_path.parent.mkdir(parents=True, exist_ok=True)
     config_path.write_text(render_project_config(config))
@@ -42,7 +48,7 @@ def test_context_resolves_exact_repository_mount(tmp_path: Path) -> None:
     assert context.project_uuid == project_uuid
     assert context.config_path == tmp_path / ".ledger/archledger/config.toml"
     assert context.data_root == tmp_path / ".ledger/archledger/data"
-    assert context.build_dir == tmp_path
+    assert context.build_dir == tmp_path / "build"
     assert context.active_mount_name == "data"
     assert context.mount_storage == "project"
 
@@ -72,6 +78,7 @@ def test_legacy_locator_requires_explicit_migration(tmp_path: Path) -> None:
     (tmp_path / ".archledger.toml").write_text("config_version = 1\n")
 
     from ledgercore.errors import TomlConfigError
+
     with pytest.raises(TomlConfigError):
         load_project_context(tmp_path)
 
@@ -79,6 +86,7 @@ def test_legacy_locator_requires_explicit_migration(tmp_path: Path) -> None:
 def test_wrong_registration_is_rejected(tmp_path: Path) -> None:
     """Project without Ledgercore bindings raises ARCHLEDGER_CONFIG_BINDING_INVALID."""
     from archledger.ledgercore_backend import ensure_archledger_registration
+
     project_uuid = str(uuid4())
     ensure_archledger_registration(
         tmp_path / ".ledger/ledger.toml",
@@ -87,7 +95,9 @@ def test_wrong_registration_is_rejected(tmp_path: Path) -> None:
         data_storage="project",
     )
     # Write a tool config (no bindings created).
-    config = build_default_project_config(tmp_path, archledger_dir="data", project_uuid=project_uuid)
+    config = build_default_project_config(
+        tmp_path, archledger_dir="data", project_uuid=project_uuid
+    )
     config_path = tmp_path / ".ledger/archledger/config.toml"
     config_path.parent.mkdir(parents=True, exist_ok=True)
     config_path.write_text(render_project_config(config))

@@ -179,7 +179,13 @@ def test_resolve_impacts_reports_linked_records_and_unlinked_files(
         ["--root", str(tmp_path), "new", "white-box", "Tracking layer"],
     )
     record_path = (
-        tmp_path / ".ledger" / "archledger" / "data" / "records" / "building_blocks" / "block-0013.md"
+        tmp_path
+        / ".ledger"
+        / "archledger"
+        / "data"
+        / "records"
+        / "building_blocks"
+        / "block-0013.md"
     )
     record_path.write_text(
         record_path.read_text(encoding="utf-8").replace(

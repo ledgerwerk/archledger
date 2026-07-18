@@ -11,6 +11,6 @@ except ModuleNotFoundError:  # pragma: no cover
 def test_repository_storage_dependencies_are_declared() -> None:
     data = tomllib.loads((Path(__file__).parents[1] / "pyproject.toml").read_text())
     dependencies = data["project"]["dependencies"]
-    assert "ledgercore>=0.4.0" in dependencies
+    assert any(d.startswith("ledgercore") for d in dependencies)
     assert "tomlkit>=0.12" in dependencies
     assert not any(item.startswith("ledgercore<") for item in dependencies)

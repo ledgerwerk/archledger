@@ -25,9 +25,19 @@ def test_new_record_uses_local_identity_and_ref(tmp_path: Path) -> None:
     assert payload["id"] == "adr-0013"
     assert payload["kind"] == "adr"
     assert payload["ref"] == "al:adr-0013"
-    assert payload["path"].endswith("records/decisions/adr-0013.md")
+    assert payload["path"].endswith(
+        ".ledger/archledger/data/records/decisions/adr-0013.md"
+    )
 
-    created_file = tmp_path / ".archledger" / "records" / "decisions" / "adr-0013.md"
+    created_file = (
+        tmp_path
+        / ".ledger"
+        / "archledger"
+        / "data"
+        / "records"
+        / "decisions"
+        / "adr-0013.md"
+    )
     assert created_file.is_file()
     text = created_file.read_text(encoding="utf-8")
     assert "id: adr-0013" in text
@@ -41,7 +51,16 @@ def test_migrate_ids_converts_legacy_segmented_record(tmp_path: Path) -> None:
     )
     assert init.exit_code == 0, init.stdout
 
-    old_file = tmp_path / ".archledger" / "records" / "decisions" / "al_adr_0013.md"
+    old_file = (
+        tmp_path
+        / ".ledger"
+        / "archledger"
+        / "data"
+        / "records"
+        / "decisions"
+        / "al_adr_0013.md"
+    )
+    old_file.parent.mkdir(parents=True, exist_ok=True)
     old_file.write_text(
         "\n".join(
             [
@@ -74,7 +93,15 @@ def test_migrate_ids_converts_legacy_segmented_record(tmp_path: Path) -> None:
         ),
         encoding="utf-8",
     )
-    new_file = tmp_path / ".archledger" / "records" / "decisions" / "adr-0013.md"
+    new_file = (
+        tmp_path
+        / ".ledger"
+        / "archledger"
+        / "data"
+        / "records"
+        / "decisions"
+        / "adr-0013.md"
+    )
     assert not new_file.exists()
 
     migrated = runner.invoke(

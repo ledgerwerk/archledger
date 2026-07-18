@@ -104,7 +104,8 @@ def test_read_json_filters_by_kind(tmp_path: Path) -> None:
 def test_read_command_does_not_create_build_output(tmp_path: Path) -> None:
     """Read should not create build output in the project root."""
     init_project(tmp_path, source_format="markdown")
-    # Build output dir is "." (project root) by default; read should not create extra files.
+    # Build output dir is "." (project root) by default; read should not
+    # create extra files.
     before = set(tmp_path.iterdir())
 
     result = runner.invoke(app, ["--root", str(tmp_path), "--json", "read"])

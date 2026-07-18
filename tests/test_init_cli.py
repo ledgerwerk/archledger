@@ -57,7 +57,7 @@ def test_init_project_name_defaults_to_workspace_basename(tmp_path: Path) -> Non
     assert "project_uuid" not in config_text
     assert 'default_format = "markdown"' in config_text
     assert 'default_output = "architecture.md"' in config_text
-    assert 'default_output_dir = "."' in config_text
+    assert 'default_output_dir = "build"' in config_text
     assert "include_superseded = false" in config_text
     assert 'converter = "auto"' in config_text
     assert "[skill]" in config_text
