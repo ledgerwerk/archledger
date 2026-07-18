@@ -103,13 +103,11 @@ def migrate_metadata(
         )
 
     source_state_changed = _migrate_source_state(paths.source_state_path, apply=apply)
-    config_changed = config.config_version != 10 or config.source_schema_version != 4
+    config_changed = config.source_schema_version != 4
     if apply and config_changed:
         write_text_atomic(
             paths.config_path,
-            render_project_config(
-                replace(config, config_version=10, source_schema_version=4)
-            ),
+            render_project_config(replace(config, source_schema_version=4)),
         )
     return MetadataMigrationResult(
         apply=apply,

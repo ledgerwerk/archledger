@@ -38,6 +38,7 @@ from archledger.model import (
     VALID_BODY_FORMATS,
     ArchitectureRecord,
     SectionSpec,
+    empty_section_placeholder_for_source_format,
     is_visible_status,
     known_source_extensions,
     normalize_kind,
@@ -135,6 +136,45 @@ class DoctorResult:
 
 # Re-export for backward compatibility
 NumberedSourcePath = _NumberedSourcePath
+
+
+def _preferred_extensions(
+    configured_extension: str,
+    known_extensions: tuple[str, ...],
+) -> tuple[str, ...]:
+    """Return the configured extension before other recognized extensions."""
+    return (
+        configured_extension,
+        *(
+            extension
+            for extension in known_extensions
+            if extension != configured_extension
+        ),
+    )
+
+
+def _has_authored_section_body(record: ArchitectureRecord) -> bool:
+    """Return true when a section body is authored rather than generated."""
+    body = record.body.strip()
+    if not body:
+        return False
+
+    placeholders = {
+        section_body_placeholder_for_source_format(source_format).strip()
+        for source_format in VALID_BODY_FORMATS
+    }
+    placeholders.update(
+        empty_section_placeholder_for_source_format(source_format).strip()
+        for source_format in VALID_BODY_FORMATS
+    )
+    return body not in placeholders
+
+
+def _is_visible_live_record(record: ArchitectureRecord, *, archive_dir: Path) -> bool:
+    """Return true for accepted or proposed records outside archive storage."""
+    return record.status in {"accepted", "proposed"} and not path_in_archive(
+        record.path, archive_dir
+    )
 
 
 class ArchitectureRepository:
@@ -505,6 +545,11 @@ class ArchitectureRepository:
                 )
 
         if self._arc42_enabled():
+            known_extensions = self._known_source_extensions()
+            extensions = _preferred_extensions(
+                self.config.section_extension,
+                known_extensions,
+            )
             for section_spec in MAJOR_SECTION_SPECS:
                 section_id = self._format_record_id(
                     self._id_segment_for_section(section_spec),
@@ -512,18 +557,23 @@ class ArchitectureRepository:
                 )
                 section_paths = [
                     self.paths.sections_dir / f"{section_id}{extension}"
-                    for extension in self._known_source_extensions()
+                    for extension in extensions
                 ]
                 archived_section_paths = [
                     self.paths.archive_dir / "sections" / f"{section_id}{extension}"
-                    for extension in self._known_source_extensions()
+                    for extension in extensions
                 ]
-                if not any(path.is_file() for path in section_paths):
+                existing_section_path = next(
+                    (path for path in section_paths if path.is_file()),
+                    None,
+                )
+                diagnostic_path = existing_section_path or section_paths[0]
+                if existing_section_path is None:
                     findings_errors.append(
                         CheckFinding(
                             "error",
                             f"Required section file is missing: {section_spec.key}",
-                            section_paths[0],
+                            diagnostic_path,
                         )
                     )
                 archived_section = next(
@@ -538,19 +588,39 @@ class ArchitectureRepository:
                             archived_section,
                         )
                     )
-                if any(
+                section_record = next(
+                    (
+                        record
+                        for record in loaded_records
+                        if record.type == "section"
+                        and record.section == section_spec.key
+                        and not path_in_archive(record.path, self.paths.archive_dir)
+                    ),
+                    None,
+                )
+                has_authored_section_prose = (
+                    section_record is not None
+                    and _is_visible_live_record(
+                        section_record, archive_dir=self.paths.archive_dir
+                    )
+                    and _has_authored_section_body(section_record)
+                )
+                has_visible_child_record = any(
                     record.type != "section"
                     and record.section == section_spec.key
-                    and record.status in {"accepted", "proposed"}
-                    and not path_in_archive(record.path, self.paths.archive_dir)
+                    and _is_visible_live_record(
+                        record, archive_dir=self.paths.archive_dir
+                    )
                     for record in loaded_records
-                ):
+                )
+                if has_authored_section_prose or has_visible_child_record:
                     continue
                 findings_warnings.append(
                     CheckFinding(
                         "warning",
-                        f"Section {section_spec.key} has no accepted/proposed records.",
-                        section_paths[0],
+                        f"Section {section_spec.key} has no authored section prose "
+                        "and no accepted/proposed records.",
+                        diagnostic_path,
                     )
                 )
 

@@ -46,6 +46,22 @@ Feature: Repository check and validation
       When `archledger check` is run
       Then the result includes an error saying archive files must use archived status
 
+
+  @rule-section-completeness
+  Rule: Section completeness can be supplied by section prose or records
+    Example: Authored section prose satisfies strict completeness
+      Given an initialized Markdown workspace
+      And every required section contains authored prose
+      And no child architecture records exist
+      When `archledger check --strict` is run
+      Then no section completeness warning is emitted
+
+    Example: Placeholder-only section remains incomplete
+      Given an initialized Markdown workspace
+      And a required section still contains the generated placeholder
+      When `archledger check --strict` is run
+      Then a section completeness warning references the existing Markdown file
+
   @rule-snapshot
   Rule: Snapshot captures source state for change tracking
 
