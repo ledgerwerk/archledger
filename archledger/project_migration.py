@@ -19,7 +19,7 @@ from archledger.config.model import (
 from archledger.config.parse import load_project_config
 from archledger.config.render import render_project_config
 from archledger.errors import ConfigError, StorageError
-from archledger.ledgercore_backend import parse_ledger_project_manifest
+from archledger.ledgercore_backend import initialize_archledger_bindings, parse_ledger_project_manifest
 from archledger.project_context import (
     ARCHLEDGER_CONFIG_PATH,
     classify_project_state,
@@ -226,8 +226,8 @@ def _stable_config(source: ProjectConfig) -> ProjectConfig:
                 field.name: getattr(source, field.name)
                 for field in source.__dataclass_fields__.values()
             },
-            "config_version": 11,
-            "archledger_dir": "arch/archledger",
+            "config_version": 12,
+            "archledger_dir": "",
             "project_uuid": "",
             "project_name": "",
             "build_output_dir": source.build_output_dir or ".",
@@ -249,7 +249,7 @@ def inspect_project_migration(  # noqa: C901
     manifest_path = root / ".ledger/ledger.toml"
     local_config_path = root / ".ledger/ledger.local.toml"
     stable_config_path = root / ARCHLEDGER_CONFIG_PATH
-    target_data_root = root / ".ledger/arch/archledger"
+    target_data_root = root / ".ledger/archledger/data"
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     backup_root = root / ".ledger/backups" / f"archledger-{timestamp}"
     staging_root = root / ".ledger/arch" / f".archledger-migration-{timestamp}"
@@ -281,7 +281,7 @@ def inspect_project_migration(  # noqa: C901
             )
             canonical_uuid = parsed.project_uuid
             evidence.append((str(manifest_path), parsed.project_uuid))
-            target_data_root = root / ".ledger/arch/archledger"
+            target_data_root = root / ".ledger/archledger/data"
             staging_root = root / ".ledger/arch" / f".archledger-migration-{timestamp}"
         except Exception as exc:
             issues.append(
@@ -309,7 +309,7 @@ def inspect_project_migration(  # noqa: C901
             ).resolve(strict=False)
             if source_cfg.project_uuid:
                 evidence.append((str(source_path), source_cfg.project_uuid))
-                target_data_root = root / ".ledger/arch/archledger"
+                target_data_root = root / ".ledger/archledger/data"
                 staging_root = target_data_root.parent / (
                     f".archledger-migration-{timestamp}"
                 )
@@ -654,6 +654,13 @@ def apply_project_migration(
         fresh.stable_config_path, staged_config.read_text(encoding="utf-8")
     )
     write_manifest(fresh.manifest_path, manifest)
+    # Initialize Ledgercore bindings.
+    initialize_archledger_bindings(
+        fresh.project_root,
+        project_uuid=fresh.canonical_project_uuid or source_cfg.project_uuid,
+        project_name=source_cfg.project_name or fresh.project_root.name,
+        data_storage="project",
+    )
     context = load_project_context(fresh.project_root)
     receipt = context.migrations_dir / (
         f"{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"

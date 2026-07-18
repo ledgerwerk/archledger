@@ -283,7 +283,7 @@ def render_project_config(config: ProjectConfig) -> str:
             [
                 f"archledger_dir = {_toml_string(config.archledger_dir)}",
                 "",
-                "# Legacy project identity.",
+                "# Project identity (also used by source-state tracking).",
                 f"project_uuid = {_toml_string(config.project_uuid)}",
                 f"project_name = {_toml_string(config.project_name)}",
             ]

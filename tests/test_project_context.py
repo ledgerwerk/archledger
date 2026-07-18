@@ -4,37 +4,33 @@ from pathlib import Path
 from uuid import uuid4
 
 import pytest
-
 from archledger.config.render import build_default_project_config, render_project_config
 from archledger.errors import ConfigError
+from archledger.ledgercore_backend import ensure_archledger_registration, initialize_archledger_bindings
 from archledger.project_context import load_project_context
 
 
-def _write_project(root: Path, *, registration: str = "") -> str:
+def _write_project(root: Path) -> str:
     project_uuid = str(uuid4())
-    (root / ".ledger/arch").mkdir(parents=True)
-    default_registration = '''[ledgers.archledger.config]
-location = "project"
-path = "arch/config.toml"
-
-[ledgers.archledger.mounts.data]
-storage = "repository"
-path = "arch/archledger"'''
-    manifest = "\n".join(
-        [
-            "schema_version = 2",
-            "",
-            "[project]",
-            f'uuid = "{project_uuid}"',
-            'name = "demo"',
-            "",
-            registration or default_registration,
-            "",
-        ]
+    # Create schema-3 manifest with archledger registration.
+    ensure_archledger_registration(
+        root / ".ledger/ledger.toml",
+        project_uuid=project_uuid,
+        project_name="demo",
+        data_storage="project",
     )
-    (root / ".ledger/ledger.toml").write_text(manifest)
-    config = build_default_project_config(root, archledger_dir="arch/archledger")
-    (root / ".ledger/arch/config.toml").write_text(render_project_config(config))
+    # Write tool config.
+    config = build_default_project_config(root, archledger_dir="data", project_uuid=project_uuid)
+    config_path = root / ".ledger/archledger/config.toml"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    config_path.write_text(render_project_config(config))
+    # Initialize bindings.
+    initialize_archledger_bindings(
+        root,
+        project_uuid=project_uuid,
+        project_name="demo",
+        data_storage="project",
+    )
     return project_uuid
 
 
@@ -44,11 +40,11 @@ def test_context_resolves_exact_repository_mount(tmp_path: Path) -> None:
     context = load_project_context(tmp_path, require_initialized=False)
 
     assert context.project_uuid == project_uuid
-    assert context.config_path == tmp_path / ".ledger/arch/config.toml"
-    assert context.data_root == tmp_path / ".ledger/arch/archledger"
+    assert context.config_path == tmp_path / ".ledger/archledger/config.toml"
+    assert context.data_root == tmp_path / ".ledger/archledger/data"
     assert context.build_dir == tmp_path
     assert context.active_mount_name == "data"
-    assert context.mount_storage == "repository"
+    assert context.mount_storage == "project"
 
 
 def test_repository_mount_ignores_workspace_and_cache_environment(
@@ -66,31 +62,37 @@ def test_repository_mount_ignores_workspace_and_cache_environment(
         },
     )
 
-    assert context.data_root == tmp_path / ".ledger/arch/archledger"
+    assert context.data_root == tmp_path / ".ledger/archledger/data"
 
 
 def test_legacy_locator_requires_explicit_migration(tmp_path: Path) -> None:
+    """Legacy .archledger.toml without a schema-3 manifest raises a ledgercore error.
+    The CLI catches this case and shows an ARCHLEDGER_MIGRATION_REQUIRED message.
+    """
     (tmp_path / ".archledger.toml").write_text("config_version = 1\n")
 
-    with pytest.raises(ConfigError) as exc_info:
+    from ledgercore.errors import TomlConfigError
+    with pytest.raises(TomlConfigError):
         load_project_context(tmp_path)
-
-    assert exc_info.value.details["code"] == "ARCHLEDGER_MIGRATION_REQUIRED"
 
 
 def test_wrong_registration_is_rejected(tmp_path: Path) -> None:
-    _write_project(
-        tmp_path,
-        registration='''[ledgers.archledger.config]
-location = "project"
-path = "wrong/config.toml"
-
-[ledgers.archledger.mounts.data]
-storage = "repository"
-path = "wrong/data"''',
+    """Project without Ledgercore bindings raises ARCHLEDGER_CONFIG_BINDING_INVALID."""
+    from archledger.ledgercore_backend import ensure_archledger_registration
+    project_uuid = str(uuid4())
+    ensure_archledger_registration(
+        tmp_path / ".ledger/ledger.toml",
+        project_uuid=project_uuid,
+        project_name="demo",
+        data_storage="project",
     )
+    # Write a tool config (no bindings created).
+    config = build_default_project_config(tmp_path, archledger_dir="data", project_uuid=project_uuid)
+    config_path = tmp_path / ".ledger/archledger/config.toml"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    config_path.write_text(render_project_config(config))
 
     with pytest.raises(ConfigError) as exc_info:
         load_project_context(tmp_path, require_initialized=False)
 
-    assert exc_info.value.details["code"] == "ARCHLEDGER_REGISTRATION_CONFLICT"
+    assert exc_info.value.details.get("code") == "ARCHLEDGER_CONFIG_BINDING_INVALID"

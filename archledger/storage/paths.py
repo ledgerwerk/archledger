@@ -139,7 +139,12 @@ def resolve_project_paths(start: Path) -> tuple[ProjectPaths, ProjectConfig, lis
     context = load_project_context(start)
     if not isinstance(context.config, ProjectConfig):
         raise ConfigError("Canonical Archledger configuration is invalid.")
-    return context.project_paths(), context.config, []
+    config = context.config
+    # Propagate project identity from manifest to config (not in file for v12+).
+    if not config.project_uuid and context.project_uuid:
+        from dataclasses import replace
+        config = replace(config, project_uuid=context.project_uuid, project_name=context.project_name)
+    return context.project_paths(), config, []
 
 
 # Kept for callers that use the path-confinement helper directly.

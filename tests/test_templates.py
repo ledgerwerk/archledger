@@ -201,7 +201,9 @@ def test_section_templates_include_schema_version_version_body_format(
 
     markdown_section = (
         markdown_root
-        / ".archledger"
+        / ".ledger"
+        / "archledger"
+        / "data"
         / "profiles"
         / "arc42"
         / "sections"
@@ -209,7 +211,9 @@ def test_section_templates_include_schema_version_version_body_format(
     ).read_text(encoding="utf-8")
     asciidoc_section = (
         asciidoc_root
-        / ".archledger"
+        / ".ledger"
+        / "archledger"
+        / "data"
         / "profiles"
         / "arc42"
         / "sections"

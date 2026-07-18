@@ -71,16 +71,16 @@ def test_project_migration_apply_preserves_source_and_writes_receipt(
 
     assert result.receipt_path.is_file()
     assert (tmp_path / ".ledger/ledger.toml").is_file()
-    assert (tmp_path / ".ledger/arch/config.toml").is_file()
+    assert (tmp_path / ".ledger/archledger/config.toml").is_file()
     assert (
-        tmp_path / ".ledger/arch/archledger/storage.yaml"
+        tmp_path / ".ledger/archledger/data/storage.yaml"
     ).read_bytes() == original_storage
     assert data.is_dir()
     assert (
-        tmp_path / ".ledger/arch/archledger/profiles/arc42/sections/content-0001.md"
+        tmp_path / ".ledger/archledger/data/profiles/arc42/sections/content-0001.md"
     ).is_file()
     assert (
-        not (tmp_path / ".ledger/arch/config.toml").read_text().find("archledger_dir")
+        not (tmp_path / ".ledger/archledger/config.toml").read_text().find("archledger_dir")
         >= 0
     )
     assert UUID(

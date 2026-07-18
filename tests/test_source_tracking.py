@@ -110,7 +110,6 @@ def test_diff_source_states_without_baseline_reports_unbaselined_files(
 
     assert changes.baseline_exists is False
     assert "src/module.py" in changes.unbaselined_files
-    assert "archledger.toml" in changes.unbaselined_files
 
 
 def test_scan_workspace_excludes_archledger_state_build_and_large_files(
@@ -142,7 +141,7 @@ def test_scan_workspace_excludes_archledger_state_build_and_large_files(
 
 def test_snapshot_with_root_build_dir_does_not_skip_workspace(tmp_path: Path) -> None:
     init_project(tmp_path)
-    config_path = tmp_path / "archledger.toml"
+    config_path = tmp_path / ".ledger" / "archledger" / "config.toml"
     config_path.write_text(
         config_path.read_text(encoding="utf-8")
         .replace(
@@ -180,7 +179,7 @@ def test_resolve_impacts_reports_linked_records_and_unlinked_files(
         ["--root", str(tmp_path), "new", "white-box", "Tracking layer"],
     )
     record_path = (
-        tmp_path / ".archledger" / "records" / "building_blocks" / "block-0013.md"
+        tmp_path / ".ledger" / "archledger" / "data" / "records" / "building_blocks" / "block-0013.md"
     )
     record_path.write_text(
         record_path.read_text(encoding="utf-8").replace(

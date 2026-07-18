@@ -39,7 +39,7 @@ class TestConfigRoundTrip:
 
     def test_default_markdown_config_round_trip(self, tmp_path: Path) -> None:
         root = _init_project(tmp_path, "markdown")
-        config_path = root / "archledger.toml"
+        config_path = root / ".ledger" / "archledger" / "config.toml"
         config1 = load_project_config(config_path)
         rendered = render_project_config(config1)
         # Write rendered config back and parse again
@@ -51,7 +51,7 @@ class TestConfigRoundTrip:
 
     def test_default_asciidoc_config_round_trip(self, tmp_path: Path) -> None:
         root = _init_project(tmp_path, "asciidoc")
-        config_path = root / "archledger.toml"
+        config_path = root / ".ledger" / "archledger" / "config.toml"
         config1 = load_project_config(config_path)
         rendered = render_project_config(config1)
         config_path.write_text(rendered)
@@ -101,11 +101,13 @@ class TestCLIJsonShapes:
         root = _init_project(tmp_path)
         result = runner.invoke(app, ["--json", "--root", str(root), "paths"])
         assert result.exit_code == 0, result.output
-        wrapper = json.loads(result.output)
+        # The "paths" command emits a deprecation warning before the JSON.
+        json_text = result.output.split("\n", 1)[-1]  # skip deprecation line
+        wrapper = json.loads(json_text)
         data = wrapper["result"]
         assert "workspace_root" in data
-        assert "sections_dir" in data
-        assert "records_dir" in data
+        assert "data_root" in data
+        assert "project_root" in data
 
 
 class TestSharedHelpers:

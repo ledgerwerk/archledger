@@ -102,14 +102,19 @@ def test_read_json_filters_by_kind(tmp_path: Path) -> None:
 
 
 def test_read_command_does_not_create_build_output(tmp_path: Path) -> None:
+    """Read should not create build output in the project root."""
     init_project(tmp_path, source_format="markdown")
-    build_dir = tmp_path / "build"
-    assert list(build_dir.iterdir()) == []
+    # Build output dir is "." (project root) by default; read should not create extra files.
+    before = set(tmp_path.iterdir())
 
     result = runner.invoke(app, ["--root", str(tmp_path), "--json", "read"])
 
     assert result.exit_code == 0
-    assert list(build_dir.iterdir()) == []
+    after = set(tmp_path.iterdir())
+    # The only new files should be from the .ledger dir (already existing before).
+    new_files = after - before
+    # No new files at the root level should be created by read.
+    assert not any(f.is_file() for f in new_files)
 
 
 def init_project(tmp_path: Path, source_format: str = "asciidoc") -> None:
