@@ -265,7 +265,8 @@ def test_paths_json_includes_source_state_path(tmp_path: Path) -> None:
     assert result.exit_code == 0
     payload = json.loads(result.stdout)
     assert "data_root" in payload["result"]
-    assert ".ledger/archledger/data" in payload["result"]["data_root"]
+    data_root = Path(payload["result"]["data_root"])
+    assert data_root.parts[-3:] == (".ledger", "archledger", "data")
 
 
 def test_schema_json_lists_record_types_statuses_sections_and_formats(
