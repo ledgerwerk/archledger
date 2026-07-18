@@ -1,0 +1,28 @@
+schema_version = 1
+migration_id = "27858208-1322-49f7-99c2-3bd8009924b2"
+project_uuid = "6bddbb56-b273-4aae-9860-bfa4de93f115"
+phase = "complete"
+
+[items.0]
+component = "config"
+tool = "releaseledger"
+mount = "config"
+source = "/home/nahrstaedt/src/odoo17/archledger/.ledger/releaseledger/.migration/8cb3dc99-4a2a-4792-8c53-b503ef1ae484/config.toml"
+destination = "/home/nahrstaedt/src/odoo17/archledger/.ledger/releaseledger/config.toml"
+strategy = "copy"
+
+[items.1]
+component = "mount"
+tool = "releaseledger"
+mount = "data"
+source = "/home/nahrstaedt/src/odoo17/archledger/.ledger/releaseledger/.migration/8cb3dc99-4a2a-4792-8c53-b503ef1ae484/data"
+destination = "/home/nahrstaedt/src/odoo17/archledger/.ledger/releaseledger/data"
+strategy = "copy"
+
+[items.2]
+component = "mount"
+tool = "releaseledger"
+mount = "indexes"
+source = "/home/nahrstaedt/src/odoo17/archledger/.ledger/releaseledger/.migration/8cb3dc99-4a2a-4792-8c53-b503ef1ae484/data"
+destination = "/home/nahrstaedt/.cache/ledgerwerk/releaseledger/6bddbb56-b273-4aae-9860-bfa4de93f115/archledger-6851bc077428/indexes"
+strategy = "rebuild"

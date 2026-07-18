@@ -1,0 +1,7 @@
+schema_version = 1
+layout_version = 3
+project_uuid = "6bddbb56-b273-4aae-9860-bfa4de93f115"
+project_name = "archledger"
+tool = "releaseledger"
+mount = "config"
+storage = "project"
