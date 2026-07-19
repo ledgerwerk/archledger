@@ -1,0 +1,12 @@
+schema_version = 1
+migration_id = "14d77f60943a41f0b919093bdfd6a5ac"
+project_uuid = "6bddbb56-b273-4aae-9860-bfa4de93f115"
+phase = "complete"
+
+[items.0]
+component = "mount"
+tool = "taskledger"
+mount = "data"
+source = "/home/nahrstaedt/src/odoo17/ledger/task/archledger"
+destination = "/home/nahrstaedt/src/odoo17/ledger/taskledger/6bddbb56-b273-4aae-9860-bfa4de93f115/data"
+strategy = "copy"
