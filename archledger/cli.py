@@ -10,6 +10,7 @@ import typer
 import yaml
 
 from archledger import __version__
+from archledger.cli_common import ExitCode
 from archledger.cli_formatting import (
     format_archive_message as _format_archive_message,
 )
@@ -1155,7 +1156,22 @@ def migrate_ids(
             )
         )
 
-    _run_configured_command(state, "migrate ids", _build_migrate_result, _fmt)
+    deprecation_warnings = [
+        "'migrate ids --to ledgercore' is deprecated."
+        " Use 'migrate plan identity-ledgercore' instead."
+    ]
+    if apply:
+        deprecation_warnings.append(
+            "'migrate ids --to ledgercore --apply' is deprecated."
+            " Use 'migrate apply identity-ledgercore' instead."
+        )
+    _run_configured_command(
+        state,
+        "migrate ids",
+        _build_migrate_result,
+        _fmt,
+        extra_warnings=deprecation_warnings,
+    )
 
 
 @migrate_app.command("metadata")
@@ -1186,7 +1202,22 @@ def migrate_metadata_command(
             f"config_changed={payload['config_changed']}."
         )
 
-    _run_configured_command(state, "migrate metadata", _build_result, _format)
+    deprecation_warnings = [
+        "'migrate metadata --to versioned' is deprecated."
+        " Use 'migrate plan metadata-versioned' instead."
+    ]
+    if apply:
+        deprecation_warnings.append(
+            "'migrate metadata --to versioned --apply' is deprecated."
+            " Use 'migrate apply metadata-versioned' instead."
+        )
+    _run_configured_command(
+        state,
+        "migrate metadata",
+        _build_result,
+        _format,
+        extra_warnings=deprecation_warnings,
+    )
 
 
 @migrate_app.command("project")
@@ -1199,6 +1230,16 @@ def migrate_project(
 ) -> None:
     state = _state(ctx)
     try:
+        # Add deprecation warning
+        warnings = [
+            "'migrate project' is deprecated."
+            " Use 'migrate plan project-layout' instead."
+        ]
+        if apply:
+            warnings.append(
+                "'migrate project --apply' is deprecated."
+                " Use 'migrate apply project-layout' instead."
+            )
         inspection = inspect_project_migration(state.root, source_config=source_config)
         payload = (
             migration_result_payload(
@@ -1213,13 +1254,208 @@ def migrate_project(
             state,
             command="migrate project",
             result=payload,
-            warnings=[],
+            warnings=warnings,
             human_message="Project migration ready."
             if not apply
             else "Project migration applied.",
         )
     except ArchledgerError as exc:
         _emit_error(state, "migrate project", exc)
+
+
+@migrate_app.command("status")
+def migrate_status(
+    ctx: typer.Context,
+) -> None:
+    """Report migration state and available migrations."""
+    state = _state(ctx)
+    try:
+        from archledger.migrations.status import evaluate_migration_status
+
+        report = evaluate_migration_status(state.root)
+        _emit_success(
+            state,
+            command="migrate status",
+            result=report.to_dict(),
+            warnings=list(report.warnings),
+            human_message=f"Migration state: {report.state.value}\n"
+            + (
+                f"Available: {', '.join(report.available_migrations)}\n"
+                if report.available_migrations
+                else ""
+            )
+            + (
+                f"Completed: {', '.join(report.completed_migrations)}\n"
+                if report.completed_migrations
+                else ""
+            )
+            + (
+                f"Pending: {', '.join(report.pending_migrations)}\n"
+                if report.pending_migrations
+                else ""
+            )
+            + (f"Next: {report.recommended_next}\n" if report.recommended_next else ""),
+        )
+    except ArchledgerError as exc:
+        _emit_error(state, "migrate status", exc)
+
+
+@migrate_app.command("plan")
+def migrate_plan(
+    ctx: typer.Context,
+    migration: Annotated[str, typer.Argument(help="Migration name")],
+    output: Annotated[Path | None, typer.Option("--output", "-o")] = None,
+    identity_policy: Annotated[str, typer.Option("--identity-policy")] = "strict",
+) -> None:
+    """Create a deterministic migration plan."""
+    state = _state(ctx)
+    try:
+        from archledger.migrations.plan_io import save_plan
+        from archledger.migrations.registry import get_handler
+
+        handler = get_handler(migration)
+        if handler is None:
+            raise StorageError(f"Unknown migration: {migration}")
+        plan = handler.plan(state.root, {"identity_policy": identity_policy})
+        if output:
+            save_plan(plan, output)
+        _emit_success(
+            state,
+            command=f"migrate plan {migration}",
+            result=plan.to_dict(),
+            warnings=list(plan.warnings),
+            human_message=f"Migration plan created for {migration}"
+            + (f"\nSaved to {output}" if output else ""),
+        )
+    except ArchledgerError as exc:
+        _emit_error(state, f"migrate plan {migration}", exc)
+
+
+@migrate_app.command("apply")
+def migrate_apply(
+    ctx: typer.Context,
+    migration: Annotated[str, typer.Argument(help="Migration name")],
+    plan_file: Annotated[Path | None, typer.Option("--plan-file")] = None,
+    dry_run: Annotated[bool, typer.Option("--dry-run")] = False,
+    reason: Annotated[str, typer.Option("--reason")] = "",
+) -> None:
+    """Execute a migration plan with journaling."""
+    state = _state(ctx)
+    try:
+        from archledger.migrations.plan_io import load_plan
+        from archledger.migrations.registry import get_handler
+
+        handler = get_handler(migration)
+        if handler is None:
+            raise StorageError(f"Unknown migration: {migration}")
+        if not reason and not dry_run:
+            raise StorageError("--reason is required for apply")
+        if plan_file:
+            try:
+                plan = load_plan(plan_file)
+            except ValueError as exc:
+                raise StorageError(
+                    str(exc),
+                    details={
+                        "code": "stale_plan",
+                        "remediation": [
+                            "Recreate the plan with: "
+                            "archledger migrate plan {migration}"
+                        ],
+                    },
+                ) from exc
+        else:
+            plan = handler.plan(state.root, {})
+        result = handler.apply(
+            state.root, plan, dry_run=dry_run, reason=reason or "dry-run"
+        )
+        _emit_success(
+            state,
+            command=f"migrate apply {migration}",
+            result=result,
+            warnings=[],
+            human_message=f"Migration {migration} applied"
+            if not dry_run
+            else f"Dry run completed for {migration}",
+        )
+    except ArchledgerError as exc:
+        # Use exit code 4 for stale/conflicting plans
+        exit_code = (
+            ExitCode.STALE_OR_CONFLICTING
+            if exc.details.get("code") == "stale_plan"
+            else ExitCode.DOMAIN_VALIDATION_FAILED
+        )
+        _emit_error(state, f"migrate apply {migration}", exc, exit_code=exit_code)
+
+
+@migrate_app.command("recover")
+def migrate_recover(
+    ctx: typer.Context,
+    journal: Annotated[Path, typer.Option("--journal")],
+    dry_run: Annotated[bool, typer.Option("--dry-run")] = False,
+) -> None:
+    """Recover from an interrupted migration."""
+    state = _state(ctx)
+    try:
+        # Parse journal to find migration type
+        import tomllib
+
+        journal_data = tomllib.loads(journal.read_text())
+        migration_name = journal_data.get("migration", "project-layout")
+        from archledger.migrations.registry import get_handler
+
+        handler = get_handler(migration_name)
+        if handler is None:
+            raise StorageError(f"Unknown migration: {migration_name}")
+        result = handler.recover(state.root, journal, dry_run=dry_run)
+        _emit_success(
+            state,
+            command="migrate recover",
+            result=result,
+            warnings=[],
+            human_message="Recovery completed"
+            if not dry_run
+            else "Recovery dry run completed",
+        )
+    except ArchledgerError as exc:
+        _emit_error(state, "migrate recover", exc)
+
+
+@migrate_app.command("cleanup")
+def migrate_cleanup(
+    ctx: typer.Context,
+    migration: Annotated[str, typer.Argument(help="Migration name")],
+    dry_run: Annotated[bool, typer.Option("--dry-run")] = False,
+    yes: Annotated[bool, typer.Option("--yes", "-y")] = False,
+    reason: Annotated[str, typer.Option("--reason")] = "",
+) -> None:
+    """Remove verified legacy source after migration."""
+    state = _state(ctx)
+    try:
+        from archledger.migrations.registry import get_handler
+
+        handler = get_handler(migration)
+        if handler is None:
+            raise StorageError(f"Unknown migration: {migration}")
+        if not dry_run:
+            if not yes:
+                raise StorageError("--yes is required for cleanup")
+            if not reason:
+                raise StorageError("--reason is required for cleanup")
+        result = handler.cleanup(
+            state.root, dry_run=dry_run, yes=yes, reason=reason or "dry-run"
+        )
+        _emit_success(
+            state,
+            command=f"migrate cleanup {migration}",
+            result=result,
+            warnings=[],
+            human_message=f"Cleanup completed for {migration}"
+            if not dry_run
+            else f"Cleanup dry run for {migration}",
+        )
+    except ArchledgerError as exc:
+        _emit_error(state, f"migrate cleanup {migration}", exc)
 
 
 @source_app.command("snapshot")
@@ -2387,9 +2623,12 @@ def _run_configured_command(
         dict[str, object],
     ],
     human_formatter: Callable[[dict[str, object]], str],
+    extra_warnings: list[str] | None = None,
 ) -> None:
     try:
         paths, config, warnings = resolve_project_paths(state.root)
+        if extra_warnings:
+            warnings = list(warnings) + extra_warnings
         repo = ArchitectureRepository(paths, config)
         payload = payload_builder(repo, paths, config)
         _emit_success(
@@ -2462,9 +2701,12 @@ def _emit_success(
         typer.echo(
             json.dumps(
                 {
+                    "schema": "ledgerwerk.cli.v1",
                     "ok": True,
+                    "tool": "archledger",
                     "command": command,
                     "result": normalized_result,
+                    "events": [],
                     "warnings": warnings,
                 },
                 indent=2,
@@ -2478,18 +2720,26 @@ def _emit_success(
         typer.echo(f"warning: {warning}")
 
 
-def _emit_error(state: CLIState, command: str, exc: ArchledgerError) -> None:
+def _emit_error(
+    state: CLIState, command: str, exc: ArchledgerError, exit_code: int = 1
+) -> None:
     if state.json_output:
         typer.echo(
             json.dumps(
                 {
+                    "schema": "ledgerwerk.cli.v1",
                     "ok": False,
+                    "tool": "archledger",
                     "command": command,
                     "error": {
-                        "type": exc.__class__.__name__,
+                        "code": exc.__class__.__name__,
                         "message": exc.message,
-                        "details": exc.details,
+                        "remediation": exc.details.get("remediation", []),
+                        "details": {
+                            k: v for k, v in exc.details.items() if k != "remediation"
+                        },
                     },
+                    "events": [],
                     "warnings": [],
                 },
                 indent=2,
@@ -2498,7 +2748,7 @@ def _emit_error(state: CLIState, command: str, exc: ArchledgerError) -> None:
         )
     else:
         typer.echo(f"{exc.__class__.__name__}: {exc.message}", err=True)
-    raise typer.Exit(code=1)
+    raise typer.Exit(code=exit_code)
 
 
 def _check_error(result: CheckResult, *, strict: bool) -> ArchledgerError:
