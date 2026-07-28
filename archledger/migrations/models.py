@@ -176,7 +176,7 @@ class ArchledgerMigrationPlan:
         }
         if self.project:
             result["project"] = {
-                "root": str(self.project.root),
+                "root": self.project.root.as_posix(),
                 "manifest_exists": self.project.manifest_exists,
                 "manifest_uuid": self.project.manifest_uuid,
                 "legacy_uuid": self.project.legacy_uuid,
@@ -185,10 +185,10 @@ class ArchledgerMigrationPlan:
             }
         if self.source:
             result["source"] = {
-                "config_path": str(self.source.config_path)
+                "config_path": self.source.config_path.as_posix()
                 if self.source.config_path
                 else None,
-                "data_root": str(self.source.data_root)
+                "data_root": self.source.data_root.as_posix()
                 if self.source.data_root
                 else None,
                 "config_version": self.source.config_version,
@@ -198,9 +198,9 @@ class ArchledgerMigrationPlan:
             }
         if self.destination:
             result["destination"] = {
-                "manifest_path": str(self.destination.manifest_path),
-                "config_path": str(self.destination.config_path),
-                "data_root": str(self.destination.data_root),
+                "manifest_path": self.destination.manifest_path.as_posix(),
+                "config_path": self.destination.config_path.as_posix(),
+                "data_root": self.destination.data_root.as_posix(),
                 "storage": self.destination.storage,
             }
         if self.inventory:
@@ -240,7 +240,9 @@ class ArchledgerMigrationPlan:
     def _default_migration_id(self) -> str:
         """Derive a stable transaction identity without timestamps."""
         source = self.source.fingerprint if self.source else ""
-        root = str(self.project.root.resolve(strict=False)) if self.project else ""
+        root = (
+            self.project.root.resolve(strict=False).as_posix() if self.project else ""
+        )
         token = f"{self.tool}\0{self.migration}\0{root}\0{source}"
         return "migration-" + hashlib.sha256(token.encode("utf-8")).hexdigest()[:24]
 
