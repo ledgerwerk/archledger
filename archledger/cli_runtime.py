@@ -151,14 +151,29 @@ def _exit_code_for(error: CLIError) -> ExitCode:
     return ExitCode.DOMAIN_FAILURE
 
 
-def _normalize_json_paths(value: object) -> object:
+def _normalize_json_paths(value: object, *, field_name: str | None = None) -> object:
+    """Make path-valued JSON fields stable across operating systems."""
     if isinstance(value, Path):
-        return str(value)
+        return value.as_posix()
     if isinstance(value, Mapping):
-        return {str(key): _normalize_json_paths(item) for key, item in value.items()}
+        return {
+            str(key): _normalize_json_paths(item, field_name=str(key))
+            for key, item in value.items()
+        }
     if isinstance(value, (list, tuple)):
-        return [_normalize_json_paths(item) for item in value]
+        return [_normalize_json_paths(item, field_name=field_name) for item in value]
+    if isinstance(value, str) and _is_json_path_field(field_name):
+        return value.replace("\\", "/")
     return value
+
+
+def _is_json_path_field(field_name: str | None) -> bool:
+    if field_name is None:
+        return False
+    name = field_name.lower()
+    return name in {"path", "from", "to", "root"} or name.endswith(
+        ("_path", "_dir", "_root")
+    )
 
 
 __all__ = [

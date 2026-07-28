@@ -220,7 +220,9 @@ def build_archledger_storage_migration_plan(
     mount = MountDefinition(
         name="data",
         storage=storage,
-        external_root=external_root if storage == "external" else None,
+        external_root=(
+            _ledgercore_path(external_root) if storage == "external" else None
+        ),
     )
     target_registration = LedgerRegistration(
         name="archledger",
@@ -539,7 +541,9 @@ def ensure_archledger_registration(
     mount_def = MountDefinition(
         name="data",
         storage=data_storage,
-        external_root=external_root if data_storage == "external" else None,
+        external_root=(
+            _ledgercore_path(external_root) if data_storage == "external" else None
+        ),
     )
     arch_registration = LedgerRegistration(
         name="archledger",
@@ -595,7 +599,7 @@ def set_archledger_data_override(
         "archledger",
         "data",
         storage=data_storage,
-        root=external_root,
+        root=_ledgercore_path(external_root) if external_root else None,
     )
 
     local_config_path.parent.mkdir(parents=True, exist_ok=True)
@@ -691,6 +695,17 @@ def _resolve_data_root(
             f"Unsupported data storage: {storage}",
             "ARCHLEDGER_DATA_STORAGE_INVALID",
         )
+
+
+def _ledgercore_path(value: Path | str) -> str:
+    """Serialize a filesystem path using Ledgercore's portable path syntax.
+
+    Ledgercore manifest and local-config roots deliberately use forward
+    slashes, including for Windows drive paths.  ``str(Path)`` emits
+    backslashes on Windows, so normalize at this adapter boundary before
+    passing roots to Ledgercore.
+    """
+    return os.fspath(value).replace("\\", "/")
 
 
 def _derive_data_root(

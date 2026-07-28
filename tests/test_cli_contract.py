@@ -8,8 +8,25 @@ from pathlib import Path
 from typer.testing import CliRunner
 
 from archledger.cli import app
+from archledger.cli_runtime import _normalize_json_paths
 
 runner = CliRunner()
+
+
+def test_json_path_fields_use_portable_separators() -> None:
+    payload = _normalize_json_paths(
+        {
+            "archive_dir": r"C:\Users\runner\archive",
+            "path": r"C:\Users\runner\records\item.adoc",
+            "root": r"C:\Users\runner\project",
+            "message": r"keep\backslashes in ordinary text",
+        }
+    )
+
+    assert payload["archive_dir"] == "C:/Users/runner/archive"
+    assert payload["path"] == "C:/Users/runner/records/item.adoc"
+    assert payload["root"] == "C:/Users/runner/project"
+    assert payload["message"] == r"keep\backslashes in ordinary text"
 
 
 def _json_result(result) -> dict:

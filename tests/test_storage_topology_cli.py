@@ -8,6 +8,7 @@ from pathlib import Path
 from typer.testing import CliRunner
 
 from archledger.cli import app
+from archledger.ledgercore_backend import set_archledger_data_override
 
 runner = CliRunner()
 
@@ -91,3 +92,18 @@ def test_storage_set_and_clear_override_do_not_move_data(tmp_path: Path) -> None
     )
     assert cleared.exit_code == 0, cleared.output
     assert _json(cleared)["result"]["new_data_root"] == str(data_root)
+
+
+def test_external_roots_use_ledgercore_portable_path_syntax(tmp_path: Path) -> None:
+    _init(tmp_path)
+    local_config = tmp_path / ".ledger" / "ledger.local.toml"
+
+    set_archledger_data_override(
+        local_config,
+        data_storage="external",
+        external_root=r"C:\Users\runner\external",
+    )
+
+    assert 'root = "C:/Users/runner/external"' in local_config.read_text(
+        encoding="utf-8"
+    )
