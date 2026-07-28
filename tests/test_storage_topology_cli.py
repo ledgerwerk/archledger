@@ -91,7 +91,7 @@ def test_storage_set_and_clear_override_do_not_move_data(tmp_path: Path) -> None
         ],
     )
     assert cleared.exit_code == 0, cleared.output
-    assert _json(cleared)["result"]["new_data_root"] == str(data_root)
+    assert _json(cleared)["result"]["new_data_root"] == data_root.as_posix()
 
 
 def test_external_roots_use_ledgercore_portable_path_syntax(tmp_path: Path) -> None:
@@ -104,6 +104,36 @@ def test_external_roots_use_ledgercore_portable_path_syntax(tmp_path: Path) -> N
         external_root=r"C:\Users\runner\external",
     )
 
+    assert 'root = "C:/Users/runner/external"' in local_config.read_text(
+        encoding="utf-8"
+    )
+
+
+def test_storage_set_accepts_windows_style_external_root(tmp_path: Path) -> None:
+    _init(tmp_path)
+
+    changed = runner.invoke(
+        app,
+        [
+            "--root",
+            str(tmp_path),
+            "--json",
+            "storage",
+            "set",
+            "data",
+            "--storage",
+            "external",
+            "--storage-root",
+            r"C:\Users\runner\external",
+            "--scope",
+            "local",
+            "--reason",
+            "portable path test",
+        ],
+    )
+
+    assert changed.exit_code == 0, changed.output
+    local_config = tmp_path / ".ledger" / "ledger.local.toml"
     assert 'root = "C:/Users/runner/external"' in local_config.read_text(
         encoding="utf-8"
     )
