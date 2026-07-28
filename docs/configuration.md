@@ -1,6 +1,6 @@
 # Configuration
 
-Stable configuration lives in `.ledger/arch/config.toml`. Shared project identity and topology live in `.ledger/ledger.toml`. Authoritative Archledger data is `.ledger/arch/archledger` through a Ledgercore repository mount. Root-level configs and `archledger_dir` are migration-only input.
+Stable configuration lives in `.ledger/archledger/config.toml`. Shared project identity and topology live in `.ledger/ledger.toml`. Authoritative Archledger data is `.ledger/archledger/data` through a Ledgercore repository mount. Root-level configs and `archledger_dir` are migration-only input.
 
 ## Important sections
 
@@ -50,7 +50,7 @@ scanner = "auto"
 `source-state.json` stores SHA-256 content hashes only for files. It does not
 persist mtimes or file sizes. Directory hashes are derived from file hashes.
 
-The archive path is fixed at `.ledger/arch/archledger/archive` and is used by
+The archive path is fixed at `.ledger/archledger/data/archive` and is used by
 `archledger archive` and `archledger doctor --repair` to preserve
 ledger-number history without renumbering.
 

@@ -7,6 +7,8 @@
 :caption: User guide
 
 cli
+cli-reference
+storage
 configuration
 source-model
 source-tracking

@@ -1,4 +1,4 @@
-"""Sole adapter for detailed Ledgercore 0.5 project/layout/binding/migration APIs.
+"""Sole adapter for detailed Ledgercore project/layout/binding/migration APIs.
 
 All other Archledger modules must import Ledgercore through this module.
 Generic stable utilities (atomic, frontmatter, hashing, ids, jsonio, jsonl,
@@ -7,6 +7,7 @@ refs, yamlio) may be imported directly from ledgercore.
 
 from __future__ import annotations
 
+import inspect
 import os
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -18,7 +19,9 @@ from ledgercore.errors import LedgerCoreError
 from ledgercore.manifest import (
     EffectiveLedgerRegistration,
     LedgerProjectManifest,
+    LedgerRegistration,
     LoadedLedgerProject,
+    MountDefinition,
     StorageKind,
 )
 from ledgercore.storage_binding import (
@@ -37,6 +40,235 @@ if TYPE_CHECKING:
 
 DataStorage = Literal["project", "external", "user-data"]
 DataSource = Literal["manifest", "local"]
+
+
+@dataclass(frozen=True, slots=True)
+class LedgercoreMigrationSupport:
+    """Public migration capabilities exposed by the installed Ledgercore.
+
+    Ledgercore versions can publish model types before their executor and
+    recovery behavior is complete.  Capability detection therefore checks the
+    public callable signatures as well as exported model types.  Consumers can
+    use this value to report a truthful fallback instead of inferring support
+    from the mere presence of a class.
+    """
+
+    version: str
+    public_api: bool
+    destination_policies: bool
+    lifecycle_hooks: bool
+    schema3_models: bool
+    schema3_execution: bool
+    recovery_analysis: bool
+    resume: bool
+    rollback: bool
+    prepared_sources: bool
+
+    @property
+    def schema3_recovery(self) -> bool:
+        """Whether the public API can analyze and act on schema-3 journals."""
+        return self.recovery_analysis and (self.resume or self.rollback)
+
+
+def ledgercore_version() -> str:
+    """Return the installed Ledgercore version through its public package API."""
+    return str(getattr(ledgercore, "__version__", "unknown"))
+
+
+def ledgercore_migration_support() -> LedgercoreMigrationSupport:
+    """Describe supported migration behavior without importing private modules."""
+    plan_fn = getattr(ledgercore, "plan_storage_migration", None)
+    validate_fn = getattr(ledgercore, "validate_storage_migration_plan", None)
+    execute_fn = getattr(ledgercore, "execute_storage_migration", None)
+    inspect_fn = getattr(ledgercore, "inspect_storage_migration", None)
+    recover_fn = getattr(ledgercore, "recover_storage_migration", None)
+    hooks_type = getattr(ledgercore, "StorageMigrationHooks", None)
+
+    public_api = all(
+        callable(function)
+        for function in (plan_fn, validate_fn, execute_fn, inspect_fn, recover_fn)
+    )
+    execute_parameters = (
+        inspect.signature(execute_fn).parameters if callable(execute_fn) else {}
+    )
+    recover_parameters = (
+        inspect.signature(recover_fn).parameters if callable(recover_fn) else {}
+    )
+    lifecycle_hooks = "hooks" in execute_parameters
+    recovery_analysis = any(
+        name in recover_parameters for name in ("action", "dry_run", "analysis")
+    )
+    resume = "action" in recover_parameters
+    rollback = resume
+    schema3_models = all(
+        hasattr(ledgercore, name)
+        for name in (
+            "Schema3MigrationJournal",
+            "Schema3ItemJournalState",
+            "Schema3ConfigSwitchState",
+        )
+    )
+    prepared_sources = bool(
+        hooks_type is not None
+        and hasattr(hooks_type, "__dataclass_fields__")
+        and "prepare_sources" in hooks_type.__dataclass_fields__
+    )
+
+    return LedgercoreMigrationSupport(
+        version=ledgercore_version(),
+        public_api=public_api,
+        destination_policies=all(
+            hasattr(ledgercore, name)
+            for name in (
+                "DestinationPolicy",
+                "DestinationPrecondition",
+                "inspect_storage_migration_destination",
+            )
+        ),
+        lifecycle_hooks=lifecycle_hooks,
+        schema3_models=schema3_models,
+        schema3_execution=(
+            public_api and lifecycle_hooks and schema3_models and prepared_sources
+        ),
+        recovery_analysis=recovery_analysis,
+        resume=resume,
+        rollback=rollback,
+        prepared_sources=prepared_sources,
+    )
+
+
+def build_storage_migration_plan(*args: Any, **kwargs: Any) -> Any:
+    """Build a Ledgercore storage plan through the public package facade."""
+    return ledgercore.plan_storage_migration(*args, **kwargs)
+
+
+def validate_storage_migration_plan(*args: Any, **kwargs: Any) -> Any:
+    """Validate a Ledgercore storage plan through the public package facade."""
+    return ledgercore.validate_storage_migration_plan(*args, **kwargs)
+
+
+def execute_storage_migration(*args: Any, **kwargs: Any) -> Any:
+    """Execute a validated storage plan through the public package facade."""
+    return ledgercore.execute_storage_migration(*args, **kwargs)
+
+
+def execute_archledger_storage_migration(
+    plan: Any,
+    *,
+    project_root: Path,
+    quiescence_check: Any = None,
+    validate_staged: Any = None,
+    validate_activated: Any = None,
+    finalize: Any = None,
+) -> Any:
+    """Execute a storage plan with the installed public hook contract."""
+    execute_fn = ledgercore.execute_storage_migration
+    parameters = inspect.signature(execute_fn).parameters
+    kwargs: dict[str, Any] = {"project_root": project_root}
+    if "hooks" in parameters:
+        hooks_type = getattr(ledgercore, "StorageMigrationHooks", None)
+        if hooks_type is None:
+            raise ConfigError(
+                "Ledgercore advertises hooks but does not export the hook type"
+            )
+        kwargs["hooks"] = hooks_type(
+            quiescence_check=quiescence_check,
+            validate_staged=validate_staged,
+            validate_activated=validate_activated,
+            finalize=finalize,
+            requires_staged_validation=validate_staged is not None,
+            requires_activated_validation=validate_activated is not None,
+            requires_finalization=finalize is not None,
+        )
+    elif "quiescence_check" in parameters:
+        kwargs["quiescence_check"] = quiescence_check
+    return execute_fn(plan, **kwargs)
+
+
+def inspect_storage_migration(*args: Any, **kwargs: Any) -> Any:
+    """Inspect a migration journal through the public package facade."""
+    return ledgercore.inspect_storage_migration(*args, **kwargs)
+
+
+def recover_storage_migration(*args: Any, **kwargs: Any) -> Any:
+    """Recover a migration through the public package facade."""
+    return ledgercore.recover_storage_migration(*args, **kwargs)
+
+
+def migration_lock(*args: Any, **kwargs: Any) -> Any:
+    """Construct Ledgercore's public migration lock."""
+    return ledgercore.MigrationLock(*args, **kwargs)
+
+
+def build_archledger_storage_migration_plan(
+    root: Path,
+    *,
+    storage: DataStorage,
+    external_root: str | None = None,
+) -> Any:
+    """Build a Ledgercore plan for changing Archledger's data mount.
+
+    The target manifest is assembled from the loaded manifest, so unrelated
+    ledger registrations remain part of the plan and are not silently lost.
+    """
+    if storage == "external" and not external_root:
+        raise ConfigError("external storage requires an external root")
+    loaded = ledgercore.load_ledger_project(root)
+    current = loaded.manifest.ledgers.get("archledger")
+    if current is None or "data" not in current.mounts:
+        raise ConfigError("Archledger has no data mount to migrate")
+    mount = MountDefinition(
+        name="data",
+        storage=storage,
+        external_root=external_root if storage == "external" else None,
+    )
+    target_registration = LedgerRegistration(
+        name="archledger",
+        mounts={**current.mounts, "data": mount},
+    )
+    ledgers = dict(loaded.manifest.ledgers)
+    ledgers["archledger"] = target_registration
+    target_manifest = LedgerProjectManifest(
+        schema_version=loaded.manifest.schema_version,
+        project_uuid=loaded.manifest.project_uuid,
+        project_name=loaded.manifest.project_name,
+        ledgers=ledgers,
+    )
+    return ledgercore.plan_storage_migration(
+        loaded,
+        target_manifest,
+        loaded.local_overrides,
+        "archledger",
+        mounts=("data",),
+        include_config=False,
+        cache_strategy="rebuild",
+    )
+
+
+def storage_migration_plan_to_mapping(plan: Any) -> dict[str, Any]:
+    """Serialize a public Ledgercore storage plan without private imports."""
+    from dataclasses import fields, is_dataclass
+
+    def convert(value: Any) -> Any:
+        if isinstance(value, Path):
+            return str(value)
+        if isinstance(value, Mapping):
+            return {str(key): convert(item) for key, item in value.items()}
+        if isinstance(value, (tuple, list)):
+            return [convert(item) for item in value]
+        if is_dataclass(value):
+            return {
+                field.name: convert(getattr(value, field.name))
+                for field in fields(value)
+            }
+        if hasattr(value, "value") and isinstance(value.value, str):
+            return value.value
+        return value
+
+    result = convert(plan)
+    if not isinstance(result, dict):
+        raise ConfigError("Ledgercore returned an invalid storage migration plan")
+    return result
 
 
 @dataclass(frozen=True, slots=True)
@@ -214,6 +446,13 @@ def validate_archledger_layout(
     warnings: list[str] = []
 
     effective = layout.raw_effective
+    registered = effective is not None
+    mounts_valid = registered
+    if not registered:
+        errors.append(
+            "Archledger is not registered in the shared manifest; residual files "
+            "are not a canonical layout."
+        )
     if effective is not None:
         mount_names = set(effective.mounts)
         if mount_names != {"data"}:
@@ -254,7 +493,7 @@ def validate_archledger_layout(
         valid=len(errors) == 0,
         config_binding_valid=config_valid,
         data_binding_valid=data_valid,
-        mounts_valid=True,
+        mounts_valid=mounts_valid,
         domain_valid=True,
         errors=tuple(errors),
         warnings=tuple(warnings),

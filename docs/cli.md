@@ -15,11 +15,27 @@ validation, `source` for change tracking, and mutation commands under
 `schema --format jsonschema --target TARGET`. `install` creates optional
 integration scaffolds and refuses overwrites unless `--force` is supplied.
 
+The canonical record and migration syntax is:
+
+```bash
+archledger --json storage where
+archledger --json record create adr "Architecture decision"
+archledger --json record list
+archledger --json record show adr-0001
+archledger --json record read --body
+archledger --json record archive adr-0001 --reason "superseded"
+archledger --json migrate plan identity-ledgercore
+archledger --json migrate apply identity-ledgercore --reason "approved migration"
+```
+
+Compatibility aliases remain available with structured deprecation warnings.
+The complete inventory is in the [generated CLI reference](cli-reference.md).
+
 (init)=
 
 ## `init` — Initialize a workspace
 
-Creates `.ledger/ledger.toml`, `.ledger/arch/config.toml`, canonical repository data, section stubs, record-type subdirectories, and `storage.yaml` in one step.
+Creates `.ledger/ledger.toml`, `.ledger/archledger/config.toml`, canonical repository data, section stubs, record-type subdirectories, and `storage.yaml` in one step.
 
 Legacy layouts fail with migration instructions. A valid canonical project is idempotent.
 
@@ -44,12 +60,12 @@ archledger init --source-format asciidoc
 Running `init` produces:
 
 - `.ledger/ledger.toml` - shared project identity and ledger topology
-- `.ledger/arch/config.toml` - stable Archledger settings
-- `.ledger/arch/archledger/` - authoritative repository data
-- `.ledger/arch/archledger/profiles/arc42/sections/` - section stubs
-- `.ledger/arch/archledger/records/` - typed record directories
-- `.ledger/arch/archledger/archive/` - archived records
-- `.ledger/arch/archledger/storage.yaml` - ledger counter state
+- `.ledger/archledger/config.toml` - stable Archledger settings
+- `.ledger/archledger/data/` - authoritative repository data
+- `.ledger/archledger/data/profiles/arc42/sections/` - section stubs
+- `.ledger/archledger/data/records/` - typed record directories
+- `.ledger/archledger/data/archive/` - archived records
+- `.ledger/archledger/data/storage.yaml` - ledger counter state
 
 Section files are numbered by configured `[ids]` format (default `al_0001` through `al_0012`) matching the 12
 major arc42 sections:
@@ -82,7 +98,7 @@ Determines file extensions, default build output name, and template
 rendering for all generated section stubs.
 
 `--archledger-dir PATH`
-Deprecated and rejected. Canonical storage is fixed at `.ledger/arch/archledger`; use `archledger migrate project` for legacy paths.
+Deprecated and rejected. Canonical storage is fixed at `.ledger/archledger/data`; use `archledger migrate project` for legacy paths.
 
 `--project-name TEXT`
 Stable project identity stored in `.ledger/ledger.toml`.
@@ -327,6 +343,9 @@ archledger build --format html --format markdown
 ```
 
 ## Project storage migration
+
+See [Storage and migration](storage.md) for derived paths, topology changes,
+strict plans, receipts, and the no-manual-move workflow.
 
 Inspect legacy layout without writes:
 

@@ -22,7 +22,7 @@ arc42-style architecture documents on demand.
 
 `archledger` is intentionally small:
 
-- project-local configuration through Ledgercore at `.ledger/ledger.toml` and `.ledger/arch/config.toml`
+- project-local configuration through Ledgercore at `.ledger/ledger.toml` and `.ledger/archledger/config.toml`
 - canonical source fragments in Markdown or AsciiDoc
 - a compact Typer CLI for init, read, record creation, validation, source drift tracking, migration, and builds
 - deterministic native document assembly with optional converter-backed exports
@@ -115,7 +115,7 @@ archledger build --format asciidoc
 
 ### Workspace config
 
-Archledger uses the Ledgercore canonical repository layout. `archledger init` creates or updates `.ledger/ledger.toml`, stores stable settings in `.ledger/arch/config.toml`, and stores authoritative data at `.ledger/arch/archledger` through one unscoped repository mount. Legacy root-level configs and arbitrary `archledger_dir` values require `archledger migrate project`. `[build].default_output_dir` remains relative to the project root.
+Archledger uses the Ledgercore canonical repository layout. `archledger init` creates or updates `.ledger/ledger.toml`, stores stable settings in `.ledger/archledger/config.toml`, and stores authoritative data at `.ledger/archledger/data` through one unscoped repository mount. Legacy root-level configs and arbitrary `archledger_dir` values require `archledger migrate project`. `[build].default_output_dir` remains relative to the project root.
 
 ### Source fragments
 
@@ -193,8 +193,8 @@ Generated build outputs are derived artifacts and should not be edited as source
 For a project that uses `archledger`, commit the canonical source and config:
 
 - `.ledger/ledger.toml`
-- `.ledger/arch/config.toml`
-- `.ledger/arch/archledger/**`
+- `.ledger/archledger/config.toml`
+- `.ledger/archledger/data/**`
 - the configured build output when it is intentionally versioned
 
 Do **not** treat generated build output as canonical source. Determine its location from `[build].default_output_dir` (or `archledger --json paths`). Generated build output and converter intermediates are disposable unless you are intentionally debugging an export issue.
@@ -247,7 +247,7 @@ archledger --json read --kind adr --body
 archledger --json source snapshot --reason after-archledger-update
 ```
 
-`snapshot` writes `.ledger/arch/archledger/source-state.json` by default. Source-state payloads store SHA-256 content hashes only for files, do not persist mtimes or file sizes, and include a derived directory hash map. If `[tracking].enabled = false`, `snapshot` and `changed` fail explicitly instead of silently creating misleading tracking state.
+`snapshot` writes `.ledger/archledger/data/source-state.json` by default. Source-state payloads store SHA-256 content hashes only for files, do not persist mtimes or file sizes, and include a derived directory hash map. If `[tracking].enabled = false`, `snapshot` and `changed` fail explicitly instead of silently creating misleading tracking state.
 
 ### Changed files
 
@@ -414,12 +414,30 @@ state_file = "source-state.json"
 
 ## CLI reference for agents
 
+The canonical command tree is inventory-driven. Prefer these stable forms:
+
+```bash
+archledger --json storage where
+archledger --json record create adr "Architecture decision"
+archledger --json record list
+archledger --json record show adr-0001
+archledger --json record read --body
+archledger --json record archive adr-0001 --reason "superseded"
+archledger --json migrate plan identity-ledgercore
+archledger --json migrate apply identity-ledgercore --reason "approved migration"
+```
+
+The old `new`, `list`, `show`, `read`, `archive`, `refs`, `links`, `paths`,
+and legacy migration paths remain compatibility aliases and emit deprecation
+warnings. See the [generated CLI reference](docs/cli-reference.md) and
+[storage migration guide](docs/storage.md).
+
 For coding agents, prefer this loop:
 
 1. Run `archledger --json paths`, `archledger --json status`, and `archledger --json check` independently instead of chaining them with `&&`.
 2. If `check` reports legacy IDs or legacy timestamp metadata, review `archledger --json migrate ids --to ledgercore` and `archledger --json migrate metadata --to versioned` dry runs before applying them.
 3. Run `archledger --json source changed` and then `archledger --json read --body --include-drafts` for broad refreshes, or use narrower `context`, `trace`, `read --section`, or `read --kind` commands when possible.
-4. Edit only source fragments under `.ledger/arch/archledger/profiles/arc42/sections` and `.ledger/arch/archledger/records`.
+4. Edit only source fragments under `.ledger/archledger/data/profiles/arc42/sections` and `.ledger/archledger/data/records`.
 5. For list or object metadata, use `archledger record meta set RECORD_ID KEY --json-value '["item"]'`. For option-like string values, use `--string-value`.
 6. Never predict record IDs; capture the returned `result.id` from `archledger --json new ...`.
 7. Run `archledger --json check --strict`.
@@ -435,7 +453,7 @@ Do not delete numbered source fragments. Use:
 archledger archive content-0022 --reason "obsolete after content-0041"
 ```
 
-Archived records move to `.ledger/arch/archledger/archive/` and keep their original ID. They are excluded from default read/list/build flows but still reserve their ledger number.
+Archived records move to `.ledger/archledger/data/archive/` and keep their original ID. They are excluded from default read/list/build flows but still reserve their ledger number.
 
 Use:
 

@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Added Ledgercore 0.6 public-facade integration, shared CLI envelopes, and the canonical `record`, `ref`, `link`, storage, and migration command tree.
+- Added strict migration-plan fingerprints, receipts, storage-layout planning, and structural journal inspection.
+
+### Changed
+
+- Preserved legacy command aliases with deprecation warnings and corrected derived storage paths to `.ledger/archledger/config.toml` and `.ledger/archledger/data`.
+
+### Notes
+
+- The installed Ledgercore prototype currently limits schema-3 execution and interrupted-migration recovery to an explicit manual-intervention fallback.
+
 ## [v0.3.2] - 2026-07-11
 
 ### Added

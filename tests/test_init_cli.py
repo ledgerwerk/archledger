@@ -203,8 +203,8 @@ def test_hidden_archledger_toml_is_supported(tmp_path: Path) -> None:
 
     result = runner.invoke(app, ["--root", str(tmp_path), "storage", "where"])
 
-    # storage where detects legacy layout and shows migration hint
-    assert result.exit_code == 1
+    # storage where is read-only and reports the legacy state without failing.
+    assert result.exit_code == 0
 
 
 def test_invalid_config_returns_json_error(tmp_path: Path) -> None:
@@ -217,11 +217,12 @@ def test_invalid_config_returns_json_error(tmp_path: Path) -> None:
 
     result = runner.invoke(app, ["--root", str(tmp_path), "--json", "status"])
 
-    assert result.exit_code == 1
+    # status is read-only; use --check when CI needs a nonzero condition result.
+    assert result.exit_code == 0
     payload = json.loads(result.stdout)
-    assert payload["ok"] is False
+    assert payload["ok"] is True
     assert payload["command"] == "status"
-    assert payload["error"]["type"] == "ConfigError"
+    assert payload["result"]["state"] == "invalid"
 
 
 def test_init_refuses_when_hidden_archledger_toml_exists(tmp_path: Path) -> None:
@@ -252,7 +253,7 @@ def test_invalid_source_format_is_rejected(tmp_path: Path) -> None:
         ["--root", str(tmp_path), "init", "--source-format", "rst"],
     )
 
-    assert result.exit_code == 1
+    assert result.exit_code == 2
     assert "source_format must be one of" in result.output
 
 
@@ -482,7 +483,7 @@ def test_init_invalid_diagram_renderer_is_rejected(tmp_path: Path) -> None:
         app,
         ["--root", str(tmp_path), "init", "--diagrams", "--diagram-renderer", "kroki"],
     )
-    assert result.exit_code == 1
+    assert result.exit_code == 2
     assert "renderer must be one of" in result.output
 
 

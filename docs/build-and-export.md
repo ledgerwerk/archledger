@@ -7,7 +7,7 @@ archledger build --format markdown
 archledger build --format asciidoc
 ```
 
-`[build].default_output_dir` is relative to the project root. Stable settings are stored in `.ledger/arch/config.toml`, while profile sections and state are relative to `.ledger/arch/archledger`.
+`[build].default_output_dir` is relative to the project root. Stable settings are stored in `.ledger/archledger/config.toml`, while profile sections and state are relative to `.ledger/archledger/data`.
 
 ## Converter-backed exports
 

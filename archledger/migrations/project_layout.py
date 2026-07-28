@@ -31,8 +31,8 @@ class ProjectLayoutHandler:
     capabilities = MigrationCapabilities(
         plan=True,
         apply=True,
-        recover=True,
-        cleanup=True,
+        recover=False,
+        cleanup=False,
         requires_legacy_state=True,
     )
 
@@ -89,6 +89,12 @@ class ProjectLayoutHandler:
             ),
             blockers=(),
             warnings=(),
+            required_hooks=(
+                "quiescence_check",
+                "validate_staged",
+                "validate_activated",
+            ),
+            cleanup_policy={"source_deletion": False, "requires_receipt": True},
         )
 
         # Compute hash
@@ -105,6 +111,8 @@ class ProjectLayoutHandler:
             preconditions=plan.preconditions,
             blockers=plan.blockers,
             warnings=plan.warnings,
+            required_hooks=plan.required_hooks,
+            cleanup_policy=plan.cleanup_policy,
             plan_hash=plan_hash,
         )
 
@@ -117,15 +125,38 @@ class ProjectLayoutHandler:
         reason: str,
     ) -> dict[str, Any]:
         """Execute a migration plan."""
+        from archledger.project_migration import inspect_project_migration
+
+        inspection = inspect_project_migration(root)
+        current_fingerprint = self._compute_source_fingerprint(inspection)
+        if plan.project and plan.project.root.resolve(strict=False) != root.resolve(
+            strict=False
+        ):
+            raise StorageError(
+                "Project-layout plan was created for a different root.",
+                details={"code": "stale_plan"},
+            )
+        if plan.source and plan.source.fingerprint != current_fingerprint:
+            raise StorageError(
+                "Project-layout source changed since the plan was created.",
+                details={"code": "stale_plan"},
+            )
         if dry_run:
             return self._dry_run_apply(root, plan, reason)
 
-        return self._execute_apply(root, plan, reason)
+        return self._execute_apply(root, plan, reason, inspection)
 
     def recover(self, root: Path, journal: Path, *, dry_run: bool) -> dict[str, Any]:
-        """Recover from an interrupted migration."""
-        # TODO: Implement recovery
-        raise NotImplementedError("Recovery not yet implemented")
+        """Report the prototype's manual-recovery boundary without writing."""
+        del root
+        return {
+            "migration": self.name,
+            "journal": str(journal),
+            "dry_run": dry_run,
+            "capability": "manual-intervention",
+            "supported": False,
+            "reason": "Ledgercore prepared-source/schema-3 recovery is not available.",
+        }
 
     def cleanup(
         self,
@@ -135,9 +166,14 @@ class ProjectLayoutHandler:
         yes: bool,
         reason: str,
     ) -> dict[str, Any]:
-        """Remove verified legacy source after migration."""
-        # TODO: Implement cleanup
-        raise NotImplementedError("Cleanup not yet implemented")
+        """Keep source cleanup disabled until a recoverable executor is available."""
+        del root, yes, reason
+        return {
+            "migration": self.name,
+            "dry_run": dry_run,
+            "supported": False,
+            "reason": "Project-layout source cleanup is disabled by policy.",
+        }
 
     def _collect_source_info(self, inspection: Any) -> MigrationSourceInfo:
         """Collect source information from inspection."""
@@ -304,21 +340,38 @@ class ProjectLayoutHandler:
         }
 
     def _execute_apply(
-        self, root: Path, plan: ArchledgerMigrationPlan, reason: str
+        self,
+        root: Path,
+        plan: ArchledgerMigrationPlan,
+        reason: str,
+        inspection: Any,
     ) -> dict[str, Any]:
-        """Execute the migration."""
-        # TODO: Implement full apply with Ledgercore
-        # For now, use existing implementation
+        """Execute the approved plan through the compatibility domain service."""
+        from archledger.migrations.receipts import create_receipt, write_receipt
         from archledger.project_migration import (
             apply_project_migration,
-            inspect_project_migration,
         )
 
-        inspection = inspect_project_migration(root)
         result = apply_project_migration(inspection)
+        receipt = create_receipt(
+            plan.migration_id,
+            self.name,
+            inspection.canonical_project_uuid,
+            inspection.canonical_project_uuid,
+            plan.source.fingerprint if plan.source else "",
+            plan.source.fingerprint if plan.source else "",
+            [path.relative_to(root).as_posix() for path in result.copied],
+            [],
+        )
+        receipt_path = write_receipt(
+            receipt, root / ".ledger" / "archledger" / "migrations"
+        )
 
         return {
-            "receipt_path": str(result.receipt_path),
+            "receipt_path": str(receipt_path),
+            "legacy_receipt_path": str(result.receipt_path),
+            "migration_id": plan.migration_id,
+            "reason": reason,
             "legacy_source_preserved": True,
             "cleanup_available": True,
             "cleanup_command": "archledger migrate cleanup project-layout --dry-run",

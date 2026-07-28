@@ -63,7 +63,7 @@ def test_migrate_plan_is_read_only(tmp_path: Path) -> None:
 
 
 def test_migrate_plan_has_schema(tmp_path: Path) -> None:
-    """Plan must have archledger.migration-plan.v1 schema."""
+    """Plan must have the strict v2 schema."""
     _legacy_project(tmp_path)
     result = runner.invoke(
         app, ["--root", str(tmp_path), "--json", "migrate", "plan", "project-layout"]
@@ -71,7 +71,7 @@ def test_migrate_plan_has_schema(tmp_path: Path) -> None:
     payload = _json_result(result)
     assert payload["ok"] is True
     plan = payload["result"]
-    assert plan.get("schema") == "archledger.migration-plan.v1"
+    assert plan.get("schema") == "archledger.migration-plan.v2"
 
 
 def test_migrate_plan_has_plan_hash(tmp_path: Path) -> None:

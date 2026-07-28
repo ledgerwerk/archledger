@@ -10,7 +10,6 @@ import typer
 import yaml
 
 from archledger import __version__
-from archledger.cli_common import ExitCode
 from archledger.cli_formatting import (
     format_archive_message as _format_archive_message,
 )
@@ -65,6 +64,8 @@ from archledger.cli_formatting import (
 from archledger.cli_formatting import (
     format_status_message as _format_status_message,
 )
+from archledger.cli_inventory import commands_payload as _commands_payload
+from archledger.cli_inventory import resolve_command as _resolve_command
 from archledger.cli_payloads import (
     archive_payload as _archive_payload,
 )
@@ -118,6 +119,16 @@ from archledger.cli_payloads import (
 )
 from archledger.cli_payloads import (
     status_payload as _status_payload,
+)
+from archledger.cli_runtime import (
+    CommonCLIState,
+    ExitCode,
+)
+from archledger.cli_runtime import (
+    emit_error as _emit_error,
+)
+from archledger.cli_runtime import (
+    emit_success as _emit_success,
 )
 from archledger.errors import ArchledgerError, StorageError
 from archledger.id_format_drift import find_id_format_drift
@@ -187,6 +198,10 @@ refs_app = typer.Typer(add_completion=False, no_args_is_help=True)
 app.add_typer(refs_app, name="refs", help="Manage source references.")
 links_app = typer.Typer(add_completion=False, no_args_is_help=True)
 app.add_typer(links_app, name="links", help="Manage record links.")
+ref_app = typer.Typer(add_completion=False, no_args_is_help=True)
+app.add_typer(ref_app, name="ref", help="Manage source references.")
+link_app = typer.Typer(add_completion=False, no_args_is_help=True)
+app.add_typer(link_app, name="link", help="Manage record links.")
 ac_app = typer.Typer(add_completion=False, no_args_is_help=True)
 app.add_typer(ac_app, name="ac", help="Manage inline acceptance criteria.")
 scope_app = typer.Typer(add_completion=False, no_args_is_help=True)
@@ -198,12 +213,6 @@ app.add_typer(
     name="storage",
     help="Inspect and manage Archledger storage topology.",
 )
-
-
-@dataclass(frozen=True, slots=True)
-class CLIState:
-    root: Path
-    json_output: bool
 
 
 @dataclass(frozen=True, slots=True)
@@ -262,8 +271,9 @@ def main(
     ] = None,
 ) -> None:
     del version
-    ctx.obj = CLIState(
-        root=Path.cwd() if root is None else root,
+    ctx.obj = CommonCLIState(
+        tool="archledger",
+        root=(Path.cwd() if root is None else root).resolve(strict=False),
         json_output=json_output,
     )
 
@@ -560,13 +570,268 @@ def init(
 
 @app.command()
 def status(ctx: typer.Context) -> None:
-    _run_simple_command(ctx, "status", _status_payload, _format_status_message)
+    state = _state(ctx)
+    from archledger.project_context import classify_project_state
+
+    classification = classify_project_state(state.root)
+    if classification in {"uninitialized", "legacy", "partial", "invalid"}:
+        payload = _basic_workspace_state(state.root, classification)
+        _emit_success(
+            state,
+            command="status",
+            result=payload,
+            warnings=[],
+            human_message=(
+                f"Archledger state: {classification}\n"
+                f"Next: {payload['recommended_next']}"
+            ),
+        )
+        return
+    try:
+        paths, config, _ = resolve_project_paths(state.root)
+        repo = ArchitectureRepository(paths, config)
+        payload = _status_payload(repo, paths, config)
+        records = repo.list_records(include_draft=True, include_superseded=True)
+        payload.update(
+            {
+                "state": "canonical",
+                "registered": True,
+                "initialized": True,
+                "valid": True,
+                "record_count": len(records),
+                "draft_count": sum(1 for record in records if record.status == "draft"),
+                "migration_state": "clean",
+                "recommended_next": "archledger check",
+            }
+        )
+        _emit_success(
+            state,
+            command="status",
+            result=payload,
+            warnings=[],
+            human_message=_format_status_message(payload),
+        )
+    except ArchledgerError as exc:
+        _emit_error(state, "status", exc)
+
+
+@app.command()
+def info(ctx: typer.Context) -> None:
+    """Show a complete read-only Archledger inventory."""
+    state = _state(ctx)
+    from archledger.project_context import classify_project_state
+
+    classification = classify_project_state(state.root)
+    if classification != "canonical":
+        payload = _basic_workspace_state(state.root, classification)
+        _emit_success(
+            state,
+            command="info",
+            result=payload,
+            warnings=[],
+            human_message=(
+                f"Archledger state: {classification}\n"
+                f"Next: {payload['recommended_next']}"
+            ),
+        )
+        return
+
+    try:
+        from archledger.ledgercore_backend import (
+            load_archledger_layout,
+            validate_archledger_layout,
+        )
+
+        layout = load_archledger_layout(state.root, require_registration=False)
+        validation = validate_archledger_layout(layout)
+        paths, config, _ = resolve_project_paths(state.root)
+        repo = ArchitectureRepository(paths, config)
+        records = repo.list_records(include_draft=True, include_superseded=True)
+        payload = {
+            "state": classification,
+            "project": {
+                "root": str(layout.project_root),
+                "uuid": layout.project_uuid,
+                "name": layout.project_name,
+            },
+            "manifest_path": str(layout.manifest_path),
+            "local_config_path": str(layout.local_config_path),
+            "tool_config_path": str(layout.tool_config_path),
+            "data_root": str(layout.data_root),
+            "effective_mount": {
+                "storage": layout.data_storage,
+                "source": layout.data_source,
+                "external_root": str(layout.external_root)
+                if layout.external_root
+                else None,
+            },
+            "binding": {
+                "config": str(layout.config_binding_path),
+                "data": str(layout.data_binding_path),
+                "valid": validation.config_binding_valid
+                and validation.data_binding_valid,
+            },
+            "config_version": config.config_version,
+            "source_format": config.source_format,
+            "profiles": list(config.profiles.profiles.enabled),
+            "record_count": len(records),
+            "draft_count": sum(1 for record in records if record.status == "draft"),
+            "document_version": getattr(config, "document_state_version", None),
+            "build_dir": str(paths.build_dir),
+            "migration_journals": _trusted_migration_paths(state.root),
+            "migration_receipts": [
+                str(path) for path in sorted(paths.archledger_dir.glob("migrations/*"))
+            ],
+            "legacy_paths": [
+                str(path)
+                for path in (
+                    state.root / ".archledger.toml",
+                    state.root / ".archledger",
+                )
+                if path.exists()
+            ],
+        }
+        _emit_success(
+            state,
+            command="info",
+            result=payload,
+            warnings=list(validation.warnings),
+            human_message=(
+                f"Archledger {layout.project_name or layout.project_uuid}\n"
+                f"Records: {len(records)} (drafts: {payload['draft_count']})\n"
+                f"Data: {layout.data_root}"
+            ),
+        )
+    except ArchledgerError as exc:
+        _emit_error(state, "info", exc)
+
+
+@app.command()
+def commands(ctx: typer.Context) -> None:
+    """List the canonical command inventory and compatibility aliases."""
+    state = _state(ctx)
+    payload = _commands_payload()
+    _emit_success(
+        state,
+        command="commands",
+        result=payload,
+        warnings=[],
+        human_message="\n".join(
+            f"{entry['path']}: {entry['summary']}"
+            for entry in payload["commands"]
+            if not entry["deprecated"]
+        ),
+    )
+
+
+@app.command("help")
+def help_command(
+    ctx: typer.Context,
+    command: Annotated[list[str] | None, typer.Argument()] = None,
+) -> None:
+    """Show inventory-driven help for a command path."""
+    state = _state(ctx)
+    requested = " ".join(command or [])
+    if not requested:
+        payload = _commands_payload()
+        message = (
+            "Use `archledger help COMMAND` for nested command help.\n\n"
+            + "\n".join(
+                f"{entry['path']}: {entry['summary']}"
+                for entry in payload["commands"]
+                if not entry["deprecated"]
+            )
+        )
+        _emit_success(
+            state, command="help", result=payload, warnings=[], human_message=message
+        )
+        return
+    entry = _resolve_command(requested)
+    if entry is None:
+        _emit_error(
+            state,
+            "help",
+            ArchledgerError(
+                f"Unknown command path: {requested}",
+                details={
+                    "code": "invalid_arguments",
+                    "remediation": ["Run: archledger commands"],
+                },
+            ),
+        )
+    payload = {"command": entry.as_mapping()}
+    _emit_success(
+        state,
+        command="help",
+        result=payload,
+        warnings=[],
+        human_message=f"{entry.path}\n\n{entry.summary}",
+    )
+
+
+@app.command("next-action")
+def next_action(ctx: typer.Context) -> None:
+    """Recommend the next safe read-only or lifecycle action."""
+    state = _state(ctx)
+    from archledger.project_context import classify_project_state
+
+    classification = classify_project_state(state.root)
+    actions = {
+        "uninitialized": ("archledger init", "No Archledger project is initialized."),
+        "legacy": (
+            "archledger migrate plan project-layout",
+            "A legacy Archledger source was detected.",
+        ),
+        "partial": (
+            "archledger storage validate --strict",
+            "The canonical project is incomplete.",
+        ),
+        "invalid": (
+            "archledger doctor",
+            "The workspace or canonical configuration is invalid.",
+        ),
+        "canonical": ("archledger check", "The canonical project is ready for checks."),
+    }
+    recommended, reason = actions[classification]
+    payload = {
+        "state": classification,
+        "recommended_next": recommended,
+        "reason": reason,
+    }
+    _emit_success(
+        state,
+        command="next-action",
+        result=payload,
+        warnings=[],
+        human_message=f"Next action: {recommended}\n{reason}",
+    )
 
 
 @app.command("paths", deprecated=True)
 def paths(ctx: typer.Context) -> None:
     """Deprecated: use `archledger storage where` instead."""
     state = _state(ctx)
+    from archledger.project_context import classify_project_state
+
+    if classify_project_state(state.root) != "canonical":
+        payload = _basic_workspace_state(state.root, "legacy")
+        _emit_success(
+            state,
+            command="paths",
+            result=payload,
+            warnings=[
+                {
+                    "code": "deprecated_command",
+                    "message": (
+                        "`archledger paths` is deprecated; use `archledger "
+                        "storage where` instead."
+                    ),
+                    "replacement": "storage where",
+                }
+            ],
+            human_message=f"Archledger state: {payload['state']}",
+        )
+        return
     try:
         payload, msg = _build_storage_where_output(state.root)
         _emit_success(
@@ -580,6 +845,28 @@ def paths(ctx: typer.Context) -> None:
 def storage_where(ctx: typer.Context) -> None:
     """Show resolved project identity and storage paths."""
     state = _state(ctx)
+    from archledger.project_context import classify_project_state
+
+    if classify_project_state(state.root) != "canonical":
+        classification = classify_project_state(state.root)
+        payload = _basic_workspace_state(state.root, classification)
+        if (
+            classification == "invalid"
+            and not payload["registered"]
+            and (payload["tool_config_exists"] or payload["data_root_exists"])
+        ):
+            payload["state"] = "unregistered-with-residual-state"
+        _emit_success(
+            state,
+            command="storage where",
+            result=payload,
+            warnings=[],
+            human_message=(
+                f"Archledger storage state: {payload['state']}\n"
+                f"Next: {payload['recommended_next']}"
+            ),
+        )
+        return
     try:
         payload, msg = _build_storage_where_output(state.root)
         _emit_success(
@@ -611,8 +898,16 @@ def storage_validate(
         payload = {
             "schema": "archledger.storage-validation.v1",
             "valid": validation.valid,
+            "registered": layout.raw_effective is not None,
+            "effective_registration_present": layout.raw_effective is not None,
+            "state": (
+                "registered"
+                if layout.raw_effective is not None
+                else "unregistered-with-residual-state"
+            ),
             "config_binding_valid": validation.config_binding_valid,
             "data_binding_valid": validation.data_binding_valid,
+            "mounts_valid": validation.mounts_valid,
             "errors": list(validation.errors),
             "warnings": list(validation.warnings),
         }
@@ -632,6 +927,179 @@ def storage_validate(
             raise typer.Exit(code=1)
     except ArchledgerError as exc:
         _emit_error(state, "storage validate", exc)
+
+
+@storage_app.command("set")
+def storage_set(
+    ctx: typer.Context,
+    mount: Annotated[str, typer.Argument()] = "data",
+    storage: Annotated[str, typer.Option("--storage")] = "project",
+    storage_root: Annotated[Path | None, typer.Option("--storage-root")] = None,
+    scope: Annotated[str, typer.Option("--scope")] = "project",
+    reason: Annotated[str, typer.Option("--reason")] = "",
+) -> None:
+    """Change storage topology without moving authoritative data."""
+    state = _state(ctx)
+    if mount != "data":
+        _emit_error(
+            state,
+            "storage set",
+            ArchledgerError(
+                "Archledger exposes only the data mount.",
+                details={"code": "invalid_arguments"},
+            ),
+        )
+    if storage not in {"project", "external", "user-data"}:
+        _emit_error(
+            state,
+            "storage set",
+            ArchledgerError(
+                "--storage must be project, external, or user-data.",
+                details={"code": "invalid_arguments"},
+            ),
+        )
+    if scope not in {"project", "local"}:
+        _emit_error(
+            state,
+            "storage set",
+            ArchledgerError(
+                "--scope must be project or local.",
+                details={"code": "invalid_arguments"},
+            ),
+        )
+    if storage == "external" and storage_root is None:
+        _emit_error(
+            state,
+            "storage set",
+            ArchledgerError(
+                "--storage-root is required for external storage.",
+                details={"code": "invalid_arguments"},
+            ),
+        )
+    if not reason:
+        _emit_error(
+            state,
+            "storage set",
+            ArchledgerError(
+                "--reason is required for storage topology changes.",
+                details={"code": "invalid_arguments"},
+            ),
+        )
+    try:
+        from archledger.ledgercore_backend import (
+            ensure_archledger_registration,
+            load_archledger_layout,
+            set_archledger_data_override,
+        )
+
+        layout = load_archledger_layout(state.root, require_registration=True)
+        old_root = layout.data_root
+        old_storage = layout.data_storage
+        if scope == "local":
+            set_archledger_data_override(
+                layout.local_config_path,
+                data_storage=storage,
+                external_root=str(storage_root) if storage_root else None,
+            )
+        else:
+            ensure_archledger_registration(
+                layout.manifest_path,
+                project_uuid=layout.project_uuid,
+                project_name=layout.project_name,
+                data_storage=storage,
+                external_root=str(storage_root) if storage_root else None,
+            )
+        updated = load_archledger_layout(state.root, require_registration=True)
+        data_present = old_root.is_dir() and any(old_root.iterdir())
+        changed = old_root.resolve(strict=False) != updated.data_root.resolve(
+            strict=False
+        )
+        payload = {
+            "mount": mount,
+            "scope": scope,
+            "reason": reason,
+            "old_storage": old_storage,
+            "new_storage": updated.data_storage,
+            "old_data_root": str(old_root),
+            "new_data_root": str(updated.data_root),
+            "data_moved": False,
+            "authoritative_data_present": data_present,
+            "topology_changed": changed,
+            "recommended_next": (
+                "archledger migrate plan storage-layout" if changed else None
+            ),
+        }
+        _emit_success(
+            state,
+            command="storage set",
+            result=payload,
+            warnings=[],
+            human_message=(
+                f"Storage topology updated: {old_root} -> {updated.data_root}\n"
+                "No data was moved."
+            ),
+        )
+    except ArchledgerError as exc:
+        _emit_error(state, "storage set", exc)
+
+
+@storage_app.command("clear-override")
+def storage_clear_override(
+    ctx: typer.Context,
+    mount: Annotated[str, typer.Argument()] = "data",
+    reason: Annotated[str, typer.Option("--reason")] = "",
+) -> None:
+    """Clear the local data topology override without moving data."""
+    state = _state(ctx)
+    if mount != "data":
+        _emit_error(
+            state,
+            "storage clear-override",
+            ArchledgerError(
+                "Archledger exposes only the data mount.",
+                details={"code": "invalid_arguments"},
+            ),
+        )
+    if not reason:
+        _emit_error(
+            state,
+            "storage clear-override",
+            ArchledgerError(
+                "--reason is required for storage topology changes.",
+                details={"code": "invalid_arguments"},
+            ),
+        )
+    try:
+        from archledger.ledgercore_backend import (
+            clear_archledger_data_override,
+            load_archledger_layout,
+        )
+
+        before = load_archledger_layout(state.root, require_registration=True)
+        clear_archledger_data_override(before.local_config_path)
+        after = load_archledger_layout(state.root, require_registration=True)
+        _emit_success(
+            state,
+            command="storage clear-override",
+            result={
+                "mount": mount,
+                "reason": reason,
+                "old_data_root": str(before.data_root),
+                "new_data_root": str(after.data_root),
+                "data_moved": False,
+                "recommended_next": (
+                    "archledger migrate plan storage-layout"
+                    if before.data_root != after.data_root
+                    else None
+                ),
+            },
+            warnings=[],
+            human_message=(
+                f"Storage override cleared. Effective data: {after.data_root}"
+            ),
+        )
+    except ArchledgerError as exc:
+        _emit_error(state, "storage clear-override", exc)
 
 
 @app.command("schema")
@@ -788,7 +1256,28 @@ def new_record(
             config,
         )
 
-    _run_configured_command(state, "new", _build_new_record_result, _format_new_message)
+    canonical = ctx.parent is not None and ctx.parent.command.name == "record"
+    _run_configured_command(
+        state,
+        "record create" if canonical else "new",
+        _build_new_record_result,
+        _format_new_message,
+        extra_warnings=[]
+        if canonical
+        else [
+            {
+                "code": "deprecated_command",
+                "message": (
+                    "`archledger new` is deprecated; use `archledger record "
+                    "create` instead."
+                ),
+                "replacement": "record create",
+            }
+        ],
+    )
+
+
+record_app.command("create")(new_record)
 
 
 @app.command()
@@ -845,9 +1334,28 @@ def list_records(
             config,
         )
 
+    canonical = ctx.parent is not None and ctx.parent.command.name == "record"
     _run_configured_command(
-        state, "list", _build_list_records_result, _format_list_message
+        state,
+        "record list" if canonical else "list",
+        _build_list_records_result,
+        _format_list_message,
+        extra_warnings=[]
+        if canonical
+        else [
+            {
+                "code": "deprecated_command",
+                "message": (
+                    "`archledger list` is deprecated; use `archledger record "
+                    "list` instead."
+                ),
+                "replacement": "record list",
+            }
+        ],
     )
+
+
+record_app.command("list")(list_records)
 
 
 @app.command()
@@ -865,7 +1373,28 @@ def show(
         del paths
         return _show_payload(repo.get_record(record_id), config)
 
-    _run_configured_command(state, "show", _build_show_result, _format_show_message)
+    canonical = ctx.parent is not None and ctx.parent.command.name == "record"
+    _run_configured_command(
+        state,
+        "record show" if canonical else "show",
+        _build_show_result,
+        _format_show_message,
+        extra_warnings=[]
+        if canonical
+        else [
+            {
+                "code": "deprecated_command",
+                "message": (
+                    "`archledger show` is deprecated; use `archledger record "
+                    "show` instead."
+                ),
+                "replacement": "record show",
+            }
+        ],
+    )
+
+
+record_app.command("show")(show)
 
 
 @app.command()
@@ -907,7 +1436,28 @@ def read(
             addon=addon,
         )
 
-    _run_configured_command(state, "read", _build_read_result, _format_read_message)
+    canonical = ctx.parent is not None and ctx.parent.command.name == "record"
+    _run_configured_command(
+        state,
+        "record read" if canonical else "read",
+        _build_read_result,
+        _format_read_message,
+        extra_warnings=[]
+        if canonical
+        else [
+            {
+                "code": "deprecated_command",
+                "message": (
+                    "`archledger read` is deprecated; use `archledger record "
+                    "read` instead."
+                ),
+                "replacement": "record read",
+            }
+        ],
+    )
+
+
+record_app.command("read")(read)
 
 
 @app.command()
@@ -947,9 +1497,28 @@ def archive(
         del paths, config
         return _archive_payload(repo.archive_record(record_id, reason=reason))
 
+    canonical = ctx.parent is not None and ctx.parent.command.name == "record"
     _run_configured_command(
-        state, "archive", _build_archive_result, _format_archive_message
+        state,
+        "record archive" if canonical else "archive",
+        _build_archive_result,
+        _format_archive_message,
+        extra_warnings=[]
+        if canonical
+        else [
+            {
+                "code": "deprecated_command",
+                "message": (
+                    "`archledger archive` is deprecated; use `archledger record "
+                    "archive` instead."
+                ),
+                "replacement": "record archive",
+            }
+        ],
     )
+
+
+record_app.command("archive")(archive)
 
 
 @app.command("doctor")
@@ -958,6 +1527,29 @@ def doctor(
     repair: Annotated[bool, typer.Option("--repair")] = False,
 ) -> None:
     state = _state(ctx)
+    from archledger.project_context import classify_project_state
+
+    classification = classify_project_state(state.root)
+    if classification != "canonical" and not repair:
+        payload = _basic_workspace_state(state.root, classification)
+        payload.update(
+            {
+                "schema": "archledger.doctor.v1",
+                "errors": [],
+                "warnings": [],
+                "repairs": [],
+            }
+        )
+        _emit_success(
+            state,
+            command="doctor",
+            result=payload,
+            warnings=[],
+            human_message=(
+                f"Doctor state: {classification}\nNext: {payload['recommended_next']}"
+            ),
+        )
+        return
 
     def _build_doctor_result(
         repo: ArchitectureRepository,
@@ -1306,6 +1898,8 @@ def migrate_plan(
     migration: Annotated[str, typer.Argument(help="Migration name")],
     output: Annotated[Path | None, typer.Option("--output", "-o")] = None,
     identity_policy: Annotated[str, typer.Option("--identity-policy")] = "strict",
+    storage: Annotated[str, typer.Option("--storage")] = "project",
+    external_root: Annotated[Path | None, typer.Option("--external-root")] = None,
 ) -> None:
     """Create a deterministic migration plan."""
     state = _state(ctx)
@@ -1316,7 +1910,14 @@ def migrate_plan(
         handler = get_handler(migration)
         if handler is None:
             raise StorageError(f"Unknown migration: {migration}")
-        plan = handler.plan(state.root, {"identity_policy": identity_policy})
+        plan = handler.plan(
+            state.root,
+            {
+                "identity_policy": identity_policy,
+                "storage": storage,
+                "external_root": str(external_root) if external_root else None,
+            },
+        )
         if output:
             save_plan(plan, output)
         _emit_success(
@@ -1366,6 +1967,14 @@ def migrate_apply(
                 ) from exc
         else:
             plan = handler.plan(state.root, {})
+        if plan.migration != migration:
+            raise StorageError(
+                (
+                    f"Plan migration {plan.migration!r} does not match requested "
+                    f"migration {migration!r}."
+                ),
+                details={"code": "stale_plan"},
+            )
         result = handler.apply(
             state.root, plan, dry_run=dry_run, reason=reason or "dry-run"
         )
@@ -1381,9 +1990,9 @@ def migrate_apply(
     except ArchledgerError as exc:
         # Use exit code 4 for stale/conflicting plans
         exit_code = (
-            ExitCode.STALE_OR_CONFLICTING
+            ExitCode.CONFLICT
             if exc.details.get("code") == "stale_plan"
-            else ExitCode.DOMAIN_VALIDATION_FAILED
+            else ExitCode.DOMAIN_FAILURE
         )
         _emit_error(state, f"migrate apply {migration}", exc, exit_code=exit_code)
 
@@ -1397,17 +2006,51 @@ def migrate_recover(
     """Recover from an interrupted migration."""
     state = _state(ctx)
     try:
-        # Parse journal to find migration type
-        import tomllib
-
-        journal_data = tomllib.loads(journal.read_text())
-        migration_name = journal_data.get("migration", "project-layout")
+        from archledger.ledgercore_backend import (
+            inspect_storage_migration,
+            load_archledger_layout,
+        )
         from archledger.migrations.registry import get_handler
 
+        resolved_journal = journal.resolve(strict=False)
+        allowed_roots = {
+            (state.root / ".ledger" / "migrations").resolve(strict=False),
+            (state.root / ".ledger" / "archledger" / "migrations").resolve(
+                strict=False
+            ),
+        }
+        if (
+            resolved_journal.is_symlink()
+            or not resolved_journal.is_file()
+            or not any(resolved_journal.parent == allowed for allowed in allowed_roots)
+        ):
+            raise StorageError(
+                "Journal must be a regular file in the project's migrations directory.",
+                details={"code": "invalid_journal_path"},
+            )
+        inspected = inspect_storage_migration(resolved_journal)
+        migration_name = "storage-layout"
+        try:
+            import tomllib
+
+            journal_data = tomllib.loads(resolved_journal.read_text(encoding="utf-8"))
+            if isinstance(journal_data.get("migration"), str):
+                migration_name = journal_data["migration"]
+        except Exception:
+            pass
         handler = get_handler(migration_name)
         if handler is None:
             raise StorageError(f"Unknown migration: {migration_name}")
-        result = handler.recover(state.root, journal, dry_run=dry_run)
+        try:
+            layout = load_archledger_layout(state.root, require_registration=True)
+            if inspected.project_uuid != layout.project_uuid:
+                raise StorageError(
+                    "Journal project identity does not match the current project.",
+                    details={"code": "project_uuid_mismatch"},
+                )
+        except ArchledgerError:
+            raise
+        result = handler.recover(state.root, resolved_journal, dry_run=dry_run)
         _emit_success(
             state,
             command="migrate recover",
@@ -1821,9 +2464,16 @@ def trace_cmd(
 def record_set_status(
     ctx: typer.Context,
     record_id: Annotated[str, typer.Argument()],
-    set_status: Annotated[str, typer.Option("--status", help="New status.")] = "",
+    status: Annotated[str | None, typer.Argument(help="New status.")] = None,
+    legacy_status: Annotated[
+        str | None, typer.Option("--status", help="New status (legacy syntax).")
+    ] = None,
+    reason: Annotated[
+        str, typer.Option("--reason", help="Reason for the change.")
+    ] = "",
 ) -> None:
     state = _state(ctx)
+    set_status = status or legacy_status or ""
     if not set_status:
         raise ArchledgerError("--status is required.")
 
@@ -1842,12 +2492,39 @@ def record_set_status(
             set_status,
             workspace_root=paths.workspace_root,
         )
-        return {"id": record_id, "path": str(target_path), "status": set_status}
+        return {
+            "id": record_id,
+            "path": str(target_path),
+            "status": set_status,
+            "reason": reason,
+        }
 
     def _fmt(p: dict[str, object]) -> str:
         return f"Set {p.get('id')} status to {p.get('status')}."
 
-    _run_record_mutation(state, "record set", record_id, _mutate, _fmt)
+    canonical = ctx.command.name == "set-status"
+    _run_record_mutation(
+        state,
+        "record set-status" if canonical else "record set",
+        record_id,
+        _mutate,
+        _fmt,
+        extra_warnings=[]
+        if canonical
+        else [
+            {
+                "code": "deprecated_command",
+                "message": (
+                    "`archledger record set` is deprecated; use `archledger record "
+                    "set-status` instead."
+                ),
+                "replacement": "record set-status",
+            }
+        ],
+    )
+
+
+record_app.command("set-status")(record_set_status)
 
 
 @record_app.command("export")
@@ -2134,7 +2811,28 @@ def refs_add(
     def _fmt(p: dict[str, object]) -> str:
         return f"Added source_ref to {p.get('id')}: {p.get('ref')}."
 
-    _run_record_mutation(state, "refs add", record_id, _mutate, _fmt)
+    canonical = ctx.parent is not None and ctx.parent.command.name == "ref"
+    _run_record_mutation(
+        state,
+        "ref add" if canonical else "refs add",
+        record_id,
+        _mutate,
+        _fmt,
+        extra_warnings=[]
+        if canonical
+        else [
+            {
+                "code": "deprecated_command",
+                "message": (
+                    "`archledger refs` is deprecated; use `archledger ref` instead."
+                ),
+                "replacement": "ref",
+            }
+        ],
+    )
+
+
+ref_app.command("add")(refs_add)
 
 
 @links_app.command("add")
@@ -2176,7 +2874,28 @@ def links_add(
     def _fmt(p: dict[str, object]) -> str:
         return f"Added link {p.get('rel')} -> {p.get('target')} to {p.get('id')}."
 
-    _run_record_mutation(state, "links add", record_id, _mutate, _fmt)
+    canonical = ctx.parent is not None and ctx.parent.command.name == "link"
+    _run_record_mutation(
+        state,
+        "link add" if canonical else "links add",
+        record_id,
+        _mutate,
+        _fmt,
+        extra_warnings=[]
+        if canonical
+        else [
+            {
+                "code": "deprecated_command",
+                "message": (
+                    "`archledger links` is deprecated; use `archledger link` instead."
+                ),
+                "replacement": "link",
+            }
+        ],
+    )
+
+
+link_app.command("add")(links_add)
 
 
 class _ScopeEntry(TypedDict):
@@ -2406,7 +3125,7 @@ def _find_record_path(repo: ArchitectureRepository, record_id: str) -> Path:
 
 
 def _run_record_mutation(
-    state: CLIState,
+    state: CommonCLIState,
     command: str,
     record_id: str,
     payload_builder: Callable[
@@ -2414,6 +3133,7 @@ def _run_record_mutation(
         dict[str, object],
     ],
     human_formatter: Callable[[dict[str, object]], str],
+    extra_warnings: list[object] | None = None,
 ) -> None:
     def _build(
         repo: ArchitectureRepository,
@@ -2430,7 +3150,13 @@ def _run_record_mutation(
             _restore_record_text(target_path, original_text)
             raise
 
-    _run_configured_command(state, command, _build, human_formatter)
+    _run_configured_command(
+        state,
+        command,
+        _build,
+        human_formatter,
+        extra_warnings=extra_warnings,
+    )
 
 
 def _restore_record_text(path: Path, original_text: str) -> None:
@@ -2616,14 +3342,14 @@ def profile_migrate(
 
 
 def _run_configured_command(
-    state: CLIState,
+    state: CommonCLIState,
     command: str,
     payload_builder: Callable[
         [ArchitectureRepository, ProjectPaths, ProjectConfig],
         dict[str, object],
     ],
     human_formatter: Callable[[dict[str, object]], str],
-    extra_warnings: list[str] | None = None,
+    extra_warnings: list[object] | None = None,
 ) -> None:
     try:
         paths, config, warnings = resolve_project_paths(state.root)
@@ -2654,6 +3380,61 @@ def _build_storage_where_output(root: Path) -> tuple[dict[str, object], str]:
     return payload, msg
 
 
+def _basic_workspace_state(root: Path, classification: str) -> dict[str, object]:
+    """Build a read-only status payload without requiring initialization."""
+    manifest_path = root.resolve(strict=False) / ".ledger" / "ledger.toml"
+    registered = False
+    effective_registration_present = False
+    tool_config_exists = False
+    data_root_exists = False
+    project_uuid: str | None = None
+    try:
+        from archledger.ledgercore_backend import load_archledger_layout
+
+        layout = load_archledger_layout(root, require_registration=False)
+        effective_registration_present = layout.raw_effective is not None
+        registered = effective_registration_present
+        tool_config_exists = layout.tool_config_path.exists()
+        data_root_exists = layout.data_root.exists()
+        project_uuid = layout.project_uuid
+    except Exception:
+        pass
+    next_actions = {
+        "uninitialized": "archledger init",
+        "legacy": "archledger migrate plan project-layout",
+        "partial": "archledger storage validate --strict",
+        "invalid": "archledger doctor",
+    }
+    return {
+        "state": classification,
+        "project_root": str(root.resolve(strict=False)),
+        "registered": registered,
+        "effective_registration_present": effective_registration_present,
+        "initialized": classification == "canonical",
+        "valid": classification == "canonical",
+        "record_count": 0,
+        "draft_count": 0,
+        "migration_state": classification,
+        "recommended_next": next_actions.get(classification, "archledger status"),
+        "manifest_path": str(manifest_path),
+        "tool_config_exists": tool_config_exists,
+        "data_root_exists": data_root_exists,
+        "project_uuid": project_uuid,
+    }
+
+
+def _trusted_migration_paths(root: Path) -> list[str]:
+    """List only regular migration journal paths under the project directory."""
+    directory = root.resolve(strict=False) / ".ledger" / "migrations"
+    if not directory.is_dir():
+        return []
+    return [
+        str(path)
+        for path in sorted(directory.glob("*.toml"))
+        if path.is_file() and not path.is_symlink()
+    ]
+
+
 def _load_tracking_baseline(
     paths: ProjectPaths,
     config: ProjectConfig,
@@ -2669,9 +3450,9 @@ def _load_tracking_baseline(
     return state
 
 
-def _state(ctx: typer.Context) -> CLIState:
+def _state(ctx: typer.Context) -> CommonCLIState:
     state = ctx.obj
-    if not isinstance(state, CLIState):
+    if not isinstance(state, CommonCLIState):
         raise RuntimeError("CLI state was not initialized.")
     return state
 
@@ -2688,69 +3469,6 @@ def _run_simple_command(
     _run_configured_command(_state(ctx), command, payload_builder, human_formatter)
 
 
-def _emit_success(
-    state: CLIState,
-    *,
-    command: str,
-    result: dict[str, object],
-    warnings: list[str],
-    human_message: str,
-) -> None:
-    if state.json_output:
-        normalized_result = _normalize_json_paths(result)
-        typer.echo(
-            json.dumps(
-                {
-                    "schema": "ledgerwerk.cli.v1",
-                    "ok": True,
-                    "tool": "archledger",
-                    "command": command,
-                    "result": normalized_result,
-                    "events": [],
-                    "warnings": warnings,
-                },
-                indent=2,
-                sort_keys=False,
-            )
-        )
-        return
-
-    typer.echo(human_message)
-    for warning in warnings:
-        typer.echo(f"warning: {warning}")
-
-
-def _emit_error(
-    state: CLIState, command: str, exc: ArchledgerError, exit_code: int = 1
-) -> None:
-    if state.json_output:
-        typer.echo(
-            json.dumps(
-                {
-                    "schema": "ledgerwerk.cli.v1",
-                    "ok": False,
-                    "tool": "archledger",
-                    "command": command,
-                    "error": {
-                        "code": exc.__class__.__name__,
-                        "message": exc.message,
-                        "remediation": exc.details.get("remediation", []),
-                        "details": {
-                            k: v for k, v in exc.details.items() if k != "remediation"
-                        },
-                    },
-                    "events": [],
-                    "warnings": [],
-                },
-                indent=2,
-                sort_keys=False,
-            )
-        )
-    else:
-        typer.echo(f"{exc.__class__.__name__}: {exc.message}", err=True)
-    raise typer.Exit(code=exit_code)
-
-
 def _check_error(result: CheckResult, *, strict: bool) -> ArchledgerError:
     summary = (
         f"Check failed with {len(result.errors)} error(s) and "
@@ -2764,53 +3482,6 @@ def _check_error(result: CheckResult, *, strict: bool) -> ArchledgerError:
             "warnings": [_finding_payload(finding) for finding in result.warnings],
         },
     )
-
-
-_JSON_PATH_KEYS = frozenset(
-    {
-        "workspace_root",
-        "config_path",
-        "archledger_dir",
-        "sections_dir",
-        "records_dir",
-        "archive_dir",
-        "build_dir",
-        "storage_meta_path",
-        "source_state_path",
-        "assembled_path",
-        "output_path",
-        "source_path",
-        "from",
-        "to",
-        "path",
-        "created_paths",
-    }
-)
-
-
-def _normalize_json_paths(value: object, *, key: str | None = None) -> object:
-    if isinstance(value, dict):
-        return {
-            item_key: _normalize_json_paths(item_value, key=item_key)
-            for item_key, item_value in value.items()
-        }
-    if isinstance(value, list):
-        if key in {"created_paths"}:
-            return [_normalize_path_string(item) for item in value]
-        return [_normalize_json_paths(item, key=key) for item in value]
-    if isinstance(value, str) and key is not None and _looks_like_path_key(key):
-        return _normalize_path_string(value)
-    return value
-
-
-def _looks_like_path_key(key: str) -> bool:
-    return key in _JSON_PATH_KEYS or key.endswith("_path") or key.endswith("_dir")
-
-
-def _normalize_path_string(value: object) -> object:
-    if not isinstance(value, str):
-        return value
-    return value.replace("\\", "/")
 
 
 def _seed_arc42_minimal(repo: ArchitectureRepository) -> list[ArchitectureRecord]:

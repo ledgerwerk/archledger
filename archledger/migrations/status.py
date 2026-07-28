@@ -1,25 +1,18 @@
-"""Migration status reporting for Archledger.
-
-This module provides read-only status reporting for migration state.
-"""
+"""Read-only migration status backed by structural Ledgercore inspection."""
 
 from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any
 
-from archledger.migrations.models import (
-    MigrationState,
-    MigrationStatusReport,
-)
+from archledger.ledgercore_backend import inspect_storage_migration
+from archledger.migrations.models import MigrationState, MigrationStatusReport
 from archledger.migrations.registry import get_handler_names
 
 
 def evaluate_migration_status(root: Path) -> MigrationStatusReport:
-    """Evaluate the current migration status for a project.
-
-    This is read-only and must not create .ledger/ or modify any files.
-    """
+    """Evaluate migration state without creating directories or mutating files."""
     from archledger.project_context import classify_project_state
 
     state = classify_project_state(root)
@@ -28,10 +21,9 @@ def evaluate_migration_status(root: Path) -> MigrationStatusReport:
     pending: list[str] = []
     blockers: list[str] = []
     warnings: list[str] = []
+    journals = _inspect_journals(root / ".ledger" / "migrations")
 
-    # Determine state based on project classification
-    if state == "uninitialized" or state == "invalid":
-        # Check if .ledger exists with archledger config (canonical ready)
+    if state in {"uninitialized", "invalid"}:
         ledger = root / ".ledger"
         arch = ledger / "archledger"
         if (
@@ -41,11 +33,8 @@ def evaluate_migration_status(root: Path) -> MigrationStatusReport:
             and (arch / "config.toml").exists()
         ):
             migration_state = MigrationState.CANONICAL_READY
-            # Check for completed receipts
-            receipts_dir = arch / "migrations"
-            if receipts_dir.exists():
-                completed = _find_completed_migrations(receipts_dir)
-            pending = [m for m in available if m not in completed]
+            completed = _find_completed_migrations(arch / "migrations")
+            pending = [name for name in available if name not in completed]
         else:
             migration_state = MigrationState.UNINITIALIZED
             pending = list(available)
@@ -53,16 +42,11 @@ def evaluate_migration_status(root: Path) -> MigrationStatusReport:
         migration_state = MigrationState.LEGACY
         pending = list(available)
     elif state == "canonical":
-        # Check if already migrated
-        ledger = root / ".ledger"
-        arch = ledger / "archledger"
+        arch = root / ".ledger" / "archledger"
         if arch.exists() and (arch / "config.toml").exists():
             migration_state = MigrationState.CANONICAL_READY
-            # Check for completed receipts
-            receipts_dir = arch / "migrations"
-            if receipts_dir.exists():
-                completed = _find_completed_migrations(receipts_dir)
-            pending = [m for m in available if m not in completed]
+            completed = _find_completed_migrations(arch / "migrations")
+            pending = [name for name in available if name not in completed]
         else:
             migration_state = MigrationState.MIGRATION_REQUIRED
             pending = list(available)
@@ -74,24 +58,29 @@ def evaluate_migration_status(root: Path) -> MigrationStatusReport:
         migration_state = MigrationState.UNINITIALIZED
         pending = list(available)
 
-    # Check for incomplete journals (recovery required)
-    ledger = root / ".ledger"
-    migrations_dir = ledger / "migrations"
-    if migrations_dir.exists():
-        incomplete = _find_incomplete_journals(migrations_dir)
-        if incomplete:
+    for journal in journals:
+        phase = journal.get("phase")
+        capability = journal.get("recovery_capability")
+        if journal.get("valid") is False:
+            blockers.append(f"Invalid migration journal: {journal['path']}")
+        elif phase not in {"complete", "committed", "rolled-back"}:
             migration_state = MigrationState.RECOVERY_REQUIRED
-            blockers.append(f"Incomplete migration journals: {', '.join(incomplete)}")
+            blockers.append(
+                f"Migration journal requires attention: {journal['path']} ({phase})"
+            )
+        elif capability == "manual-intervention":
+            warnings.append(
+                "Completed journal inspected with manual recovery capability: "
+                f"{journal['path']}"
+            )
 
-    # Check for legacy source preserved
     archledger_toml = root / ".archledger.toml"
     archledger_dir = root / ".archledger"
-    if archledger_toml.exists() or archledger_dir.exists():
-        if migration_state == MigrationState.CANONICAL_READY:
-            migration_state = MigrationState.COMPLETED_WITH_LEGACY
-            warnings.append("Legacy source still exists; run cleanup to remove")
-
-    recommended_next = _recommend_next_command(migration_state, pending)
+    if (
+        archledger_toml.exists() or archledger_dir.exists()
+    ) and migration_state == MigrationState.CANONICAL_READY:
+        migration_state = MigrationState.COMPLETED_WITH_LEGACY
+        warnings.append("Legacy source still exists; run cleanup to remove")
 
     return MigrationStatusReport(
         state=migration_state,
@@ -100,46 +89,69 @@ def evaluate_migration_status(root: Path) -> MigrationStatusReport:
         pending_migrations=tuple(pending),
         blockers=tuple(blockers),
         warnings=tuple(warnings),
-        recommended_next=recommended_next,
+        recommended_next=_recommend_next_command(migration_state, pending),
+        journals=tuple(journals),
     )
 
 
 def _find_completed_migrations(receipts_dir: Path) -> list[str]:
-    """Find completed migrations from receipts."""
-    completed = []
+    completed: list[str] = []
+    if not receipts_dir.exists():
+        return completed
     for receipt_file in receipts_dir.glob("*.json"):
         try:
-            data = json.loads(receipt_file.read_text())
-            migration_name = data.get("migration")
-            if migration_name:
-                completed.append(migration_name)
-        except (json.JSONDecodeError, KeyError):
+            data = json.loads(receipt_file.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
             continue
-    return completed
+        migration_name = data.get("migration")
+        if isinstance(migration_name, str):
+            completed.append(migration_name)
+    return sorted(set(completed))
 
 
-def _find_incomplete_journals(migrations_dir: Path) -> list[str]:
-    """Find incomplete migration journals."""
-    incomplete = []
-    for journal_file in migrations_dir.glob("*.toml"):
+def _inspect_journals(migrations_dir: Path) -> list[dict[str, Any]]:
+    """Inspect journal structure; never infer lifecycle from text fragments."""
+    if not migrations_dir.is_dir():
+        return []
+    journals: list[dict[str, Any]] = []
+    for journal_path in sorted(migrations_dir.glob("*.toml")):
         try:
-            content = journal_file.read_text()
-            if "status = " in content and "completed" not in content:
-                incomplete.append(journal_file.stem)
-        except Exception:
-            incomplete.append(journal_file.stem)
-    return incomplete
+            journal = inspect_storage_migration(journal_path)
+        except Exception as exc:
+            journals.append(
+                {
+                    "path": str(journal_path),
+                    "valid": False,
+                    "error": str(exc),
+                    "recovery_capability": "manual-intervention",
+                }
+            )
+            continue
+        journals.append(
+            {
+                "path": str(journal_path),
+                "valid": True,
+                "schema_version": journal.schema_version,
+                "migration_id": journal.migration_id,
+                "project_uuid": journal.project_uuid,
+                "phase": journal.phase,
+                "items": len(journal.items),
+                "items_completed": journal.items_completed,
+                "source_removed": journal.source_removed,
+                "recovery_capability": journal.recovery_capability,
+                "error": journal.error,
+            }
+        )
+    return journals
 
 
 def _recommend_next_command(state: MigrationState, pending: list[str]) -> str | None:
-    """Recommend the next command based on state."""
     if state == MigrationState.UNINITIALIZED:
         return None
     if state == MigrationState.RECOVERY_REQUIRED:
         return "archledger migrate recover --journal <path>"
-    if state == MigrationState.LEGACY:
-        if pending:
-            return f"archledger migrate plan {pending[0]}"
+    if state == MigrationState.LEGACY and pending:
+        return f"archledger migrate plan {pending[0]}"
     if state == MigrationState.COMPLETED_WITH_LEGACY:
         return "archledger migrate cleanup project-layout --dry-run"
     if state == MigrationState.CANONICAL_READY and pending:

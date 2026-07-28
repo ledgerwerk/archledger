@@ -48,18 +48,18 @@ archledger --json check | jq '(.result // .error.details) | {errors, warnings}'
 
 ### Phase 2: migration branch
 
-When findings report legacy IDs or legacy timestamp metadata, inspect the dry runs first:
+When findings report legacy IDs or legacy timestamp metadata, inspect the canonical dry runs first:
 
 ```bash
-archledger --json migrate ids --to ledgercore
-archledger --json migrate metadata --to versioned
+archledger --json migrate plan identity-ledgercore
+archledger --json migrate plan metadata-versioned
 ```
 
 Apply them only after the surrounding task or change plan is approved:
 
 ```bash
-archledger --json migrate ids --to ledgercore --apply
-archledger --json migrate metadata --to versioned --apply
+archledger --json migrate apply identity-ledgercore --reason "approved identity migration"
+archledger --json migrate apply metadata-versioned --reason "approved metadata migration"
 ```
 
 Re-run `archledger --json check` before content edits.
@@ -107,7 +107,7 @@ archledger record body set RECORD_ID --from-file /tmp/body.md
 IDs use one ledger-wide numeric sequence. Never predict record IDs. Capture the actual `result.id` returned by `new`:
 
 ```bash
-archledger --json new concept "Implementation workspace snapshot"
+archledger --json record create concept "Implementation workspace snapshot"
 ```
 
 ### Phase 6: final gates
@@ -147,15 +147,20 @@ Current Archledger projects use only the Ledgercore repository mount:
 
 ```text
 shared identity and topology: .ledger/ledger.toml
-stable settings:              .ledger/arch/config.toml
-authoritative data:            .ledger/arch/archledger
+stable settings:              .ledger/archledger/config.toml
+authoritative data:            .ledger/archledger/data
 ```
 
 Do not use `archledger.toml`, `.archledger.toml`, `.archledger/`, `archledger_dir`, sibling-ledger storage, or arbitrary external roots as normal runtime configuration. Legacy layouts require explicit inspection and apply:
 
 ```bash
-archledger --json migrate project
-archledger --json migrate project --apply
+archledger --json migrate plan project-layout
+archledger --json migrate apply project-layout --reason "approved project migration"
 ```
 
-Migration inspection is read-only. Apply backs up before writes, stages below `.ledger/arch`, verifies before activation, preserves the source by default, and never invokes Git.
+Migration inspection is read-only. Apply backs up before writes, validates the persisted fingerprint and project identity, preserves the source by default, and never moves data manually. If Ledgercore cannot provide schema-3 execution or recovery hooks, report manual intervention and stop safely.
+
+Compatibility-only callers may still use the former spellings
+`archledger --json migrate ids --to ledgercore` and
+`archledger --json migrate metadata --to versioned`; new automation should use
+the canonical plan/apply commands above.

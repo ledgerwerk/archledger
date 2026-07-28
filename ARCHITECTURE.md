@@ -1,7 +1,7 @@
 ---
 title: "archledger Architecture Documentation"
-version: 2
-generator: "archledger 0.3.2.dev1+g505ad5c4c"
+version: 3
+generator: "archledger 0.3.3.dev8+g146038bb3"
 arc42_template_version: "9.0-EN"
 ---
 
@@ -900,7 +900,7 @@ Key architectural decisions: dual-source support (Markdown and AsciiDoc as first
 
 ## Use Markdown/AsciiDoc records with YAML front matter
 
-**Document version:** 2
+**Document version:** 3
 
 ## Context
 
@@ -926,7 +926,7 @@ Negative: no referential integrity enforced at write time (only at check time). 
 
 ## Typer CLI over argparse or Click
 
-**Document version:** 2
+**Document version:** 3
 
 ## Context
 
@@ -950,7 +950,7 @@ Negative: Typer adds a dependency. Some advanced CLI patterns require working ar
 
 ## Jinja2 for document rendering
 
-**Document version:** 2
+**Document version:** 3
 
 ## Context
 
@@ -974,7 +974,7 @@ Negative: complex rendering logic is split between the template and Python helpe
 
 ## Use SHA-256-only source-state file entries plus directory hashes
 
-**Document version:** 2
+**Document version:** 3
 
 ## Context
 
@@ -994,7 +994,7 @@ Improves determinism and avoids unstable file-size/mtime dependence; requires co
 
 ## Config v7 and source schema v2 are the release baseline
 
-**Document version:** 2
+**Document version:** 3
 
 ## Context
 
@@ -1015,7 +1015,7 @@ Strict checks are consistent; migration effort is required for older local recor
 
 ## Native builds require no external tools
 
-**Document version:** 2
+**Document version:** 3
 
 ## Context
 
@@ -1035,7 +1035,7 @@ Improves portability; non-native formats remain optional.
 
 ## Non-native exports delegate to pandoc or asciidoctor
 
-**Document version:** 2
+**Document version:** 3
 
 ## Context
 
@@ -1055,7 +1055,7 @@ Clear dependency errors are required when tools are missing.
 
 ## Output path resolution remains bounded to configured roots
 
-**Document version:** 2
+**Document version:** 3
 
 ## Context
 
@@ -1075,7 +1075,7 @@ Safer defaults; invalid paths fail early with explicit diagnostics.
 
 ## Source refs use relative POSIX paths without parent traversal
 
-**Document version:** 2
+**Document version:** 3
 
 ## Context
 
@@ -1095,7 +1095,7 @@ Traceability links stay portable and secure; invalid refs are rejected.
 
 ## Storage counters are metadata and can be recomputed
 
-**Document version:** 2
+**Document version:** 3
 
 ## Context
 
@@ -1115,7 +1115,7 @@ Repair/recount operations can restore consistency without data loss.
 
 ## Multi-type diagram support with text as default
 
-**Document version:** 2
+**Document version:** 3
 
 ## Context
 
@@ -1137,7 +1137,7 @@ Text diagrams are immediately readable in source, Git diffs, terminal output, an
 
 ## Config v7 adds configurable ID prefix, width, and segment mode
 
-**Document version:** 2
+**Document version:** 3
 
 ## Context
 
@@ -1171,7 +1171,7 @@ The `init` command accepts `--id-prefix`, `--id-width`, and `--id-segment-mode` 
 
 ## Renumber command is dry-run by default
 
-**Document version:** 2
+**Document version:** 3
 
 ## Context
 
@@ -1202,7 +1202,7 @@ When `--apply` is used, the renumber service:
 
 ## Segmented IDs embed type-derived tokens in the ID string
 
-**Document version:** 2
+**Document version:** 3
 
 ## Context
 
@@ -1227,6 +1227,39 @@ The global numeric sequence is preserved: numbering remains sequential across al
 
 - Per-type counters: rejected because it would break the single global sequence invariant and complicate renumbering.
 - Opaque hash segments: rejected because they would not be human-readable.
+
+## Unify CLI commands and Ledgercore storage migration
+
+**Document version:** 3
+
+## Context
+
+Archledger had multiple command paths and local output envelopes while its
+storage and migration behavior was moving onto Ledgercore. That made command
+discovery, agent automation, and migration safety dependent on legacy details.
+
+## Decision
+
+Use one Ledgercore-backed CLI runtime and inventory. The canonical command tree
+uses `record`, `ref`, `link`, `storage`, and named migration handlers. Existing
+short paths remain compatibility aliases with deprecation warnings. Storage
+topology changes use strict, fingerprinted plans and receipts; data is never
+moved manually.
+
+## Consequences
+
+- Agents can discover commands and parse one stable success/error envelope.
+- Legacy scripts continue to work while callers migrate to canonical paths.
+- A Ledgercore release without schema-3 execution or recovery hooks produces an
+  explicit manual-intervention result rather than an unsafe partial move.
+- The authoritative paths are derived from Ledgercore under `.ledger/archledger`.
+
+## Alternatives considered
+
+- Keep each legacy command implementation: rejected because behavior and output
+  would continue to drift.
+- Move data with Archledger filesystem code: rejected because Ledgercore owns
+  destination policy, journaling, and recovery boundaries.
 
 # Quality Requirements
 

@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import json
 
-import pytest
 from typer.testing import CliRunner
 
 from archledger.cli import app
+from archledger.cli_inventory import validate_inventory
 
 runner = CliRunner()
 
@@ -17,14 +17,12 @@ def _json_result(result) -> dict:
     return json.loads(result.stdout)
 
 
-@pytest.mark.skip(reason="commands command not yet implemented")
 def test_commands_command_exists() -> None:
     """commands command must exist."""
     result = runner.invoke(app, ["commands"])
     assert result.exit_code != 2
 
 
-@pytest.mark.skip(reason="help command not yet implemented")
 def test_help_command_exists() -> None:
     """help command must exist."""
     result = runner.invoke(app, ["help"])
@@ -60,3 +58,10 @@ def test_migration_commands_have_metadata() -> None:
                 assert "requires_workspace" in cmd
                 assert "supports_json" in cmd
                 assert "stability" in cmd
+
+
+def test_inventory_drift_guard_reports_unregistered_paths() -> None:
+    """The shared guard fails closed when registration and metadata diverge."""
+    findings = validate_inventory({"status", "unknown"})
+    assert "registered command lacks metadata: unknown" in findings
+    assert "metadata command is not registered: migrate status" in findings

@@ -660,6 +660,7 @@ def storage_where_payload(
 ) -> dict[str, object]:
     """Canonical schema-3 storage payload from ArchledgerLedgerLayout."""
     ctx = layout
+    registered = ctx.raw_effective is not None
     return {
         "schema": "archledger.storage.v1",
         "project_root": str(ctx.project_root),
@@ -672,6 +673,11 @@ def storage_where_payload(
         "data_storage": ctx.data_storage,
         "data_source": ctx.data_source,
         "external_root": str(ctx.external_root) if ctx.external_root else None,
+        "registered": registered,
+        "effective_registration_present": registered,
+        "tool_config_exists": ctx.tool_config_path.is_file(),
+        "data_root_exists": ctx.data_root.is_dir(),
+        "state": "registered" if registered else "unregistered-with-residual-state",
         "config_binding_valid": _binding_valid(ctx.config_binding_path),
         "data_binding_valid": _binding_valid(ctx.data_binding_path),
         # Deprecated compatibility aliases

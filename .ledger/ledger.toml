@@ -5,6 +5,10 @@ uuid = "6bddbb56-b273-4aae-9860-bfa4de93f115"
 name = "archledger"
 
 
+[ledgers.archledger.mounts.data]
+storage = "project"
+
+
 [ledgers.releaseledger.mounts.data]
 storage = "project"
 

@@ -11,3 +11,4 @@ from __future__ import annotations
 from archledger.migrations import project_layout
 from archledger.migrations import identity_ledgercore
 from archledger.migrations import metadata_versioned
+from archledger.migrations import storage_layout

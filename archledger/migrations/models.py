@@ -5,6 +5,7 @@ All models are immutable dataclasses without Typer dependencies.
 
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
@@ -42,7 +43,7 @@ class IdentityPolicy(Enum):
 
 @dataclass(frozen=True)
 class MigrationCapabilities:
-    """Capabilities of a migration handler."""
+    """Honest capabilities of a migration handler."""
 
     plan: bool = True
     apply: bool = True
@@ -50,6 +51,25 @@ class MigrationCapabilities:
     cleanup: bool = True
     requires_legacy_state: bool = True
     requires_project_layout: bool = False
+    supports_resume: bool = False
+    supports_rollback: bool = False
+    supports_auto_recovery: bool = False
+
+    @property
+    def supports_plan(self) -> bool:
+        return self.plan
+
+    @property
+    def supports_apply(self) -> bool:
+        return self.apply
+
+    @property
+    def supports_recover(self) -> bool:
+        return self.recover
+
+    @property
+    def supports_cleanup(self) -> bool:
+        return self.cleanup
 
 
 @dataclass(frozen=True)
@@ -119,15 +139,20 @@ class MigrationOperation:
     size: int | None = None
     reason: str | None = None
     config_version: int | None = None
+    before_fingerprint: str | None = None
+    target_fingerprint: str | None = None
+    destination_policy: str | None = None
+    hook: str | None = None
 
 
 @dataclass(frozen=True)
 class ArchledgerMigrationPlan:
     """Immutable migration plan."""
 
-    schema: str = "archledger.migration-plan.v1"
+    schema: str = "archledger.migration-plan.v2"
     migration: str = ""
     tool: str = "archledger"
+    migration_id: str = ""
     project: MigrationProjectInfo | None = None
     source: MigrationSourceInfo | None = None
     destination: MigrationDestinationInfo | None = None
@@ -136,6 +161,9 @@ class ArchledgerMigrationPlan:
     preconditions: tuple[str, ...] = ()
     blockers: tuple[str, ...] = ()
     warnings: tuple[str, ...] = ()
+    ledgercore_plan: dict[str, Any] | None = None
+    required_hooks: tuple[str, ...] = ()
+    cleanup_policy: dict[str, Any] | None = None
     plan_hash: str = ""
 
     def to_dict(self) -> dict[str, Any]:
@@ -144,6 +172,7 @@ class ArchledgerMigrationPlan:
             "schema": self.schema,
             "migration": self.migration,
             "tool": self.tool,
+            "migration_id": self.migration_id or self._default_migration_id(),
         }
         if self.project:
             result["project"] = {
@@ -192,14 +221,28 @@ class ArchledgerMigrationPlan:
                 "size": op.size,
                 "reason": op.reason,
                 "config_version": op.config_version,
+                "before_fingerprint": op.before_fingerprint,
+                "target_fingerprint": op.target_fingerprint,
+                "destination_policy": op.destination_policy,
+                "hook": op.hook,
             }
             for op in self.operations
         ]
         result["preconditions"] = list(self.preconditions)
         result["blockers"] = list(self.blockers)
         result["warnings"] = list(self.warnings)
+        result["ledgercore_plan"] = self.ledgercore_plan
+        result["required_hooks"] = list(self.required_hooks)
+        result["cleanup_policy"] = self.cleanup_policy
         result["plan_hash"] = self.plan_hash
         return result
+
+    def _default_migration_id(self) -> str:
+        """Derive a stable transaction identity without timestamps."""
+        source = self.source.fingerprint if self.source else ""
+        root = str(self.project.root.resolve(strict=False)) if self.project else ""
+        token = f"{self.tool}\0{self.migration}\0{root}\0{source}"
+        return "migration-" + hashlib.sha256(token.encode("utf-8")).hexdigest()[:24]
 
 
 @dataclass(frozen=True)
@@ -248,6 +291,7 @@ class MigrationStatusReport:
     blockers: tuple[str, ...] = ()
     warnings: tuple[str, ...] = ()
     recommended_next: str | None = None
+    journals: tuple[dict[str, Any], ...] = ()
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
@@ -259,4 +303,5 @@ class MigrationStatusReport:
             "blockers": list(self.blockers),
             "warnings": list(self.warnings),
             "recommended_next": self.recommended_next,
+            "journals": list(self.journals),
         }
