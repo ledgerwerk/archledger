@@ -14,6 +14,7 @@ source-model
 source-tracking
 build-and-export
 release-process
+changelog
 agent-workflow
 ```
 

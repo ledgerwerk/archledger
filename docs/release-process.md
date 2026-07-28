@@ -60,7 +60,7 @@ python -m pytest -q -m integration tests/test_converter_integration.py
 
 Before tagging or publishing:
 
-1. Confirm the changelog is updated.
+1. Confirm the changelog is updated (see [changelog](changelog.md)).
 2. Confirm CI is green on the supported Python versions.
 3. Confirm the built artifact version matches `archledger.__version__` when installed.
 4. Confirm the installed console script works outside the repository checkout.

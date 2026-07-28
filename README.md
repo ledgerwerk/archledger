@@ -16,7 +16,7 @@ arc42-style architecture documents on demand.
 
 - Native Markdown and AsciiDoc source workflows are the most stable path.
 - Converter-backed exports are supported when the required external tools are installed and validated by CI.
-- See `CHANGELOG.md` for recent release-oriented changes and `docs/release-process.md` for the maintainer release checklist.
+- See `docs/changelog.md` for recent release-oriented changes and `docs/release-process.md` for the maintainer release checklist.
 
 ## What archledger is
 
